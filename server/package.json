@@ -1,0 +1,30 @@
+{
+  "name": "detailing-masters-billing-server",
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "nodemon index.js",
+    "start": "node index.js",
+    "test": "jest",
+    "lint": "eslint ."
+  },
+  "dependencies": {
+    "@sparticuz/chromium": "^149.0.0",
+    "bcryptjs": "^2.4.3",
+    "cloudinary": "^2.10.0",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.4.0",
+    "puppeteer": "^25.3.0",
+    "puppeteer-core": "^25.3.0"
+  },
+  "devDependencies": {
+    "eslint": "^8.57.1",
+    "jest": "^30.4.2",
+    "nodemon": "^3.1.0",
+    "prettier": "^3.9.1",
+    "supertest": "^7.2.2"
+  }
+}
