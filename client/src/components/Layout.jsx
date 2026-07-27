@@ -1,25 +1,41 @@
 import React, { useState, useEffect } from 'react';
 import { Outlet, NavLink, useNavigate, useLocation, Link } from 'react-router-dom';
 import {
-  LayoutDashboard, FileText, User, Briefcase, Plus, Bell, Search, LogOut, Activity, Gift, ChevronDown, Database, Globe, Menu, X
+  LayoutDashboard, FileText, User, Users, Briefcase, Plus, Bell, Search, LogOut, Activity, Gift, ChevronDown, Database, Globe, Menu, X, Sparkles, Shield
 } from 'lucide-react';
 import brandLogo from '../assets/brand_logo.png';
 import api from '../api/axios.js';
 
-const navItems = [
-  { to: '/', label: 'Dashboard', icon: LayoutDashboard, end: true },
-  {
-    label: 'Masters',
-    icon: Database,
-    subItems: [
-      { to: '/master-customer', label: 'Customers', icon: User },
-      { to: '/master-service', label: 'Services', icon: Briefcase },
-      { to: '/master-offers', label: 'Offers', icon: Gift },
-    ]
-  },
-  { to: '/invoices', label: 'Billing & Records', icon: FileText },
-  { to: '/website-bookings', label: 'Bookings', icon: Globe },
-];
+const iconMap = {
+  'layout-dashboard': LayoutDashboard,
+  'database': Database,
+  'file-text': FileText,
+  'globe': Globe,
+  'users': Users,
+  'gift': Gift,
+  'sparkle': Sparkles,
+  'briefcase': Briefcase,
+  'shield': Shield
+};
+
+function buildNavItems(menus) {
+  if (!menus || !Array.isArray(menus)) return [];
+  
+  return menus.map(menu => {
+    const item = {
+      label: menu.menu_name,
+      to: menu.route_path,
+      icon: iconMap[menu.icon] || LayoutDashboard, // fallback icon
+      end: menu.route_path === '/'
+    };
+    
+    if (menu.subItems && menu.subItems.length > 0) {
+      item.subItems = buildNavItems(menu.subItems);
+    }
+    
+    return item;
+  });
+}
 
 export default function Layout() {
   const navigate = useNavigate();
@@ -27,6 +43,21 @@ export default function Layout() {
   const [scrolled, setScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [mobileMastersOpen, setMobileMastersOpen] = useState(false);
+  const [navItems, setNavItems] = useState([]);
+
+  useEffect(() => {
+    try {
+      const userStr = localStorage.getItem('user');
+      const user = userStr ? JSON.parse(userStr) : null;
+      if (user && user.menus) {
+        setNavItems(buildNavItems(user.menus));
+      } else {
+        setNavItems([]);
+      }
+    } catch (e) {
+      setNavItems([]);
+    }
+  }, []);
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 10);

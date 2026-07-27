@@ -1,8 +1,7 @@
 const express = require('express');
-const mongoose = require('mongoose');
 const cors = require('cors');
-const cookieParser = require('cookie-parser');
 require('dotenv').config();
+const cookieParser = require('cookie-parser');
 
 const app = express();
 
@@ -10,67 +9,28 @@ app.use(cors({ origin: process.env.CLIENT_URL || 'http://localhost:5173', creden
 app.use(express.json());
 app.use(cookieParser());
 
-const MONGODB_URI = process.env.MONGODB_URI;
-
-let cached = global.mongoose;
-if (!cached) {
-  cached = global.mongoose = { conn: null, promise: null };
-}
-
-const connectDB = async () => {
-  if (cached.conn) return cached.conn;
-
-  if (!cached.promise) {
-    const opts = {
-      bufferCommands: false,
-      maxPoolSize: 10,
-    };
-    cached.promise = mongoose.connect(MONGODB_URI, opts).then((mongooseInstance) => {
-      console.log('MongoDB connected (cached with pool config)');
-      return mongooseInstance;
-    });
-  }
-  cached.conn = await cached.promise;
-  
-  // Seed admin user if none exists
-  try {
-    const User = require('./models/User');
-    const bcrypt = require('bcryptjs');
-    const userCount = await User.countDocuments();
-    if (userCount === 0) {
-      const hashedPassword = await bcrypt.hash('admin123', 10);
-      await User.create({ email: 'admin@detailingmasters.com', password: hashedPassword, studioId: 'default_studio' });
-      console.log('Default admin user created.');
-    }
-  } catch (err) {
-    console.error('Seed error:', err);
-  }
-
-  return cached.conn;
-};
-
-app.use(async (req, res, next) => {
-  await connectDB();
-  next();
-});
-
+// Routes
 app.use('/api/auth', require('./routes/auth'));
-app.use('/api/invoices', require('./routes/invoices'));
-app.use('/api/customers', require('./routes/customers'));
+app.use('/api/clients', require('./routes/clients'));
+app.use('/api/vehicles', require('./routes/vehicles'));
 app.use('/api/services', require('./routes/services'));
-app.use('/api/dashboard', require('./routes/dashboard'));
-app.use('/api/media', require('./routes/media'));
-app.use('/api/offerMaster', require('./routes/offerMaster'));
-app.use('/api/offers', require('./routes/offers'));
-app.use('/api/website-bookings', require('./routes/websiteBookings'));
+app.use('/api/job_orders', require('./routes/job_orders'));
+app.use('/api/job_order_services', require('./routes/job_order_services'));
+app.use('/api/invoices', require('./routes/invoices'));
+app.use('/api/payments', require('./routes/payments'));
+app.use('/api/permissions', require('./routes/permissions'));
 
 // Health check
 app.get('/api/health', (req, res) => res.json({ status: 'ok', app: 'DETAILING MASTERS Billing' }));
 
-
+// Global error handler
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({ message: 'Internal Server Error' });
+});
 
 if (require.main === module) {
-  const PORT = process.env.PORT || 5000;
+  const PORT = process.env.PORT || 4000;
   app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 }
 

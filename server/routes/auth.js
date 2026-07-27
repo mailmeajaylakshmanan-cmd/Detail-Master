@@ -2,91 +2,150 @@ const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const User = require('../models/User');
-// POST /api/auth/register
-router.post('/register', async (req, res) => {
-  try {
-    const { email, password } = req.body;
-    
-    const existingUser = await User.findOne({ email: email.toLowerCase().trim() }).lean();
-    if (existingUser) return res.status(400).json({ message: 'User already exists' });
-    
-    const hashedPassword = await bcrypt.hash(password, 10);
-    const user = await User.create({ email: email.toLowerCase().trim(), password: hashedPassword });
-    const token = jwt.sign({ id: user._id, email: user.email }, process.env.JWT_SECRET, { expiresIn: '30d' });
-    
-    res.cookie('token', token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'Strict',
-      maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
-    });
+const { pool } = require('../db');
+const { protect } = require('../middleware/auth'); // using the existing export
 
-    res.status(201).json({ email: user.email });
-  } catch (error) {
-    console.error('Registration error:', error);
-    res.status(500).json({ message: 'Server error during registration' });
+const JWT_SECRET = process.env.JWT_SECRET || 'supersecretjwtkey';
+
+async function getUserWithMenus(userId) {
+  const userResult = await pool.query(
+    `SELECT au.id, au.username, au.email, au.role_id, au.is_active, r.permissions, r.role_name 
+     FROM public.admin_users au 
+     JOIN public.roles r ON au.role_id = r.id 
+     WHERE au.id = $1`,
+    [userId]
+  );
+  
+  if (userResult.rows.length === 0) return null;
+  const user = userResult.rows[0];
+
+  let flatMenus = [];
+  
+  if (user.role_name === 'Super Admin') {
+    const menuResult = await pool.query('SELECT * FROM public.menus ORDER BY id ASC');
+    flatMenus = menuResult.rows;
+  } else {
+    // Get allowed menus based on role_menus and user_menus
+    const menuQuery = `
+      SELECT m.* 
+      FROM public.menus m
+      WHERE EXISTS (
+        SELECT 1 FROM public.role_menus rm WHERE rm.menu_id = m.id AND rm.role_id = $1 AND rm.can_view = TRUE
+      ) OR EXISTS (
+        SELECT 1 FROM public.user_menus um WHERE um.menu_id = m.id AND um.user_id = $2 AND um.can_view = TRUE
+      )
+      ORDER BY m.id ASC
+    `;
+    const menuResult = await pool.query(menuQuery, [user.role_id, user.id]);
+    flatMenus = menuResult.rows;
   }
-});
 
+  // Build tree
+  const menuTree = [];
+  const menuMap = {};
+  
+  flatMenus.forEach(m => {
+    menuMap[m.id] = { ...m, subItems: [] };
+  });
 
-// POST /api/auth/login
+  flatMenus.forEach(m => {
+    if (m.parent_id) {
+      if (menuMap[m.parent_id]) {
+        menuMap[m.parent_id].subItems.push(menuMap[m.id]);
+      }
+    } else {
+      menuTree.push(menuMap[m.id]);
+    }
+  });
+
+  // Remove empty subItems arrays
+  const cleanTree = (items) => {
+    return items.map(item => {
+      if (item.subItems.length === 0) delete item.subItems;
+      else cleanTree(item.subItems);
+      return item;
+    });
+  };
+
+  return {
+    id: user.id,
+    username: user.username,
+    role_id: user.role_id,
+    role_name: user.role_name,
+    permissions: user.permissions,
+    menus: cleanTree(menuTree)
+  };
+}
+
 router.post('/login', async (req, res) => {
+  const { email, password } = req.body;
+  if (!email || !password) {
+    return res.status(400).json({ message: 'Username/Email and password are required' });
+  }
+
   try {
-    const { email, password } = req.body;
-    
-    const user = await User.findOne({ email: email.toLowerCase().trim() }).lean();
-    if (!user) return res.status(400).json({ message: 'Invalid credentials' });
-    
-    const match = await bcrypt.compare(password, user.password);
-    if (!match) return res.status(400).json({ message: 'Invalid credentials' });
-    
-    const token = jwt.sign({ id: user._id, email: user.email }, process.env.JWT_SECRET, { expiresIn: '30d' });
-    
+    const result = await pool.query(`SELECT id, password_hash, is_active FROM public.admin_users WHERE username = $1 OR email = $1`, [email]);
+    const userRow = result.rows[0];
+
+    if (!userRow) return res.status(401).json({ message: 'Invalid credentials' });
+    if (!userRow.is_active) return res.status(403).json({ message: 'Account is inactive' });
+
+    const isMatch = await bcrypt.compare(password, userRow.password_hash);
+    if (!isMatch) return res.status(401).json({ message: 'Invalid credentials' });
+
+    const userResponse = await getUserWithMenus(userRow.id);
+
+    await pool.query('UPDATE public.admin_users SET last_login_at = CURRENT_TIMESTAMP WHERE id = $1', [userRow.id]);
+
+    const tokenPayload = { id: userRow.id, role_id: userRow.role_id };
+    const token = jwt.sign(tokenPayload, JWT_SECRET, { expiresIn: '1d' });
+
+    const rawIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress || '';
+    const ipAddress = rawIp.substring(0, 45);
+    const rawUa = req.headers['user-agent'] || '';
+    const userAgent = rawUa.substring(0, 255);
+
+    await pool.query(
+      `INSERT INTO public.login_sessions (user_id, token, ip_address, user_agent, login_at)
+       VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)`,
+      [userRow.id, token, ipAddress, userAgent]
+    );
+
     res.cookie('token', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'Strict',
-      maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
+      sameSite: 'strict',
+      maxAge: 24 * 60 * 60 * 1000
     });
 
-    res.json({ email: user.email });
+    res.json({ message: 'Logged in successfully', user: userResponse, token });
   } catch (error) {
     console.error('Login error:', error);
-    res.status(500).json({ message: 'Server error during login' });
+    res.status(500).json({ message: 'Server error' });
   }
 });
 
-// POST /api/auth/update (temporary route to change credentials)
-router.post('/update', async (req, res) => {
+router.post('/logout', protect, async (req, res) => {
   try {
-    const { currentEmail, newEmail, newPassword } = req.body;
-    const user = await User.findOne({ email: currentEmail.toLowerCase().trim() });
-    
-    if (!user) {
-      return res.status(404).json({ message: 'Current user not found' });
+    if (req.token) {
+      await pool.query('UPDATE public.login_sessions SET logout_at = CURRENT_TIMESTAMP WHERE token = $1', [req.token]);
     }
-
-    user.email = newEmail.toLowerCase().trim();
-    if (newPassword) {
-      user.password = await bcrypt.hash(newPassword, 10);
-    }
-    await user.save();
-    
-    res.json({ message: 'Credentials updated successfully' });
   } catch (error) {
-    console.error('Update credentials error:', error);
-    res.status(500).json({ message: 'Server error during update' });
+    console.error('Logout error:', error);
   }
+  res.clearCookie('token');
+  res.json({ message: 'Logged out successfully' });
 });
 
-// POST /api/auth/logout
-router.post('/logout', (req, res) => {
-  res.cookie('token', '', {
-    httpOnly: true,
-    expires: new Date(0)
-  });
-  res.json({ message: 'Logged out successfully' });
+router.get('/me', protect, async (req, res) => {
+  try {
+    const userResponse = await getUserWithMenus(req.user.id);
+    if (!userResponse) return res.status(404).json({ message: 'User not found' });
+    res.json({ user: userResponse });
+  } catch (error) {
+    console.error('/me error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
 });
 
 module.exports = router;

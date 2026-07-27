@@ -178,13 +178,15 @@ export default function InvoiceForm({ initial, onSubmit, loading, onCustomerSele
   const setF = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
   useEffect(() => {
-    api.get('/customers').then(r => {
+    api.get('/clients').then(r => {
       let data = r.data || [];
       if (data.length === 0) {
         data = [
           { _id: 'c1', name: 'John Doe', phone: '+91 9876543210', address: 'Mumbai' },
           { _id: 'c2', name: 'Jane Smith', phone: '+91 8765432109', address: 'Delhi' }
         ];
+      } else {
+        data = data.map(c => ({ ...c, _id: c.id, name: c.full_name }));
       }
       setCustomers(data);
     });

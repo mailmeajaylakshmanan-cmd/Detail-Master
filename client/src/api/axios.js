@@ -70,8 +70,18 @@ const mockOffers = [
 ];
 
 api.interceptors.request.use(config => {
-  // Bypass mock for website bookings to hit real backend
-  if (config.url && config.url.includes('/website-bookings')) {
+  const token = localStorage.getItem('token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+
+  // Bypass mock for auth, clients, website bookings, and permissions to hit real backend
+  if (config.url && (
+    config.url.includes('/website-bookings') || 
+    config.url.includes('/auth') || 
+    config.url.includes('/clients') ||
+    config.url.includes('/permissions')
+  )) {
     return config;
   }
 
@@ -93,12 +103,6 @@ api.interceptors.request.use(config => {
       request: {}
     });
 
-    if (url.includes('/auth/login')) {
-      return makeResponse({ success: true, message: 'Logged in' });
-    }
-    if (url.includes('/auth/me')) {
-      return makeResponse({ username: 'Demo Admin', role: 'admin' });
-    }
     if (url.includes('/packages')) {
       return makeResponse(mockPackages);
     }

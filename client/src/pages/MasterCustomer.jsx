@@ -12,17 +12,13 @@ export default function MasterCustomer() {
   // Fetch Customers
   const { data: customers = [], isLoading: loadingCustomers } = useQuery({
     queryKey: ['masterCustomer_customers'],
-    queryFn: () => api.get('/customers').then(res => {
-      const serverData = (res.data && Array.isArray(res.data)) ? res.data : [];
-      const mockData = [
-        { _id: 'c_vip2', name: 'Raj Kumar', phone: '+91 9111111111', address: '12 VIP Road, Delhi' },
-        { _id: 'c_vip', name: 'Alex VIP Rodriguez', phone: '+91 9999999999', address: '1 Luxury Ave, Mumbai' },
-        { _id: 'c1', name: 'John Doe', phone: '+91 9876543210', address: '123 Main St, Mumbai' },
-        { _id: 'c2', name: 'Jane Smith', phone: '+91 8765432109', address: '456 Park Ave, Delhi' },
-        { _id: 'c3', name: 'Mike Johnson', phone: '+91 7654321098', address: '789 Elm St, Bangalore' },
-        { _id: 'c4', name: 'Emily Davis', phone: '+91 6543210987', address: '321 Oak Ln, Chennai' }
-      ];
-      return [...serverData, ...mockData];
+    queryFn: () => api.get('/clients').then(res => {
+      const serverData = (res.data && Array.isArray(res.data)) ? res.data.map(c => ({
+        ...c,
+        _id: c.id,
+        name: c.full_name
+      })) : [];
+      return serverData;
     }),
     staleTime: 5 * 60 * 1000
   });
@@ -175,14 +171,14 @@ export default function MasterCustomer() {
 
     try {
       if (editId) {
-        await api.put('/customers/' + editId, { name, phone, address, vehicles: validVehicles });
+        await api.put('/clients/' + editId, { full_name: name, phone, address, vehicles: validVehicles });
         toast.success('Customer updated');
       } else {
-        await api.post('/customers', { name, phone, address, vehicles: validVehicles });
+        await api.post('/clients', { full_name: name, phone, address, vehicles: validVehicles });
         toast.success('Customer added');
       }
       handleCancelEdit();
-      queryClient.invalidateQueries({ queryKey: ['customers'] });
+      queryClient.invalidateQueries({ queryKey: ['masterCustomer_customers'] });
     } catch (err) {
       toast.error(err.response?.data?.message || 'Error saving customer');
     }

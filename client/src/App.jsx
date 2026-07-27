@@ -14,6 +14,7 @@ import MasterOffers from './pages/MasterOffers.jsx';
 import AssignOffer from './pages/AssignOffer.jsx';
 import OfferView from './pages/OfferView.jsx';
 import WebsiteBookings from './pages/WebsiteBookings.jsx';
+import MenuAssignment from './pages/MenuAssignment.jsx';
 
 function PrivateRoute({ children }) {
   const isAuthenticated = localStorage.getItem('isAuthenticated') === 'true';
@@ -38,6 +39,7 @@ export default function App() {
         <Route path="quotations/:id" element={<QuotationView />} />
         <Route path="update-credentials" element={<UpdateCredentials />} />
         <Route path="website-bookings" element={<WebsiteBookings />} />
+        <Route path="menu-assignment" element={<MenuAssignment />} />
       </Route>
     </Routes>
   );
