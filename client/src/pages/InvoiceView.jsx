@@ -45,30 +45,21 @@ export default function InvoiceView() {
 
   useEffect(() => {
     api.get('/invoices/' + id).then(res => {
-      setInvoice(res.data);
-    }).catch(err => {
-      // Mock data fallback
+      const row = res.data;
       setInvoice({
-        _id: id,
-        invoiceNo: 'INV-1001',
-        date: new Date().toISOString(),
-        customer: { name: 'John Doe', phone: '+91 9876543210', address: 'Mumbai' },
-        carMake: 'BMW',
-        carModel: 'X5',
-        licensePlate: 'MH01AB1234',
-        status: 'paid',
-        services: [
-          { service: 'Premium Exterior Wash', description: 'Foam wash', price: 999, quantity: 1, amount: 999 },
-          { service: 'Interior Vacuum', description: 'Deep clean', price: 799, quantity: 1, amount: 799 }
-        ],
-        subTotal: 1798,
-        discount: 0,
-        taxAmount: 323.64,
-        total: 2121.64,
-        balance: 0,
-        payments: [{ date: new Date().toISOString(), amount: 2121.64, method: 'Card' }],
-        notes: 'Thank you for your business!'
+        ...row,
+        id: row.id,
+        invoiceNo: row.invoice_number || row.invoiceNo,
+        date: row.invoice_date || row.created_at || row.date,
+        customer: row.customer || { name: row.client_name || '—' },
+        total: row.total ?? row.grand_total,
+        balance: row.balance ?? row.balance_due,
+        services: row.services || [],
+        payments: row.payments || []
       });
+    }).catch(() => {
+      toast.error('Invoice not found in database');
+      setInvoice(null);
     });
   }, [id]);
 

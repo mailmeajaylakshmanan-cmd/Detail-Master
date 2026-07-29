@@ -12,61 +12,14 @@ export default function WebsiteBookings() {
   const [activeTab, setActiveTab] = useState('Pending');
   const [searchQuery, setSearchQuery] = useState('');
   
-  // MANUAL DEMO DATA
-  const [bookings, setBookings] = useState([
-    {
-      _id: 'demo-1',
-      customerName: 'Alex Rodriguez',
-      customerPhone: '+1 (555) 123-4567',
-      customerEmail: 'alex.r@example.com',
-      carMake: 'Porsche',
-      carModel: '911 GT3',
-      serviceInterested: 'Ceramic Coating Package',
-      preferredDate: new Date(Date.now() + 86400000 * 2).toISOString(),
-      status: 'Pending',
-      notes: 'I would like to know if you provide pick up and drop service.'
-    },
-    {
-      _id: 'demo-2',
-      customerName: 'Sarah Jenkins',
-      customerPhone: '+1 (555) 987-6543',
-      carMake: 'Tesla',
-      carModel: 'Model 3',
-      serviceInterested: 'Interior Detail & Ozone',
-      preferredDate: new Date(Date.now() + 86400000 * 3).toISOString(),
-      status: 'Confirmed',
-      notes: 'Allergic to strong chemical smells, please use organic products if possible.'
-    },
-    {
-      _id: 'demo-3',
-      customerName: 'Michael Chen',
-      customerPhone: '+1 (555) 456-7890',
-      customerEmail: 'm.chen@company.com',
-      carMake: 'BMW',
-      carModel: 'M5 Competition',
-      serviceInterested: 'Paint Protection Film (Full Front)',
-      preferredDate: new Date(Date.now() - 86400000 * 1).toISOString(),
-      status: 'Completed',
-      notes: 'Car will be dropped off early morning.'
-    },
-    {
-      _id: 'demo-4',
-      customerName: 'Emma Watson',
-      customerPhone: '+1 (555) 789-0123',
-      carMake: 'Mercedes-Benz',
-      carModel: 'G-Class',
-      serviceInterested: 'Premium Wash & Wax',
-      preferredDate: new Date(Date.now() + 86400000 * 5).toISOString(),
-      status: 'Cancelled',
-      notes: 'Need to reschedule for next month.'
-    }
-  ]);
+  // No website_bookings Postgres table/route yet — empty until connected
+  const [bookings, setBookings] = useState([]);
 
   const isLoading = false;
 
   const updateStatusMutation = {
     mutate: ({ id, status }) => {
-      setBookings(prev => prev.map(b => b._id === id ? { ...b, status } : b));
+      setBookings(prev => prev.map(b => (b.id === id || b._id === id) ? { ...b, status } : b));
       toast.success('Booking status updated!');
     }
   };
@@ -199,7 +152,7 @@ export default function WebsiteBookings() {
                 </thead>
                 <tbody className="divide-y divide-gray-50">
                   {filteredBookings.map(booking => (
-                    <tr key={booking._id} className="hover:bg-gray-50/30 transition-colors group">
+                    <tr key={booking.id} className="hover:bg-gray-50/30 transition-colors group">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center font-black text-sm border border-blue-100 shadow-sm shrink-0">
@@ -235,26 +188,26 @@ export default function WebsiteBookings() {
                         <div className="flex items-center justify-center gap-2 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
                           {activeTab === 'Pending' && (
                             <>
-                              <button onClick={() => updateStatusMutation.mutate({ id: booking._id, status: 'Confirmed' })} className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-black rounded-lg transition-all shadow-sm">
+                              <button onClick={() => updateStatusMutation.mutate({ id: booking.id, status: 'Confirmed' })} className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-black rounded-lg transition-all shadow-sm">
                                 Confirm
                               </button>
-                              <button onClick={() => updateStatusMutation.mutate({ id: booking._id, status: 'Cancelled' })} className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 text-[11px] font-black rounded-lg transition-all shadow-sm">
+                              <button onClick={() => updateStatusMutation.mutate({ id: booking.id, status: 'Cancelled' })} className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 text-[11px] font-black rounded-lg transition-all shadow-sm">
                                 Cancel
                               </button>
                             </>
                           )}
                           {activeTab === 'Confirmed' && (
                             <>
-                              <button onClick={() => updateStatusMutation.mutate({ id: booking._id, status: 'Completed' })} className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-black rounded-lg transition-all shadow-sm">
+                              <button onClick={() => updateStatusMutation.mutate({ id: booking.id, status: 'Completed' })} className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-black rounded-lg transition-all shadow-sm">
                                 Complete
                               </button>
-                              <button onClick={() => updateStatusMutation.mutate({ id: booking._id, status: 'Pending' })} className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-600 border border-gray-200 text-[11px] font-black rounded-lg transition-all shadow-sm">
+                              <button onClick={() => updateStatusMutation.mutate({ id: booking.id, status: 'Pending' })} className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-600 border border-gray-200 text-[11px] font-black rounded-lg transition-all shadow-sm">
                                 Revert
                               </button>
                             </>
                           )}
                           {(activeTab === 'Completed' || activeTab === 'Cancelled') && (
-                            <button onClick={() => updateStatusMutation.mutate({ id: booking._id, status: 'Pending' })} className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-600 border border-gray-200 text-[11px] font-black rounded-lg transition-all shadow-sm">
+                            <button onClick={() => updateStatusMutation.mutate({ id: booking.id, status: 'Pending' })} className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-600 border border-gray-200 text-[11px] font-black rounded-lg transition-all shadow-sm">
                               Reopen
                             </button>
                           )}

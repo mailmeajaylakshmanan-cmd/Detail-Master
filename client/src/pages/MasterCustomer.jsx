@@ -15,7 +15,7 @@ export default function MasterCustomer() {
     queryFn: () => api.get('/clients').then(res => {
       const serverData = (res.data && Array.isArray(res.data)) ? res.data.map(c => ({
         ...c,
-        _id: c.id,
+        id: c.id,
         name: c.full_name
       })) : [];
       return serverData;
@@ -23,46 +23,27 @@ export default function MasterCustomer() {
     staleTime: 5 * 60 * 1000
   });
 
-  // Fetch Invoices (to get vehicle details and service history)
+  // Fetch Invoices (Postgres invoices table — limited join fields only)
   const { data: invoices = [], isLoading: loadingInvoices } = useQuery({
     queryKey: ['masterCustomer_invoices'],
     queryFn: () => api.get('/invoices').then(res => {
-      const serverData = Array.isArray(res.data?.invoices) ? res.data.invoices : (Array.isArray(res.data) ? res.data : []);
-      const mockData = [
-        // Raj Kumar Visits (3 cars)
-        { _id: 'i_raj1', invoiceNumber: 'INV-007', date: new Date().toISOString(), total: 35000, customer: { phone: '+91 9111111111' }, carMake: 'Range Rover', carModel: 'Sport', licensePlate: 'DL01RAJ001', services: [{ service: 'Ceramic Coating' }] },
-        { _id: 'i_raj2', invoiceNumber: 'INV-008', date: new Date(Date.now() - 15 * 86400000).toISOString(), total: 8000, customer: { phone: '+91 9111111111' }, carMake: 'BMW', carModel: 'X5', licensePlate: 'DL01RAJ002', services: [{ service: 'Interior Detailing' }] },
-        { _id: 'i_raj3', invoiceNumber: 'INV-009', date: new Date(Date.now() - 45 * 86400000).toISOString(), total: 12000, customer: { phone: '+91 9111111111' }, carMake: 'Audi', carModel: 'Q7', licensePlate: 'DL01RAJ003', services: [{ service: 'Premium Wash' }] },
-        { _id: 'i_raj4', invoiceNumber: 'INV-010', date: new Date(Date.now() - 60 * 86400000).toISOString(), total: 5000, customer: { phone: '+91 9111111111' }, carMake: 'BMW', carModel: 'X5', licensePlate: 'DL01RAJ002', services: [{ service: 'Exterior Polish' }] },
-        
-        // VIP Customer Visits with multiple cars
-        { _id: 'i_vip1', invoiceNumber: 'INV-004', date: new Date().toISOString(), total: 15000, customer: { phone: '+91 9999999999' }, carMake: 'Porsche', carModel: '911 GT3', licensePlate: 'MH01VIP001', services: [{ service: 'Paint Correction' }] },
-        { _id: 'i_vip2', invoiceNumber: 'INV-003', date: new Date(Date.now() - 30 * 86400000).toISOString(), total: 25000, customer: { phone: '+91 9999999999' }, carMake: 'Mercedes-Benz', carModel: 'G-Class', licensePlate: 'MH01VIP002', services: [{ service: 'Full Detailing' }] },
-        { _id: 'i_vip3', invoiceNumber: 'INV-002', date: new Date(Date.now() - 60 * 86400000).toISOString(), total: 12000, customer: { phone: '+91 9999999999' }, carMake: 'Porsche', carModel: '911 GT3', licensePlate: 'MH01VIP001', services: [{ service: 'Maintenance Wash' }] },
-        { _id: 'i_vip4', invoiceNumber: 'INV-001', date: new Date(Date.now() - 90 * 86400000).toISOString(), total: 18000, customer: { phone: '+91 9999999999' }, carMake: 'Mercedes-Benz', carModel: 'G-Class', licensePlate: 'MH01VIP002', services: [{ service: 'Interior Spa' }] },
-        // Other Customers
-        { _id: 'i1', invoiceNumber: 'INV-005', date: new Date().toISOString(), total: 15000, customer: { phone: '+91 9876543210' }, carMake: 'BMW', carModel: 'X5', licensePlate: 'MH01AB1234', services: [{ service: 'Ceramic Wash' }] },
-        { _id: 'i2', invoiceNumber: 'INV-006', date: new Date(Date.now() - 86400000).toISOString(), total: 8000, customer: { phone: '+91 8765432109' }, carMake: 'Audi', carModel: 'Q7', licensePlate: 'MH02CD5678', services: [{ service: 'Ozone Treatment' }] }
-      ];
-      return [...serverData, ...mockData];
+      const rows = Array.isArray(res.data?.invoices) ? res.data.invoices : (Array.isArray(res.data) ? res.data : []);
+      return rows.map(inv => ({
+        ...inv,
+        id: inv.id,
+        invoiceNumber: inv.invoice_number,
+        date: inv.invoice_date || inv.created_at,
+        total: Number(inv.grand_total || 0),
+        customer: { name: inv.client_name, phone: inv.client_phone || null },
+        services: []
+      }));
     }),
     staleTime: 5 * 60 * 1000
   });
 
-  // Fetch Offers
-  const { data: offers = [], isLoading: loadingOffers } = useQuery({
-    queryKey: ['masterCustomer_offers'],
-    queryFn: () => api.get('/offers').then(res => {
-      const data = Array.isArray(res.data) ? res.data : [];
-      if (data.length > 0) return data;
-      return [
-        { _id: 'o1', name: 'Summer Special Detailing', description: 'Complete interior and exterior detailing', defaultPrice: 4999 },
-        { _id: 'o2', name: 'Ceramic Coating Package', description: '9H Ceramic coating with 3 years warranty', defaultPrice: 24999 }
-      ];
-    }),
-    staleTime: 5 * 60 * 1000
-  });
-
+  // Offers: no Postgres route yet — keep empty (do not invent connection)
+  const offers = [];
+  const loadingOffers = false;
   const [search, setSearch] = useState('');
   const [activeFilter, setActiveFilter] = useState('All');
   const [selectedPhone, setSelectedPhone] = useState(null);
@@ -86,9 +67,8 @@ export default function MasterCustomer() {
         c.phone.includes(search)
       );
     }
-    // Mocking VIP/Pending/New logic based on random logic or empty implementation since we don't have DB fields for it yet
     if (activeFilter === 'VIP') {
-      filtered = filtered.filter((_, i) => i % 3 === 0); // Mock VIP logic
+      filtered = filtered.filter(c => (c.phone || '').includes('VIP'));
     }
     return filtered;
   }, [customers, search, activeFilter]);
@@ -102,7 +82,11 @@ export default function MasterCustomer() {
   const customerHistory = useMemo(() => {
     if (!selectedCustomer) return [];
     return invoices
-      .filter(inv => inv.customer?.phone === selectedCustomer.phone)
+      .filter(inv =>
+        (inv.customer?.phone && inv.customer.phone === selectedCustomer.phone) ||
+        (inv.customer?.name && inv.customer.name === selectedCustomer.name) ||
+        (inv.client_name && inv.client_name === selectedCustomer.name)
+      )
       .sort((a, b) => new Date(b.date) - new Date(a.date));
   }, [selectedCustomer, invoices]);
 
@@ -161,7 +145,7 @@ export default function MasterCustomer() {
   }, [customerHistory, allVehicles, selectedVehicleIdx]);
 
   const totalSpend = useMemo(() => customerHistory.reduce((s, i) => s + (i.total || 0), 0), [customerHistory]);
-  const isVIP = totalSpend > 50000 || (selectedCustomer && customers.indexOf(selectedCustomer) % 3 === 0);
+  const isVIP = totalSpend > 50000;
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -194,7 +178,7 @@ export default function MasterCustomer() {
   }
 
   function handleEdit(customer) {
-    setEditId(customer._id);
+    setEditId(customer.id);
     setName(customer.name);
     setPhone(customer.phone);
     setAddress(customer.address || '');
@@ -259,20 +243,25 @@ export default function MasterCustomer() {
         </div>
 
         <div className="flex-1 overflow-y-auto pr-2 grid grid-cols-2 gap-3 content-start pb-10">
-          {filteredCustomers.map((c, i) => {
+          {filteredCustomers.map((c) => {
             const isSelected = selectedCustomer?.phone === c.phone;
-            const mockCar = vehicleDetails ? `${vehicleDetails.make} ${vehicleDetails.model}` : (i % 2 === 0 ? 'Porsche 911 GT3' : 'BMW M4');
-            const cVIP = i % 3 === 0;
+            const primaryVehicle = (c.vehicles && c.vehicles[0])
+              ? `${c.vehicles[0].make || ''} ${c.vehicles[0].model || ''}`.trim() || c.vehicles[0].plate
+              : 'No vehicle';
+            const customerSpend = invoices
+              .filter(inv => inv.customer?.name === c.name || inv.client_name === c.name)
+              .reduce((s, inv) => s + (inv.total || 0), 0);
+            const cVIP = customerSpend > 50000;
             const customerOffers = offers.filter(o => o.customer?.phone === c.phone);
             const hasActiveOffer = customerOffers.some(o => o.status === 'active');
-            
+
             return (
-              <div 
-                key={c._id}
+              <div
+                key={c.id}
                 onClick={() => setSelectedPhone(c.phone)}
                 className={`card p-3 cursor-pointer group transition-all duration-300 ${
-                  isSelected 
-                    ? 'border-gray-900 bg-white shadow-md scale-[1.02]' 
+                  isSelected
+                    ? 'border-gray-900 bg-white shadow-md scale-[1.02]'
                     : 'border-white/60 hover:bg-white/80 hover:scale-[1.01]'
                 }`}
               >
@@ -285,7 +274,7 @@ export default function MasterCustomer() {
                   <Star size={12} className={cVIP ? "text-yellow-400 fill-yellow-400" : "text-gray-300"} />
                 </div>
                 <p className="text-[10px] text-gray-500 font-medium">
-                  {c.phone} | {mockCar}
+                  {c.phone} | {primaryVehicle}
                 </p>
               </div>
             );
@@ -479,7 +468,7 @@ export default function MasterCustomer() {
                  if (srvName.toLowerCase().includes('ceramic')) IconComp = Car;
 
                  return (
-                   <div key={inv._id} className="relative flex items-center gap-5 group">
+                   <div key={inv.id} className="relative flex items-center gap-5 group">
                      {/* Circle node */}
                      <div className="absolute -left-[29px] w-4 h-4 rounded-full bg-gray-300 border-[3px] border-white shadow-sm z-10 group-hover:bg-blue-500 group-hover:border-blue-100 transition-colors" />
                      
@@ -506,7 +495,7 @@ export default function MasterCustomer() {
                          <span className="text-[11px] text-gray-600 font-bold">
                            {parseSafeDate(inv.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                          </span>
-                         <Link to={`/invoices/${inv._id}`} className="flex items-center gap-1.5 text-[10px] font-bold text-blue-700 bg-blue-100/50 px-3 py-1.5 rounded-lg border border-blue-200 hover:bg-blue-100 transition-colors">
+                         <Link to={`/invoices/${inv.id}`} className="flex items-center gap-1.5 text-[10px] font-bold text-blue-700 bg-blue-100/50 px-3 py-1.5 rounded-lg border border-blue-200 hover:bg-blue-100 transition-colors">
                            <FileText size={12} /> View PDF
                          </Link>
                        </div>
@@ -546,14 +535,14 @@ export default function MasterCustomer() {
                   <select 
                     className="input bg-blue-50/50 border-blue-100 text-sm font-bold text-gray-700"
                     onChange={(e) => {
-                      const c = customers.find(x => x._id === e.target.value);
+                      const c = customers.find(x => String(x.id) === e.target.value);
                       if (c) handleEdit(c);
                     }}
                     defaultValue=""
                   >
                     <option value="" disabled>-- Select to add a vehicle to them --</option>
                     {customers.map(c => (
-                      <option key={c._id} value={c._id}>{c.name} - {c.phone}</option>
+                      <option key={c.id} value={c.id}>{c.name} - {c.phone}</option>
                     ))}
                   </select>
                 </div>

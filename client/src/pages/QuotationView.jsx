@@ -75,24 +75,21 @@ export default function QuotationView() {
   const [shareFile, setShareFile] = useState(null);
 
   useEffect(() => {
-    // We treat existing invoices as the source of truth for the quotation.
-    api.get('/invoices/' + id).then(res => setQuotation(res.data)).catch(err => {
+    // Uses invoices table when a GET-by-id route exists; no mock fallback
+    api.get('/invoices/' + id).then(res => {
+      const row = res.data;
       setQuotation({
-        _id: id,
-        invoiceNo: 'Q-3001',
-        date: new Date().toISOString(),
-        customer: { name: 'John Doe', phone: '+91 9876543210', address: 'Mumbai' },
-        carMake: 'Mercedes',
-        carModel: 'C-Class',
-        services: [
-          { service: 'Paint Protection Film', description: 'Full Body PPF', price: 65000, quantity: 1, amount: 65000 }
-        ],
-        subTotal: 65000,
-        discount: 5000,
-        taxAmount: 10800,
-        total: 70800,
-        notes: 'Quotation valid for 30 days.'
+        ...row,
+        id: row.id,
+        invoiceNo: row.invoice_number || row.invoiceNo,
+        date: row.invoice_date || row.created_at || row.date,
+        customer: row.customer || { name: row.client_name || '—' },
+        total: row.total ?? row.grand_total,
+        services: row.services || []
       });
+    }).catch(() => {
+      toast.error('Quotation not found in database');
+      setQuotation(null);
     });
   }, [id]);
 

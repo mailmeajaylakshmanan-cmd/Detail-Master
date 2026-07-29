@@ -179,28 +179,24 @@ export default function InvoiceForm({ initial, onSubmit, loading, onCustomerSele
 
   useEffect(() => {
     api.get('/clients').then(r => {
-      let data = r.data || [];
-      if (data.length === 0) {
-        data = [
-          { _id: 'c1', name: 'John Doe', phone: '+91 9876543210', address: 'Mumbai' },
-          { _id: 'c2', name: 'Jane Smith', phone: '+91 8765432109', address: 'Delhi' }
-        ];
-      } else {
-        data = data.map(c => ({ ...c, _id: c.id, name: c.full_name }));
-      }
+      const data = Array.isArray(r.data) ? r.data.map(c => ({
+        ...c,
+        id: c.id,
+        name: c.full_name
+      })) : [];
       setCustomers(data);
-    });
+    }).catch(() => setCustomers([]));
+
     api.get('/services').then(r => {
-      let data = r.data || [];
-      if (data.length === 0) {
-        data = [
-          { _id: 's1', name: 'Premium Exterior Wash', price: 999 },
-          { _id: 's2', name: 'Interior Vacuum', price: 799 },
-          { _id: 's3', name: 'Ceramic Coating', price: 24999 }
-        ];
-      }
+      const data = Array.isArray(r.data) ? r.data.map(s => ({
+        ...s,
+        id: s.id,
+        name: s.service_name,
+        price: Number(s.base_price || 0),
+        description: s.category || ''
+      })) : [];
       setServiceOptions(data);
-    });
+    }).catch(() => setServiceOptions([]));
   }, []);
 
   const subTotal = Number(form.subTotal || 0);
@@ -275,8 +271,8 @@ export default function InvoiceForm({ initial, onSubmit, loading, onCustomerSele
     });
   }
 
-  const selectedCustomer = form.customer?._id
-    ? { value: form.customer._id, label: `${form.customer.name} — ${form.customer.phone}` }
+  const selectedCustomer = form.customer?.id
+    ? { value: form.customer.id, label: `${form.customer.name} — ${form.customer.phone}` }
     : null;
 
   const statusConfig = {
@@ -334,13 +330,13 @@ export default function InvoiceForm({ initial, onSubmit, loading, onCustomerSele
                   menuPortalTarget={document.body}
                   menuPosition="fixed"
                   options={customers
-                    .filter(c => c.isActive !== false || c._id === form.customer?._id)
-                    .map(c => ({ value: c._id, label: `${c.name} — ${c.phone}`, customer: c }))}
+                    .filter(c => c.isActive !== false || c.id === form.customer?.id)
+                    .map(c => ({ value: c.id, label: `${c.name} — ${c.phone}`, customer: c }))}
                   value={selectedCustomer}
                   onChange={sel => {
                     if (!sel) { setForm(f => ({ ...f, customer: { name: '', phone: '', address: '' } })); return; }
                     const m = sel.customer;
-                    setForm(f => ({ ...f, customer: { _id: m._id, name: m.name, phone: m.phone, address: m.address || '' } }));
+                    setForm(f => ({ ...f, customer: { id: m.id, name: m.name, phone: m.phone, address: m.address || '' } }));
                     onCustomerSelect?.(m);
                   }}
                   isDisabled={!!initial}
@@ -433,7 +429,7 @@ export default function InvoiceForm({ initial, onSubmit, loading, onCustomerSele
                   {serviceOptions.filter(o => o.isActive !== false).map(opt => {
                     const checked = form.services.some(s => s.service === opt.name);
                     return (
-                      <label key={opt._id} className={`flex items-center gap-2 cursor-pointer px-4 py-2.5 rounded-xl text-[13px] font-bold transition-all border ${
+                      <label key={opt.id} className={`flex items-center gap-2 cursor-pointer px-4 py-2.5 rounded-xl text-[13px] font-bold transition-all border ${
                         checked 
                           ? 'bg-gray-900 text-white border-gray-900 shadow-md shadow-gray-900/20' 
                           : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50 hover:border-gray-300'

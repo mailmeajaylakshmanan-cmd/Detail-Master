@@ -5,7 +5,7 @@ import {
 } from 'lucide-react';
 import api from '../api/axios.js';
 import { useQuery } from '@tanstack/react-query';
-import { format, parseISO } from 'date-fns';
+import { format } from 'date-fns';
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -13,43 +13,28 @@ export default function Dashboard() {
 
   const { data, isLoading } = useQuery({
     queryKey: ['dashboardMetrics'],
-    queryFn: () => api.get('/dashboard').then(res => {
-      // Mock data fallback
-      const mockData = {
-        totalReceived: 125000,
-        totalBalance: 45000,
-        totalInvoices: 124,
-        upcomingSchedule: [
-          { _id: '1', customer: { name: 'John Doe' }, carMake: 'BMW', carModel: 'X5', services: [{ service: 'Full Detailing' }], status: 'Pending', createdAt: new Date().toISOString() },
-          { _id: '2', customer: { name: 'Jane Smith' }, carMake: 'Audi', carModel: 'Q7', services: [{ service: 'Ceramic Coating' }], status: 'Confirmed', createdAt: new Date(Date.now() + 3600000).toISOString() },
-          { _id: '3', customer: { name: 'Mike Johnson' }, carMake: 'Mercedes', carModel: 'C-Class', services: [{ service: 'Interior Cleaning' }], status: 'In Progress', createdAt: new Date(Date.now() + 7200000).toISOString() },
-        ],
-        recentPayments: [
-          { _id: 'p1', date: new Date().toISOString(), amount: 15000, method: 'Card' },
-          { _id: 'p2', date: new Date(Date.now() - 86400000).toISOString(), amount: 8000, method: 'Cash' },
-        ]
-      };
-      
-      const dashboardData = (res.data && res.data.totalInvoices) ? res.data : mockData;
-
-      const todaysBookings = dashboardData.upcomingSchedule?.map(inv => ({
-        id: inv._id,
-        customer: inv.customer?.name || 'Walk-in Customer',
-        car: `${inv.carMake || 'Unknown'} ${inv.carModel || ''}`.trim(),
-        service: inv.services?.[0]?.service || 'Detailing Service',
-        status: inv.status,
-        time: inv.createdAt ? format(parseISO(inv.createdAt), 'hh:mm a') : '10:00 AM',
-        staff: 'Alex D.'
-      })).slice(0, 4) || [];
-
-      return {
-        revenue: dashboardData.totalReceived || 0,
-        pending: dashboardData.totalBalance || 0,
-        totalJobs: dashboardData.totalInvoices || 0,
-        todaysBookings,
-        recentActivity: dashboardData.recentPayments || [],
-      };
-    }),
+    queryFn: async () => {
+      // No /dashboard Postgres route yet — derive from connected invoices only
+      try {
+        const res = await api.get('/invoices');
+        const rows = Array.isArray(res.data) ? res.data : [];
+        return {
+          revenue: rows.reduce((s, i) => s + Number(i.grand_total || 0) - Number(i.balance_due || 0), 0),
+          pending: rows.reduce((s, i) => s + Number(i.balance_due || 0), 0),
+          totalJobs: rows.length,
+          todaysBookings: [],
+          recentActivity: [],
+        };
+      } catch {
+        return {
+          revenue: 0,
+          pending: 0,
+          totalJobs: 0,
+          todaysBookings: [],
+          recentActivity: [],
+        };
+      }
+    },
     staleTime: 5 * 60 * 1000
   });
 

@@ -82,8 +82,16 @@ export default function OfferForm({ initial, onSubmit, loading, onCustomerSelect
   const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
-    api.get('/customers').then(r => setCustomers(r.data));
-    api.get('/offerMaster').then(r => setOfferTemplates(r.data));
+    api.get('/clients').then(r => {
+      const data = Array.isArray(r.data) ? r.data.map(c => ({
+        ...c,
+        id: c.id,
+        name: c.full_name
+      })) : [];
+      setCustomers(data);
+    }).catch(() => setCustomers([]));
+    // offerMaster not connected to Postgres yet
+    api.get('/offerMaster').then(r => setOfferTemplates(Array.isArray(r.data) ? r.data : [])).catch(() => setOfferTemplates([]));
   }, []);
 
   const setF = (k, v) => setForm(f => ({ ...f, [k]: v }));
@@ -103,11 +111,11 @@ export default function OfferForm({ initial, onSubmit, loading, onCustomerSelect
       setForm(f => ({ ...f, masterOfferId: '', packageName: '', description: '', price: '', validityDate: '', terms: '' }));
       return;
     }
-    const selectedPackage = offerTemplates.find(o => o._id === masterOfferId);
+    const selectedPackage = offerTemplates.find(o => o.id === masterOfferId);
     if (selectedPackage) {
       setForm(f => ({
         ...f,
-        masterOfferId: selectedPackage._id,
+        masterOfferId: selectedPackage.id,
         packageName: selectedPackage.name,
         price: selectedPackage.defaultPrice,
         description: selectedPackage.description,
@@ -125,8 +133,8 @@ export default function OfferForm({ initial, onSubmit, loading, onCustomerSelect
     onSubmit(form);
   }
 
-  const selectedCustomer = form.customer?._id
-    ? { value: form.customer._id, label: `${form.customer.name} — ${form.customer.phone}` }
+  const selectedCustomer = form.customer?.id
+    ? { value: form.customer.id, label: `${form.customer.name} — ${form.customer.phone}` }
     : null;
 
   const isStep1Complete = !!form.customer?.name;
@@ -159,13 +167,13 @@ export default function OfferForm({ initial, onSubmit, loading, onCustomerSelect
                   menuPortalTarget={document.body}
                   menuPosition="fixed"
                   options={customers
-                    .filter(c => c.isActive !== false || c._id === form.customer?._id)
-                    .map(c => ({ value: c._id, label: `${c.name} — ${c.phone}`, customer: c }))}
+                    .filter(c => c.isActive !== false || c.id === form.customer?.id)
+                    .map(c => ({ value: c.id, label: `${c.name} — ${c.phone}`, customer: c }))}
                   value={selectedCustomer}
                   onChange={sel => {
                     if (!sel) { setForm(f => ({ ...f, customer: { name: '', phone: '', address: '' } })); return; }
                     const m = sel.customer;
-                    setForm(f => ({ ...f, customer: { _id: m._id, name: m.name, phone: m.phone, address: m.address || '' } }));
+                    setForm(f => ({ ...f, customer: { id: m.id, name: m.name, phone: m.phone, address: m.address || '' } }));
                     onCustomerSelect?.(m);
                   }}
                   isDisabled={!!initial}
@@ -245,11 +253,11 @@ export default function OfferForm({ initial, onSubmit, loading, onCustomerSelect
               {/* Left Side: Package List */}
               <div className="flex flex-col gap-3 overflow-y-auto max-h-[440px] pr-2 custom-scrollbar">
                 {filteredTemplates.map(opt => {
-                  const isSelected = form.masterOfferId === opt._id;
+                  const isSelected = form.masterOfferId === opt.id;
                   return (
                     <div 
-                      key={opt._id}
-                      onClick={() => handlePackageSelect(opt._id)}
+                      key={opt.id}
+                      onClick={() => handlePackageSelect(opt.id)}
                       className={`relative cursor-pointer rounded-2xl p-4 transition-all duration-200 flex items-center justify-between overflow-hidden group border ${isSelected ? 'bg-amber-50/70 border-[#FBD904] shadow-md' : 'bg-white/60 border-white/60 hover:bg-white/90 hover:shadow-sm'}`}
                     >
                       {isSelected && (

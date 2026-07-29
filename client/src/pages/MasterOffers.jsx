@@ -10,14 +10,13 @@ export default function MasterOffers() {
   const { data: offers = [], isLoading: loading } = useQuery({
     queryKey: ['offerMasterData'],
     queryFn: async () => {
-      const res = await api.get('/offerMaster');
-      const data = Array.isArray(res.data) ? res.data : [];
-      if (data.length > 0) return data;
-      return [
-        { _id: 'o1', name: 'Summer Detailing Package', description: 'Complete exterior wash and wax with interior vacuuming.', defaultPrice: 2999, defaultValidityDays: 30, terms: 'Valid only for sedans and hatchbacks.' },
-        { _id: 'o2', name: 'Ceramic Coating 9H', description: 'Premium 9H ceramic coating with 3 years warranty and 2 free maintenance washes.', defaultPrice: 24999, defaultValidityDays: 1095, terms: 'Requires 2 days for application.' },
-        { _id: 'o3', name: 'Interior Deep Clean', description: 'Steam cleaning of seats, carpets, and roof liner.', defaultPrice: 1999, defaultValidityDays: 15, terms: 'Extremely dirty vehicles may incur extra charges.' }
-      ];
+      // No offerMaster Postgres table/route yet — do not invent connection
+      try {
+        const res = await api.get('/offerMaster');
+        return Array.isArray(res.data) ? res.data : [];
+      } catch {
+        return [];
+      }
     },
     staleTime: 5 * 60 * 1000
   });
@@ -81,7 +80,7 @@ export default function MasterOffers() {
   }
 
   function handleEdit(offer) {
-    setEditId(offer._id);
+    setEditId(offer.id);
     setName(offer.name);
     setDescription(offer.description || '');
     setDefaultPrice(offer.defaultPrice || '');
@@ -144,7 +143,7 @@ export default function MasterOffers() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredOffers.map(offer => (
-          <div key={offer._id} onClick={() => handleEdit(offer)} className="card p-5 relative overflow-hidden flex flex-col cursor-pointer group hover:-translate-y-1 transition-all duration-300">
+          <div key={offer.id} onClick={() => handleEdit(offer)} className="card p-5 relative overflow-hidden flex flex-col cursor-pointer group hover:-translate-y-1 transition-all duration-300">
             <div className="flex justify-between items-start mb-2">
               <h3 className="text-lg font-bold text-gray-900 pr-12 group-hover:text-blue-600 transition-colors">{offer.name}</h3>
             </div>
@@ -161,7 +160,7 @@ export default function MasterOffers() {
                 ₹{Number(offer.defaultPrice || 0).toLocaleString('en-IN')}
               </div>
               <button
-                onClick={(e) => { e.stopPropagation(); handleDelete(offer._id); }}
+                onClick={(e) => { e.stopPropagation(); handleDelete(offer.id); }}
                 className="text-[11px] font-bold uppercase rounded-full px-4 py-1.5 transition-all shadow-sm bg-rose-50 text-rose-600 hover:bg-rose-100 border border-rose-200"
               >
                 Delete

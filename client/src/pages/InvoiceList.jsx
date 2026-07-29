@@ -52,23 +52,28 @@ export default function InvoiceList() {
 
   const { data, isLoading: loading } = useQuery({
     queryKey: ['invoices'],
-    queryFn: () => api.get('/invoices', { params: { limit: 10000 } }).then(res => {
-      let serverData = res.data.invoices || res.data || [];
-      const mockData = [
-        { _id: 'inv1', invoiceNo: 'DM-1001', customer: { name: 'John Doe', phone: '+91 9876543210' }, carMake: 'BMW', carModel: 'X5', total: 15000, balance: 5000, status: 'partial', staffingStatus: 'Fully Staffed', date: new Date().toISOString() },
-        { _id: 'inv2', invoiceNo: 'DM-1002', customer: { name: 'Jane Smith', phone: '+91 8765432109' }, carMake: 'Audi', carModel: 'Q7', total: 8000, balance: 0, status: 'paid', staffingStatus: 'Staffing Pending', date: new Date(Date.now() - 86400000).toISOString() },
-        { _id: 'inv3', invoiceNo: 'DM-1003', customer: { name: 'Raj Kumar', phone: '+91 9111111111' }, carMake: 'Range Rover', carModel: 'Sport', total: 35000, balance: 35000, status: 'pending', staffingStatus: 'Partially Staffed', date: new Date(Date.now() - 172800000).toISOString() }
-      ];
-      
-      let all = [...serverData, ...mockData];
-      
+    queryFn: () => api.get('/invoices').then(res => {
+      const rows = Array.isArray(res.data?.invoices) ? res.data.invoices : (Array.isArray(res.data) ? res.data : []);
+      const all = rows.map(inv => ({
+        ...inv,
+        id: inv.id,
+        invoiceNo: inv.invoice_number,
+        customer: { name: inv.client_name || '—' },
+        total: Number(inv.grand_total || 0),
+        balance: Number(inv.balance_due || 0),
+        status: inv.status || 'pending',
+        staffingStatus: null,
+        date: inv.invoice_date || inv.created_at,
+        jobNumber: inv.job_number
+      }));
+
       return {
         all,
         stats: {
           totalRevenue: all.reduce((s, i) => s + (i.total || 0), 0),
           balanceDue:   all.reduce((s, i) => s + (i.balance || 0), 0),
-          fullyStaffed: all.filter(i => i.staffingStatus === 'Fully Staffed').length,
-          staffingPending: all.filter(i => i.staffingStatus !== 'Fully Staffed').length,
+          fullyStaffed: 0,
+          staffingPending: 0,
         },
       };
     }),
@@ -77,7 +82,7 @@ export default function InvoiceList() {
 
   const invoices = data?.all || [];
   const stats = data?.stats || {};
-  const selectedInv = selectedPaymentInvoiceId ? invoices.find(i => i._id === selectedPaymentInvoiceId) : null;
+  const selectedInv = selectedPaymentInvoiceId ? invoices.find(i => i.id === selectedPaymentInvoiceId) : null;
 
   const filtered = invoices.filter(inv => {
     if (status === 'Fully Staffed'   && inv.staffingStatus !== 'Fully Staffed') return false;
@@ -172,7 +177,7 @@ export default function InvoiceList() {
               <tr><td colSpan="6" className="text-center py-12 text-slate-400 text-sm">No invoices found</td></tr>
             )}
             {!loading && filtered.map(inv => (
-              <tr key={inv._id} className="hover:bg-slate-50/60 transition-colors group">
+              <tr key={inv.id} className="hover:bg-slate-50/60 transition-colors group">
                 <td className="px-5 py-3.5">
                   <span className="font-bold text-orange-500 text-sm">#{inv.invoiceNo || 'DM-XXXX'}</span>
                 </td>
@@ -196,7 +201,7 @@ export default function InvoiceList() {
                       {inv.status}
                     </span>
                     <button
-                      onClick={() => setSelectedPaymentInvoiceId(inv._id)}
+                      onClick={() => setSelectedPaymentInvoiceId(inv.id)}
                       className="p-1 text-slate-300 hover:text-orange-500 hover:bg-orange-50 rounded transition-colors"
                     >
                       <Eye size={12} />
@@ -205,9 +210,9 @@ export default function InvoiceList() {
                 </td>
                 <td className="px-5 py-3.5 text-right">
                   <div className="flex justify-end gap-1 opacity-50 group-hover:opacity-100 transition-opacity">
-                    <Link to={`/invoices/${inv._id}/report`} className="p-1.5 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg" title="Report"><FileText size={14}/></Link>
-                    <Link to={`/invoices/${inv._id}`}        className="p-1.5 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg" title="View"><Eye size={14}/></Link>
-                    <Link to={`/invoices/${inv._id}/edit`}   className="p-1.5 text-slate-500 hover:text-orange-600 hover:bg-orange-50 rounded-lg" title="Edit"><Edit3 size={14}/></Link>
+                    <Link to={`/invoices/${inv.id}/report`} className="p-1.5 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg" title="Report"><FileText size={14}/></Link>
+                    <Link to={`/invoices/${inv.id}`}        className="p-1.5 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg" title="View"><Eye size={14}/></Link>
+                    <Link to={`/invoices/${inv.id}/edit`}   className="p-1.5 text-slate-500 hover:text-orange-600 hover:bg-orange-50 rounded-lg" title="Edit"><Edit3 size={14}/></Link>
                   </div>
                 </td>
               </tr>
@@ -223,7 +228,7 @@ export default function InvoiceList() {
           <div className="text-center py-10 text-slate-400 text-sm">No invoices found</div>
         )}
         {!loading && filtered.map(inv => (
-          <div key={inv._id} className="bg-white shadow-sm border border-gray-100 rounded-2xl border border-slate-100 shadow-sm p-4 space-y-3">
+          <div key={inv.id} className="bg-white shadow-sm border border-gray-100 rounded-2xl border border-slate-100 shadow-sm p-4 space-y-3">
             {/* Top row: invoice no + status badges */}
             <div className="flex items-center justify-between gap-2">
               <span className="font-bold text-orange-500 text-sm">#{inv.invoiceNo || '—'}</span>
@@ -246,15 +251,15 @@ export default function InvoiceList() {
             {/* Actions */}
             <div className="flex items-center justify-between pt-1 border-t border-slate-100">
               <button
-                onClick={() => setSelectedPaymentInvoiceId(inv._id)}
+                onClick={() => setSelectedPaymentInvoiceId(inv.id)}
                 className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-orange-500 transition-colors"
               >
                 <Eye size={13}/> Payment details
               </button>
               <div className="flex gap-1">
-                <Link to={`/invoices/${inv._id}/report`} className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg"><FileText size={15}/></Link>
-                <Link to={`/invoices/${inv._id}`}        className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg"><Eye size={15}/></Link>
-                <Link to={`/invoices/${inv._id}/edit`}   className="p-2 text-slate-400 hover:text-orange-600 hover:bg-orange-50 rounded-lg"><Edit3 size={15}/></Link>
+                <Link to={`/invoices/${inv.id}/report`} className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg"><FileText size={15}/></Link>
+                <Link to={`/invoices/${inv.id}`}        className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg"><Eye size={15}/></Link>
+                <Link to={`/invoices/${inv.id}/edit`}   className="p-2 text-slate-400 hover:text-orange-600 hover:bg-orange-50 rounded-lg"><Edit3 size={15}/></Link>
               </div>
             </div>
           </div>

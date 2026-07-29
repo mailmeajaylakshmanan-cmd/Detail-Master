@@ -29,26 +29,10 @@ export default function OfferView() {
   useEffect(() => {
     api.get('/offers/' + id).then(res => {
       setOffer(res.data);
-    }).catch(err => {
-      // Mock data fallback
-      setOffer({
-        _id: id,
-        offerNo: 'OFF-2001',
-        date: new Date().toISOString(),
-        customer: { name: 'John Doe', phone: '+91 9876543210', address: 'Mumbai' },
-        carMake: 'Audi',
-        carModel: 'A6',
-        licensePlate: 'MH02XY5678',
-        services: [
-          { service: 'Summer Special Detailing', description: 'Complete interior and exterior detailing', price: 4999, quantity: 1, amount: 4999 }
-        ],
-        subTotal: 4999,
-        discount: 0,
-        taxAmount: 899.82,
-        total: 5898.82,
-        validUntil: new Date(Date.now() + 15 * 86400000).toISOString(),
-        notes: 'This offer is valid for 15 days.'
-      });
+    }).catch(() => {
+      // offers table/route not connected yet
+      toast.error('Offer not found in database');
+      setOffer(null);
     });
   }, [id]);
 

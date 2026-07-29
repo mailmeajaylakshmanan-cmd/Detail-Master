@@ -5,7 +5,19 @@ const cookieParser = require('cookie-parser');
 
 const app = express();
 
-app.use(cors({ origin: process.env.CLIENT_URL || 'http://localhost:5173', credentials: true }));
+const allowedOrigins = (process.env.CLIENT_URL || 'http://localhost:5173')
+  .split(',')
+  .map(s => s.trim())
+  .filter(Boolean);
+
+app.use(cors({
+  origin(origin, cb) {
+    // Allow same-origin / server-to-server / local tools with no Origin header
+    if (!origin || allowedOrigins.includes(origin)) return cb(null, true);
+    return cb(new Error('Not allowed by CORS'));
+  },
+  credentials: true
+}));
 app.use(express.json());
 app.use(cookieParser());
 
@@ -26,12 +38,13 @@ app.get('/api/health', (req, res) => res.json({ status: 'ok', app: 'DETAILING MA
 // Global error handler
 app.use((err, req, res, next) => {
   console.error(err.stack);
-  res.status(500).json({ message: 'Internal Server Error' });
+  res.status(err.message === 'Not allowed by CORS' ? 403 : 500)
+    .json({ message: err.message === 'Not allowed by CORS' ? err.message : 'Internal Server Error' });
 });
 
 if (require.main === module) {
   const PORT = process.env.PORT || 4000;
-  app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+  app.listen(PORT, '0.0.0.0', () => console.log(`Server running on port ${PORT}`));
 }
 
 module.exports = app;

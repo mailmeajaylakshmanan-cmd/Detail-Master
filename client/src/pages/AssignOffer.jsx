@@ -16,8 +16,9 @@ export default function AssignOffer() {
     const params = new URLSearchParams(location.search);
     const phone = params.get('phone');
     if (phone) {
-      api.get('/customers').then(res => {
-        const c = res.data.find(c => c.phone === phone);
+      api.get('/clients').then(res => {
+        const list = Array.isArray(res.data) ? res.data.map(c => ({ ...c, id: c.id, name: c.full_name })) : [];
+        const c = list.find(c => c.phone === phone);
         if (c) {
           setInitialData({ customer: c });
         }
@@ -33,7 +34,7 @@ export default function AssignOffer() {
     try {
       const res = await api.post('/offers', data);
       toast.success('Offer Package generated!');
-      navigate('/offers/' + res.data._id);
+      navigate('/offers/' + res.data.id);
     } catch (err) {
       toast.error(err.response?.data?.message || 'Error creating offer');
     } finally {
