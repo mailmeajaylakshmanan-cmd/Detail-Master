@@ -1,77 +1,49 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../api/axios.js';
 import toast from 'react-hot-toast';
 import { Plus, Edit3, X, Search, Car, Calendar, FileText, Phone, MapPin, Star, Edit2, Sparkles, Droplets, PenTool, CheckSquare, Gift } from 'lucide-react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import { parseSafeDate } from '../utils/dateFormatter.js';
+import { useClients, useInvoices } from '../hooks/useQueries.js';
+import { useDebouncedValue } from '../hooks/useDebouncedValue.js';
+import { queryKeys } from '../api/queryKeys.js';
 
 export default function MasterCustomer() {
   const queryClient = useQueryClient();
+  const { data: customers = [], isLoading: loadingCustomers } = useClients();
+  const { data: invoiceData, isLoading: loadingInvoices } = useInvoices({ page: 1, limit: 100 });
+  const invoices = invoiceData?.invoices || [];
 
-  // Fetch Customers
-  const { data: customers = [], isLoading: loadingCustomers } = useQuery({
-    queryKey: ['masterCustomer_customers'],
-    queryFn: () => api.get('/clients').then(res => {
-      const serverData = (res.data && Array.isArray(res.data)) ? res.data.map(c => ({
-        ...c,
-        id: c.id,
-        name: c.full_name
-      })) : [];
-      return serverData;
-    }),
-    staleTime: 5 * 60 * 1000
-  });
-
-  // Fetch Invoices (Postgres invoices table — limited join fields only)
-  const { data: invoices = [], isLoading: loadingInvoices } = useQuery({
-    queryKey: ['masterCustomer_invoices'],
-    queryFn: () => api.get('/invoices').then(res => {
-      const rows = Array.isArray(res.data?.invoices) ? res.data.invoices : (Array.isArray(res.data) ? res.data : []);
-      return rows.map(inv => ({
-        ...inv,
-        id: inv.id,
-        invoiceNumber: inv.invoice_number,
-        date: inv.invoice_date || inv.created_at,
-        total: Number(inv.grand_total || 0),
-        customer: { name: inv.client_name, phone: inv.client_phone || null },
-        services: []
-      }));
-    }),
-    staleTime: 5 * 60 * 1000
-  });
-
-  // Offers: no Postgres route yet — keep empty (do not invent connection)
   const offers = [];
   const loadingOffers = false;
   const [search, setSearch] = useState('');
+  const debouncedSearch = useDebouncedValue(search, 250);
   const [activeFilter, setActiveFilter] = useState('All');
   const [selectedPhone, setSelectedPhone] = useState(null);
 
-  // Form State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [address, setAddress] = useState('');
   const [formVehicles, setFormVehicles] = useState([{ make: '', model: '', plate: '' }]);
   const [editId, setEditId] = useState(null);
-  
+
   const [selectedVehicleIdx, setSelectedVehicleIdx] = useState(0);
 
-  // Filtered Customers
   const filteredCustomers = useMemo(() => {
     let filtered = customers;
-    if (search) {
+    if (debouncedSearch) {
       filtered = filtered.filter(c =>
-        c.name.toLowerCase().includes(search.toLowerCase()) ||
-        c.phone.includes(search)
+        (c.name || '').toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+        (c.phone || '').includes(debouncedSearch)
       );
     }
     if (activeFilter === 'VIP') {
       filtered = filtered.filter(c => (c.phone || '').includes('VIP'));
     }
     return filtered;
-  }, [customers, search, activeFilter]);
+  }, [customers, debouncedSearch, activeFilter]);
 
   // Selected Customer Logic
   const selectedCustomer = useMemo(() => {
@@ -83,6 +55,8 @@ export default function MasterCustomer() {
     if (!selectedCustomer) return [];
     return invoices
       .filter(inv =>
+        (inv.clientId && inv.clientId === selectedCustomer.id) ||
+        (inv.client_id && inv.client_id === selectedCustomer.id) ||
         (inv.customer?.phone && inv.customer.phone === selectedCustomer.phone) ||
         (inv.customer?.name && inv.customer.name === selectedCustomer.name) ||
         (inv.client_name && inv.client_name === selectedCustomer.name)
@@ -109,14 +83,19 @@ export default function MasterCustomer() {
     // Historical vehicles from invoices
     if (customerHistory.length > 0) {
       customerHistory.forEach(inv => {
-        if (inv.carMake || inv.licensePlate) {
-          const key = `${inv.carMake}-${inv.carModel}-${inv.licensePlate}`;
+        const makeModel = (inv.vehicleName || '').trim();
+        const parts = makeModel.split(/\s+/);
+        const make = inv.carMake || parts[0] || '';
+        const model = inv.carModel || parts.slice(1).join(' ') || '';
+        const plate = inv.licenseVin || inv.licensePlate || '';
+        if (make || plate) {
+          const key = `${make}-${model}-${plate}`;
           if (!seen.has(key)) {
             seen.add(key);
             vehicles.push({
-              make: inv.carMake || 'Unknown',
-              model: inv.carModel || '',
-              plate: inv.licensePlate || 'N/A'
+              make: make || 'Unknown',
+              model: model || '',
+              plate: plate || 'N/A'
             });
           }
         }
@@ -127,8 +106,7 @@ export default function MasterCustomer() {
 
   const vehicleDetails = allVehicles[selectedVehicleIdx] || allVehicles[0] || null;
 
-  // Reset selected vehicle when customer changes
-  useMemo(() => {
+  useEffect(() => {
     setSelectedVehicleIdx(0);
   }, [selectedCustomer]);
 
@@ -136,11 +114,17 @@ export default function MasterCustomer() {
     if (allVehicles.length <= 1) return customerHistory;
     const selectedVeh = allVehicles[selectedVehicleIdx];
     if (!selectedVeh) return customerHistory;
-    
+
     return customerHistory.filter(inv => {
-      // Check if this invoice matches the selected vehicle
-      return (inv.licensePlate === selectedVeh.plate) || 
-             (inv.carMake === selectedVeh.make && inv.carModel === selectedVeh.model);
+      const plate = inv.licenseVin || inv.licensePlate || '';
+      const makeModel = (inv.vehicleName || '').trim();
+      const parts = makeModel.split(/\s+/);
+      const make = inv.carMake || parts[0] || '';
+      const model = inv.carModel || parts.slice(1).join(' ') || '';
+      return (
+        (plate && plate === selectedVeh.plate) ||
+        (make === selectedVeh.make && model === selectedVeh.model)
+      );
     });
   }, [customerHistory, allVehicles, selectedVehicleIdx]);
 
@@ -162,7 +146,7 @@ export default function MasterCustomer() {
         toast.success('Customer added');
       }
       handleCancelEdit();
-      queryClient.invalidateQueries({ queryKey: ['masterCustomer_customers'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.clients.all });
     } catch (err) {
       toast.error(err.response?.data?.message || 'Error saving customer');
     }
@@ -249,7 +233,11 @@ export default function MasterCustomer() {
               ? `${c.vehicles[0].make || ''} ${c.vehicles[0].model || ''}`.trim() || c.vehicles[0].plate
               : 'No vehicle';
             const customerSpend = invoices
-              .filter(inv => inv.customer?.name === c.name || inv.client_name === c.name)
+              .filter(inv =>
+                (inv.clientId && inv.clientId === c.id) ||
+                inv.customer?.name === c.name ||
+                inv.client_name === c.name
+              )
               .reduce((s, inv) => s + (inv.total || 0), 0);
             const cVIP = customerSpend > 50000;
             const customerOffers = offers.filter(o => o.customer?.phone === c.phone);
@@ -482,7 +470,7 @@ export default function MasterCustomer() {
                        <div className="flex flex-col gap-1.5">
                          <h4 className="font-bold text-gray-900 text-sm">{srvName}</h4>
                          <div className="flex items-center gap-2">
-                           <span className="bg-gray-200/50 text-gray-700 text-[10px] font-bold px-2 py-0.5 rounded-md">INV-{inv.invoiceNumber || inv.invoiceNo}</span>
+                           <span className="bg-gray-200/50 text-gray-700 text-[10px] font-bold px-2 py-0.5 rounded-md">{inv.invoiceNo || inv.invoice_number || inv.id}</span>
                            <span className="text-gray-400 text-[10px] font-medium px-1">Detailing Service</span>
                            <span className="text-[12px] font-black text-gray-900">₹{inv.total?.toLocaleString('en-IN')}</span>
                            <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full tracking-wider shadow-sm ${isPaid ? 'bg-emerald-800 text-white' : 'bg-[#FBBF24] text-yellow-900'}`}>

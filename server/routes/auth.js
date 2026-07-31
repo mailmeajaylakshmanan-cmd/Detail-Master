@@ -3,7 +3,7 @@ const router = express.Router();
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { pool } = require('../db');
-const { protect } = require('../middleware/auth'); // using the existing export
+const { protect, invalidateSessionCache } = require('../middleware/auth'); // using the existing export
 
 const JWT_SECRET = process.env.JWT_SECRET || 'supersecretjwtkey';
 
@@ -22,22 +22,39 @@ async function getUserWithMenus(userId) {
   let flatMenus = [];
   
   if (user.role_name === 'Super Admin') {
-    const menuResult = await pool.query('SELECT * FROM public.menus ORDER BY id ASC');
+    const menuResult = await pool.query('SELECT * FROM public.menus WHERE is_active = TRUE ORDER BY id ASC');
     flatMenus = menuResult.rows;
   } else {
-    // Get allowed menus based on role_menus and user_menus
+    // Menus from role_menus OR user_menus overrides
     const menuQuery = `
-      SELECT m.* 
+      SELECT DISTINCT m.* 
       FROM public.menus m
-      WHERE EXISTS (
-        SELECT 1 FROM public.role_menus rm WHERE rm.menu_id = m.id AND rm.role_id = $1 AND rm.can_view = TRUE
-      ) OR EXISTS (
-        SELECT 1 FROM public.user_menus um WHERE um.menu_id = m.id AND um.user_id = $2 AND um.can_view = TRUE
-      )
+      WHERE m.is_active = TRUE
+        AND (
+          EXISTS (
+            SELECT 1 FROM public.role_menus rm
+            WHERE rm.menu_id = m.id AND rm.role_id = $1 AND rm.can_view = TRUE
+          )
+          OR EXISTS (
+            SELECT 1 FROM public.user_menus um
+            WHERE um.menu_id = m.id AND um.user_id = $2 AND um.can_view = TRUE
+          )
+        )
       ORDER BY m.id ASC
     `;
     const menuResult = await pool.query(menuQuery, [user.role_id, user.id]);
     flatMenus = menuResult.rows;
+
+    // Include inactive parents? No — include active parent rows so sidebar groups render
+    const parentIds = [...new Set(flatMenus.map((m) => m.parent_id).filter(Boolean))];
+    const missingParents = parentIds.filter((pid) => !flatMenus.some((m) => m.id === pid));
+    if (missingParents.length) {
+      const parents = await pool.query(
+        `SELECT * FROM public.menus WHERE id = ANY($1::int[]) AND is_active = TRUE`,
+        [missingParents]
+      );
+      flatMenus = [...flatMenus, ...parents.rows];
+    }
   }
 
   // Build tree
@@ -52,13 +69,15 @@ async function getUserWithMenus(userId) {
     if (m.parent_id) {
       if (menuMap[m.parent_id]) {
         menuMap[m.parent_id].subItems.push(menuMap[m.id]);
+      } else {
+        // Parent not visible — still show child at top level
+        menuTree.push(menuMap[m.id]);
       }
     } else {
       menuTree.push(menuMap[m.id]);
     }
   });
 
-  // Remove empty subItems arrays
   const cleanTree = (items) => {
     return items.map(item => {
       if (item.subItems.length === 0) delete item.subItems;
@@ -129,6 +148,7 @@ router.post('/logout', protect, async (req, res) => {
   try {
     if (req.token) {
       await pool.query('UPDATE public.login_sessions SET logout_at = CURRENT_TIMESTAMP WHERE token = $1', [req.token]);
+      invalidateSessionCache(req.token);
     }
   } catch (error) {
     console.error('Logout error:', error);

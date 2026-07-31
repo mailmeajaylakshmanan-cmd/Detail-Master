@@ -6,36 +6,25 @@ import {
 import api from '../api/axios.js';
 import { useQuery } from '@tanstack/react-query';
 import { format } from 'date-fns';
+import { queryKeys } from '../api/queryKeys.js';
 
 export default function Dashboard() {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
 
   const { data, isLoading } = useQuery({
-    queryKey: ['dashboardMetrics'],
+    queryKey: queryKeys.invoices.list({ page: 1, limit: 50, dashboard: true }),
     queryFn: async () => {
-      // No /dashboard Postgres route yet — derive from connected invoices only
-      try {
-        const res = await api.get('/invoices');
-        const rows = Array.isArray(res.data) ? res.data : [];
-        return {
-          revenue: rows.reduce((s, i) => s + Number(i.grand_total || 0) - Number(i.balance_due || 0), 0),
-          pending: rows.reduce((s, i) => s + Number(i.balance_due || 0), 0),
-          totalJobs: rows.length,
-          todaysBookings: [],
-          recentActivity: [],
-        };
-      } catch {
-        return {
-          revenue: 0,
-          pending: 0,
-          totalJobs: 0,
-          todaysBookings: [],
-          recentActivity: [],
-        };
-      }
+      const res = await api.get('/invoices', { params: { page: 1, limit: 50 } });
+      const rows = Array.isArray(res.data?.invoices) ? res.data.invoices : [];
+      return {
+        revenue: rows.reduce((s, i) => s + Number(i.grand_total || 0) - Number(i.balance_due || 0), 0),
+        pending: rows.reduce((s, i) => s + Number(i.balance_due || 0), 0),
+        totalJobs: res.data?.pagination?.total ?? rows.length,
+        todaysBookings: [],
+        recentActivity: [],
+      };
     },
-    staleTime: 5 * 60 * 1000
   });
 
   if (isLoading) {

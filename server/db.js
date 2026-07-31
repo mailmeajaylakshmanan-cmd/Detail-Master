@@ -1,16 +1,27 @@
 const { Pool } = require('pg');
 
-// Use the connection string from environment variables, or a hardcoded one for local development
-const connectionString = process.env.DATABASE_URL || 'postgresql://neondb_owner:npg_deOw6I4UjgAx@ep-square-hill-axmcdms4.c-4.us-east-2.aws.neon.tech/neondb?sslmode=require';
+const connectionString = process.env.DATABASE_URL;
+if (!connectionString) {
+  console.warn('DATABASE_URL is not set — API cannot reach Postgres');
+}
 
+// Small pool fits Railway + Neon well (avoid exhausting Neon connection limits)
 const pool = new Pool({
   connectionString,
-  ssl: {
-    rejectUnauthorized: false,
-  },
+  ssl: connectionString?.includes('localhost')
+    ? false
+    : { rejectUnauthorized: false },
+  max: Number(process.env.PG_POOL_MAX || 5),
+  idleTimeoutMillis: 20_000,
+  connectionTimeoutMillis: 10_000,
+  allowExitOnIdle: true,
+});
+
+pool.on('error', (err) => {
+  console.error('Unexpected Postgres pool error', err);
 });
 
 module.exports = {
   query: (text, params) => pool.query(text, params),
-  pool
+  pool,
 };

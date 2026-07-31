@@ -4,23 +4,32 @@
 @tailwind utilities;
 
 @layer base {
+  html,
+  body,
+  #root {
+    min-height: 100%;
+  }
+
   body {
     @apply text-gray-900 antialiased;
+    background-color: #f4f7f9;
     background-image: url('https://images.unsplash.com/photo-1601362840469-51e4d8d58785?q=80&w=2000&auto=format&fit=crop');
     background-size: cover;
     background-attachment: fixed;
     background-position: center;
+    background-repeat: no-repeat;
   }
-  
-  /* Add a subtle overlay to ensure text remains readable over the background */
+
+  /* Soft glass overlay so UI stays readable on every page */
   body::before {
     content: '';
     position: fixed;
     inset: 0;
-    background: rgba(244, 247, 249, 0.6);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
+    background: rgba(244, 247, 249, 0.55);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
     z-index: -1;
+    pointer-events: none;
   }
 }
 

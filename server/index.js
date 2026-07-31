@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const compression = require('compression');
 require('dotenv').config();
 const cookieParser = require('cookie-parser');
 
@@ -10,6 +11,7 @@ const allowedOrigins = (process.env.CLIENT_URL || 'http://localhost:5173')
   .map(s => s.trim())
   .filter(Boolean);
 
+app.use(compression());
 app.use(cors({
   origin(origin, cb) {
     // Allow same-origin / server-to-server / local tools with no Origin header
@@ -18,7 +20,7 @@ app.use(cors({
   },
   credentials: true
 }));
-app.use(express.json());
+app.use(express.json({ limit: '1mb' }));
 app.use(cookieParser());
 
 // Routes
