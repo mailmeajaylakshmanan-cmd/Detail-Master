@@ -37,22 +37,52 @@ function buildNavItems(menus) {
   });
 }
 
-function SidebarNav({ navItems, openGroups, toggleGroup, onNavigate }) {
+function readNavItemsFromStorage() {
+  try {
+    const userStr = localStorage.getItem('user');
+    const user = userStr ? JSON.parse(userStr) : null;
+    return buildNavItems(user?.menus);
+  } catch {
+    return [];
+  }
+}
+
+function initialOpenGroups(items, pathname) {
+  const open = {};
+  for (const item of items) {
+    if (!item.subItems?.length) continue;
+    const active = item.subItems.some(
+      (sub) => pathname === sub.to || (sub.to && pathname.startsWith(sub.to + '/'))
+    );
+    // Keep group open if route matches — avoids expand blink after paint
+    if (active) open[item.label] = true;
+  }
+  return open;
+}
+
+function SidebarNav({ navItems, openGroups, setOpenGroups, onNavigate }) {
   const location = useLocation();
 
   return (
     <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-1">
       {navItems.map((item) => {
         if (item.subItems) {
-          const isActiveGroup = item.subItems.some((sub) => location.pathname === sub.to || location.pathname.startsWith(sub.to + '/'));
+          const isActiveGroup = item.subItems.some(
+            (sub) => location.pathname === sub.to || (sub.to && location.pathname.startsWith(sub.to + '/'))
+          );
           const isOpen = openGroups[item.label] ?? isActiveGroup;
 
           return (
             <div key={item.label} className="flex flex-col">
               <button
                 type="button"
-                onClick={() => toggleGroup(item.label)}
-                className={`flex items-center justify-between w-full px-3 py-2.5 rounded-xl text-[13px] font-bold transition-all ${
+                onClick={() =>
+                  setOpenGroups((prev) => ({
+                    ...prev,
+                    [item.label]: !(prev[item.label] ?? isActiveGroup),
+                  }))
+                }
+                className={`flex items-center justify-between w-full px-3 py-2.5 rounded-xl text-[13px] font-bold transition-colors ${
                   isActiveGroup
                     ? 'bg-blue-50 text-blue-700'
                     : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
@@ -62,18 +92,18 @@ function SidebarNav({ navItems, openGroups, toggleGroup, onNavigate }) {
                   <item.icon size={17} />
                   {item.label}
                 </span>
-                <ChevronDown size={15} className={`transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+                <ChevronDown size={15} className={`transition-transform duration-150 ${isOpen ? 'rotate-180' : ''}`} />
               </button>
 
               {isOpen && (
                 <div className="mt-1 ml-3 pl-3 border-l border-gray-200 flex flex-col gap-0.5">
                   {item.subItems.map((sub) => (
                     <NavLink
-                      key={sub.to}
-                      to={sub.to}
+                      key={sub.to || sub.label}
+                      to={sub.to || '#'}
                       onClick={onNavigate}
                       className={({ isActive }) => `
-                        flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] font-semibold transition-all
+                        flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] font-semibold transition-colors
                         ${isActive
                           ? 'bg-blue-600 text-white shadow-sm shadow-blue-500/20'
                           : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'}
@@ -91,12 +121,12 @@ function SidebarNav({ navItems, openGroups, toggleGroup, onNavigate }) {
 
         return (
           <NavLink
-            key={item.to}
-            to={item.to}
+            key={item.to || item.label}
+            to={item.to || '#'}
             end={item.end}
             onClick={onNavigate}
             className={({ isActive }) => `
-              flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-bold transition-all
+              flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-bold transition-colors
               ${isActive
                 ? 'bg-blue-600 text-white shadow-sm shadow-blue-500/20'
                 : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'}
@@ -116,21 +146,35 @@ export default function Layout() {
   const location = useLocation();
   const [scrolled, setScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [openGroups, setOpenGroups] = useState({});
-  const [navItems, setNavItems] = useState([]);
+  // Load menus synchronously so first paint already has full sidebar (no blink)
+  const [navItems, setNavItems] = useState(() => readNavItemsFromStorage());
+  const [openGroups, setOpenGroups] = useState(() =>
+    initialOpenGroups(
+      readNavItemsFromStorage(),
+      typeof window !== 'undefined' ? window.location.pathname : '/'
+    )
+  );
 
+  // Quiet refresh from /auth/me — never clear menus first (avoids empty→full flash)
   useEffect(() => {
-    try {
-      const userStr = localStorage.getItem('user');
-      const user = userStr ? JSON.parse(userStr) : null;
-      if (user && user.menus) {
-        setNavItems(buildNavItems(user.menus));
-      } else {
-        setNavItems([]);
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await api.get('/auth/me');
+        const menus = res.data?.user?.menus;
+        if (cancelled || !menus) return;
+        localStorage.setItem('user', JSON.stringify(res.data.user));
+        const next = buildNavItems(menus);
+        setNavItems(next);
+        setOpenGroups((prev) => ({
+          ...initialOpenGroups(next, window.location.pathname),
+          ...prev,
+        }));
+      } catch {
+        // keep localStorage menus if /me fails
       }
-    } catch (e) {
-      setNavItems([]);
-    }
+    })();
+    return () => { cancelled = true; };
   }, []);
 
   useEffect(() => {
@@ -142,10 +186,6 @@ export default function Layout() {
   useEffect(() => {
     setIsMobileMenuOpen(false);
   }, [location.pathname]);
-
-  const toggleGroup = (label) => {
-    setOpenGroups((prev) => ({ ...prev, [label]: !prev[label] }));
-  };
 
   const handleLogout = async () => {
     try {
@@ -176,19 +216,22 @@ export default function Layout() {
           fixed top-0 left-0 z-[70] h-full w-[260px]
           bg-white/70 backdrop-blur-2xl border-r border-white/50
           flex flex-col shadow-xl lg:shadow-none
-          transform transition-transform duration-300 ease-in-out
+          transform lg:transform-none lg:transition-none transition-transform duration-300 ease-in-out
           ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}
           lg:translate-x-0
         `}
       >
-        <div className="flex items-center justify-between px-4 py-4 border-b border-white/40 shrink-0">
-          <Link to="/" className="flex items-center gap-2.5 min-w-0" onClick={() => setIsMobileMenuOpen(false)}>
-            <img src={brandLogo} alt="Detailing Masters" className="h-11 w-auto object-contain shrink-0" />
+        <div className="flex items-center justify-between px-3 py-4 border-b border-white/40 shrink-0 gap-2">
+          <Link to="/" className="flex items-center gap-2.5 min-w-0 flex-1" onClick={() => setIsMobileMenuOpen(false)}>
+            <img src={brandLogo} alt="" className="h-10 w-10 object-contain shrink-0" />
+            <span className="text-[12px] font-black text-blue-900 tracking-tight leading-tight uppercase">
+              Detailing<br />Masters
+            </span>
           </Link>
           <button
             type="button"
             onClick={() => setIsMobileMenuOpen(false)}
-            className="lg:hidden w-8 h-8 flex items-center justify-center rounded-full bg-white/60 text-gray-500 hover:text-rose-500 hover:bg-rose-50"
+            className="lg:hidden w-8 h-8 flex items-center justify-center rounded-full bg-white/60 text-gray-500 hover:text-rose-500 hover:bg-rose-50 shrink-0"
           >
             <X size={18} />
           </button>
@@ -197,7 +240,7 @@ export default function Layout() {
         <SidebarNav
           navItems={navItems}
           openGroups={openGroups}
-          toggleGroup={toggleGroup}
+          setOpenGroups={setOpenGroups}
           onNavigate={() => setIsMobileMenuOpen(false)}
         />
 
@@ -205,7 +248,7 @@ export default function Layout() {
           <button
             type="button"
             onClick={handleLogout}
-            className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-white/60 bg-white/40 text-gray-600 text-[13px] font-bold hover:bg-rose-50 hover:text-rose-600 hover:border-rose-200 transition-all"
+            className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-white/60 bg-white/40 text-gray-600 text-[13px] font-bold hover:bg-rose-50 hover:text-rose-600 hover:border-rose-200 transition-colors"
           >
             <LogOut size={16} /> Sign Out
           </button>
@@ -229,7 +272,10 @@ export default function Layout() {
                 <Menu size={20} />
               </button>
               <div className="lg:hidden flex items-center gap-2 min-w-0">
-                <img src={brandLogo} alt="Detailing Masters" className="h-9 w-auto object-contain" />
+                <img src={brandLogo} alt="" className="h-8 w-8 object-contain shrink-0" />
+                <span className="text-[12px] font-black text-blue-900 tracking-tight leading-tight uppercase truncate">
+                  Detailing Masters
+                </span>
               </div>
               <p className="hidden lg:block text-sm font-semibold text-gray-600/80 truncate">
                 Billing & Operations

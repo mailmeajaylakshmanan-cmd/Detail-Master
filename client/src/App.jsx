@@ -32,29 +32,38 @@ function PageLoader() {
   );
 }
 
+function LazyPage({ children }) {
+  return <Suspense fallback={<PageLoader />}>{children}</Suspense>;
+}
+
 export default function App() {
   return (
-    <Suspense fallback={<PageLoader />}>
-      <Routes>
-        <Route path="/login" element={<Login />} />
-        <Route path="/" element={<PrivateRoute><Layout /></PrivateRoute>}>
-          <Route index element={<Dashboard />} />
-          <Route path="invoices" element={<InvoiceList />} />
-          <Route path="invoices/new" element={<NewInvoice />} />
-          <Route path="invoices/:id/edit" element={<EditInvoice />} />
-          <Route path="invoices/:id" element={<InvoiceView />} />
-          <Route path="master-service" element={<MasterService />} />
-          <Route path="master-customer" element={<MasterCustomer />} />
-          <Route path="master-offers" element={<MasterOffers />} />
-          <Route path="offers/new" element={<AssignOffer />} />
-          <Route path="offers/:id" element={<OfferView />} />
-          <Route path="quotations/:id" element={<QuotationView />} />
-          <Route path="update-credentials" element={<UpdateCredentials />} />
-          <Route path="website-bookings" element={<WebsiteBookings />} />
-          <Route path="menu-assignment" element={<MenuAssignment />} />
-          <Route path="user-menu-assignment" element={<UserMenuAssignment />} />
-        </Route>
-      </Routes>
-    </Suspense>
+    <Routes>
+      <Route
+        path="/login"
+        element={(
+          <LazyPage>
+            <Login />
+          </LazyPage>
+        )}
+      />
+      <Route path="/" element={<PrivateRoute><Layout /></PrivateRoute>}>
+        <Route index element={<LazyPage><Dashboard /></LazyPage>} />
+        <Route path="invoices" element={<LazyPage><InvoiceList /></LazyPage>} />
+        <Route path="invoices/new" element={<LazyPage><NewInvoice /></LazyPage>} />
+        <Route path="invoices/:id/edit" element={<LazyPage><EditInvoice /></LazyPage>} />
+        <Route path="invoices/:id" element={<LazyPage><InvoiceView /></LazyPage>} />
+        <Route path="master-service" element={<LazyPage><MasterService /></LazyPage>} />
+        <Route path="master-customer" element={<LazyPage><MasterCustomer /></LazyPage>} />
+        <Route path="master-offers" element={<LazyPage><MasterOffers /></LazyPage>} />
+        <Route path="offers/new" element={<LazyPage><AssignOffer /></LazyPage>} />
+        <Route path="offers/:id" element={<LazyPage><OfferView /></LazyPage>} />
+        <Route path="quotations/:id" element={<LazyPage><QuotationView /></LazyPage>} />
+        <Route path="update-credentials" element={<LazyPage><UpdateCredentials /></LazyPage>} />
+        <Route path="website-bookings" element={<LazyPage><WebsiteBookings /></LazyPage>} />
+        <Route path="menu-assignment" element={<LazyPage><MenuAssignment /></LazyPage>} />
+        <Route path="user-menu-assignment" element={<LazyPage><UserMenuAssignment /></LazyPage>} />
+      </Route>
+    </Routes>
   );
 }
