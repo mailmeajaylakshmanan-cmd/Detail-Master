@@ -1,0 +1,17 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: detail-master-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: detailmaster
+      POSTGRES_PASSWORD: devpassword
+      POSTGRES_DB: detailmaster_dev
+    ports:
+      - "5433:5432"
+    volumes:
+      - detail-master-pgdata:/var/lib/postgresql/data
+
+volumes:
+  detail-master-pgdata:
+    name: detail-master-pgdata
