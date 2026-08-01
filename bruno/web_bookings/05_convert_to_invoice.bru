@@ -1,0 +1,19 @@
+meta {
+  name: 05 Convert To Invoice
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{baseUrl}}/web_bookings/1/convert
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "amount_paid": 0,
+    "payment_method": "cash",
+    "discount": 0
+  }
+}
