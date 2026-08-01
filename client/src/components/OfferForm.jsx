@@ -5,6 +5,8 @@ import {
 } from 'lucide-react';
 import Select from 'react-select';
 import toast from 'react-hot-toast';
+import { useClients } from '../hooks/useQueries.js';
+import { useDebouncedValue } from '../hooks/useDebouncedValue.js';
 
 /* ─── shared select styles ────────────────────────────────────── */
 const selectStyles = () => ({
@@ -66,6 +68,7 @@ function Field({ label, required, children, invisibleLabel }) {
 }
 
 export default function OfferForm({ initial, onSubmit, loading, onCustomerSelect }) {
+  const { data: customers = [] } = useClients();
   const [form, setForm] = useState(() => {
     const base = {
       customer: { name: '', phone: '', address: '' },
@@ -77,19 +80,11 @@ export default function OfferForm({ initial, onSubmit, loading, onCustomerSelect
     return { ...base, ...initial, customer: initial.customer || base.customer };
   });
 
-  const [customers, setCustomers] = useState([]);
   const [offerTemplates, setOfferTemplates] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const debouncedSearch = useDebouncedValue(searchQuery, 250);
 
   useEffect(() => {
-    api.get('/clients').then(r => {
-      const data = Array.isArray(r.data) ? r.data.map(c => ({
-        ...c,
-        id: c.id,
-        name: c.full_name
-      })) : [];
-      setCustomers(data);
-    }).catch(() => setCustomers([]));
     // offerMaster not connected to Postgres yet
     api.get('/offerMaster').then(r => setOfferTemplates(Array.isArray(r.data) ? r.data : [])).catch(() => setOfferTemplates([]));
   }, []);
@@ -103,8 +98,9 @@ export default function OfferForm({ initial, onSubmit, loading, onCustomerSelect
   };
 
   const filteredTemplates = useMemo(() => {
-    return offerTemplates.filter(t => t.name.toLowerCase().includes(searchQuery.toLowerCase()));
-  }, [offerTemplates, searchQuery]);
+    const q = debouncedSearch.toLowerCase();
+    return offerTemplates.filter(t => (t.name || '').toLowerCase().includes(q));
+  }, [offerTemplates, debouncedSearch]);
 
   const handlePackageSelect = (masterOfferId) => {
     if (form.masterOfferId === masterOfferId) {

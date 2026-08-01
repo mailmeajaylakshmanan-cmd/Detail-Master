@@ -2,17 +2,37 @@ const express = require('express');
 const router = express.Router();
 const db = require('../db');
 
-// GET all clients with their vehicles
+// GET all clients with their vehicles (single query)
 router.get('/', async (req, res) => {
   try {
-    const { rows: clients } = await db.query('SELECT * FROM clients ORDER BY created_at DESC');
-    const { rows: vehicles } = await db.query('SELECT * FROM vehicles');
-    
-    const clientsWithVehicles = clients.map(client => ({
-      ...client,
-      vehicles: vehicles
-        .filter(v => v.client_id === client.id)
-        .map(v => {
+    const { rows } = await db.query(`
+      SELECT
+        c.*,
+        COALESCE(
+          json_agg(
+            json_build_object(
+              'id', v.id,
+              'make_model', v.make_model,
+              'license_vin', v.license_vin
+            )
+            ORDER BY v.id
+          ) FILTER (WHERE v.id IS NOT NULL),
+          '[]'
+        ) AS vehicles_json
+      FROM clients c
+      LEFT JOIN vehicles v ON v.client_id = c.id
+      GROUP BY c.id
+      ORDER BY c.created_at DESC
+    `);
+
+    const clientsWithVehicles = rows.map(client => {
+      const vehiclesJson = typeof client.vehicles_json === 'string'
+        ? JSON.parse(client.vehicles_json)
+        : (client.vehicles_json || []);
+      const { vehicles_json, ...rest } = client;
+      return {
+        ...rest,
+        vehicles: vehiclesJson.map(v => {
           const parts = v.make_model ? v.make_model.split(' ') : [''];
           return {
             id: v.id,
@@ -21,7 +41,8 @@ router.get('/', async (req, res) => {
             plate: v.license_vin || ''
           };
         })
-    }));
+      };
+    });
 
     res.json(clientsWithVehicles);
   } catch (err) {

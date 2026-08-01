@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const compression = require('compression');
 require('dotenv').config();
 const cookieParser = require('cookie-parser');
 
@@ -10,6 +11,7 @@ const allowedOrigins = (process.env.CLIENT_URL || 'http://localhost:5173')
   .map(s => s.trim())
   .filter(Boolean);
 
+app.use(compression());
 app.use(cors({
   origin(origin, cb) {
     // Allow same-origin / server-to-server / local tools with no Origin header
@@ -18,7 +20,7 @@ app.use(cors({
   },
   credentials: true
 }));
-app.use(express.json());
+app.use(express.json({ limit: '1mb' }));
 app.use(cookieParser());
 
 // Routes
@@ -31,7 +33,7 @@ app.use('/api/job_order_services', require('./routes/job_order_services'));
 app.use('/api/invoices', require('./routes/invoices'));
 app.use('/api/payments', require('./routes/payments'));
 app.use('/api/permissions', require('./routes/permissions'));
-app.use('/api/website_bookings', require('./routes/website_bookings'));
+app.use('/api/web_bookings', require('./routes/web_bookings'));
 
 // Health check
 app.get('/api/health', (req, res) => res.json({ status: 'ok', app: 'DETAILING MASTERS Billing' }));

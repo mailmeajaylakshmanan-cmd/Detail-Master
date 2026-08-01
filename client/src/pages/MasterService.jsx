@@ -2,33 +2,17 @@ import { useState, useMemo } from 'react';
 import api from '../api/axios.js';
 import toast from 'react-hot-toast';
 import { Plus, Edit3, X, Search, Sparkles } from 'lucide-react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-
-function mapService(row) {
-  return {
-    ...row,
-    id: row.id,
-    name: row.service_name ?? row.name ?? '',
-    description: row.category ?? row.description ?? '',
-    price: Number(row.base_price ?? row.price ?? 0),
-    isActive: row.is_active !== undefined ? !!row.is_active : !!row.isActive,
-  };
-}
+import { useQueryClient } from '@tanstack/react-query';
+import { useServices } from '../hooks/useQueries.js';
+import { useDebouncedValue } from '../hooks/useDebouncedValue.js';
+import { queryKeys } from '../api/queryKeys.js';
 
 export default function MasterService() {
   const queryClient = useQueryClient();
-
-  const { data: services = [], isLoading: loading } = useQuery({
-    queryKey: ['servicesData'],
-    queryFn: async () => {
-      const res = await api.get('/services');
-      const data = Array.isArray(res.data) ? res.data : [];
-      return data.map(mapService);
-    },
-    staleTime: 5 * 60 * 1000
-  });
+  const { data: services = [], isLoading: loading } = useServices();
 
   const [searchQuery, setSearchQuery] = useState('');
+  const debouncedSearch = useDebouncedValue(searchQuery, 250);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
@@ -36,16 +20,13 @@ export default function MasterService() {
   const [editId, setEditId] = useState(null);
 
   const filteredServices = useMemo(() => {
-    let filtered = services;
-    if (searchQuery) {
-      const q = searchQuery.toLowerCase();
-      filtered = filtered.filter(s =>
-        (s.name || '').toLowerCase().includes(q) ||
-        (s.description && s.description.toLowerCase().includes(q))
-      );
-    }
-    return filtered;
-  }, [services, searchQuery]);
+    if (!debouncedSearch) return services;
+    const q = debouncedSearch.toLowerCase();
+    return services.filter(s =>
+      (s.name || '').toLowerCase().includes(q) ||
+      (s.description && s.description.toLowerCase().includes(q))
+    );
+  }, [services, debouncedSearch]);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -71,7 +52,7 @@ export default function MasterService() {
         toast.success('Service added');
       }
       handleCancelEdit();
-      queryClient.invalidateQueries({ queryKey: ['servicesData'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.services.all });
     } catch (err) {
       toast.error(err.response?.data?.message || 'Error saving service');
     }
@@ -113,7 +94,7 @@ export default function MasterService() {
         is_active: isActive
       });
       toast.success(`Service marked ${newStatusStr}`);
-      queryClient.invalidateQueries({ queryKey: ['servicesData'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.services.all });
     } catch (err) {
       toast.error(err.response?.data?.message || 'Error updating status');
     }

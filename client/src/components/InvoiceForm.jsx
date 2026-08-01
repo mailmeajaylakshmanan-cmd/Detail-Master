@@ -1,26 +1,19 @@
-import { useState, useEffect } from 'react';
-import api from '../api/axios.js';
+import { useState, useCallback, useMemo, memo } from 'react';
+import toast from 'react-hot-toast';
 import {
-  User, Phone, MapPin, Plus, Trash2, Car, Sparkles,
+  User, Phone, MapPin, Plus, Trash2, Sparkles,
   CheckCircle2, AlertCircle, Calendar, IndianRupee, Hash, Receipt, Settings
 } from 'lucide-react';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import { format, parseISO } from 'date-fns';
 import Select from 'react-select';
-
-/* ─── helpers ─────────────────────────────────────────────────── */
-function toDisplayDate(iso) {
-  if (!iso) return '';
-  const [y, m, d] = iso.split('-');
-  return `${d}/${m}/${y}`;
-}
+import { useClients, useServices } from '../hooks/useQueries.js';
 
 function fmt(n) { return Number(n || 0).toLocaleString('en-IN'); }
 
-/* ─── shared select styles ────────────────────────────────────── */
 const selectStyles = () => ({
-  control: (b, s) => ({
+  control: (b) => ({
     ...b,
     borderColor: 'transparent',
     borderRadius: '0.75rem',
@@ -59,7 +52,6 @@ const selectStyles = () => ({
   singleValue: b => ({ ...b, color: '#020029', fontWeight: '600' }),
 });
 
-/* ─── atomic UI pieces ────────────────────────────────────────── */
 const inputCls = [
   'input block w-full px-4 py-2 text-[13px] font-medium text-gray-900',
   'placeholder:text-gray-400 placeholder:font-medium',
@@ -83,7 +75,7 @@ function Field({ label, required, children, invisibleLabel }) {
   );
 }
 
-function MoneyInput({ value, onChange, autoFocus, disabled }) {
+const MoneyInput = memo(function MoneyInput({ value, onChange, autoFocus, disabled }) {
   return (
     <div className="relative">
       <IndianRupee size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
@@ -97,177 +89,235 @@ function MoneyInput({ value, onChange, autoFocus, disabled }) {
       />
     </div>
   );
-}
+});
 
-function PaymentRow({ amount, onAmount, date, onDate, method, onMethod, idx, removePayment }) {
+const PaymentRow = memo(function PaymentRow({
+  amount, onAmount, date, onDate, method, onMethod,
+  referenceNo, onReferenceNo, removePayment, locked,
+}) {
+  const needsRef = method === 'UPI' || method === 'Bank Transfer';
   return (
-    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 bg-gray-50/80 p-2 rounded-xl border border-gray-100 relative group transition-colors hover:bg-gray-100">
-      <button 
-        type="button" 
-        onClick={removePayment}
-        className="absolute -top-2.5 -right-2.5 w-6 h-6 rounded-full bg-white shadow-sm border border-gray-100 flex items-center justify-center text-gray-400 hover:text-rose-500 hover:border-rose-200 transition-all opacity-0 group-hover:opacity-100"
-      >
-        <Trash2 size={12} />
-      </button>
-      
-      <div className="w-full sm:w-1/3 flex items-center gap-2">
-         <MoneyInput value={amount} onChange={onAmount} />
+    <div className="flex flex-col gap-2 bg-gray-50/80 p-2 rounded-xl border border-gray-100 relative group transition-colors hover:bg-gray-100">
+      {!locked && (
+        <button
+          type="button"
+          onClick={removePayment}
+          className="absolute -top-2.5 -right-2.5 w-6 h-6 rounded-full bg-white shadow-sm border border-gray-100 flex items-center justify-center text-gray-400 hover:text-rose-500 hover:border-rose-200 transition-all opacity-0 group-hover:opacity-100"
+        >
+          <Trash2 size={12} />
+        </button>
+      )}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
+        <div className="w-full sm:w-1/3 flex items-center gap-2">
+          <MoneyInput value={amount} onChange={onAmount} disabled={locked} />
+        </div>
+        <div className="w-full sm:w-1/3">
+          <DatePicker
+            selected={date ? parseISO(date) : null}
+            onChange={d => onDate(d ? format(d, 'yyyy-MM-dd') : '')}
+            dateFormat="dd/MM/yyyy"
+            placeholderText="Date"
+            wrapperClassName="w-full"
+            portalId="root"
+            className={`${inputCls}`}
+            disabled={locked}
+          />
+        </div>
+        <div className="w-full sm:w-1/3">
+          <select className={`${inputCls}`} value={method} onChange={onMethod} disabled={locked}>
+            <option value="Cash">Cash</option>
+            <option value="UPI">UPI</option>
+            <option value="Bank Transfer">Bank Transfer</option>
+            <option value="Card">Card</option>
+          </select>
+        </div>
       </div>
-      
-      <div className="w-full sm:w-1/3">
-        <DatePicker
-          selected={date ? parseISO(date) : null}
-          onChange={d => onDate(d ? format(d, 'yyyy-MM-dd') : '')}
-          dateFormat="dd/MM/yyyy"
-          placeholderText="Date"
-          wrapperClassName="w-full"
-          portalId="root"
+      {needsRef && (
+        <input
           className={`${inputCls}`}
+          placeholder="Transaction / reference no (optional)"
+          value={referenceNo || ''}
+          onChange={onReferenceNo}
+          disabled={locked}
+        />
+      )}
+    </div>
+  );
+});
+
+const ServiceChip = memo(function ServiceChip({ opt, checked, onToggle }) {
+  return (
+    <label className={`flex items-center gap-2 cursor-pointer px-4 py-2.5 rounded-xl text-[13px] font-bold transition-all border ${
+      checked
+        ? 'bg-gray-900 text-white border-gray-900 shadow-md shadow-gray-900/20'
+        : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50 hover:border-gray-300'
+    }`}>
+      <input type="checkbox" checked={checked} onChange={e => onToggle(opt, e.target.checked)} className="sr-only" />
+      {opt.name}
+    </label>
+  );
+});
+
+const SelectedServiceRow = memo(function SelectedServiceRow({ cur, onDesc }) {
+  return (
+    <div className="flex flex-col sm:flex-row sm:items-center gap-4 bg-gray-50 p-4 rounded-xl border border-gray-100">
+      <div className="sm:w-2/5 font-bold text-[14px] text-gray-900 flex items-center gap-2">
+        <CheckCircle2 size={14} className="text-emerald-500" /> {cur.service}
+      </div>
+      <div className="flex-1">
+        <input
+          className={`${inputCls} bg-white shadow-sm border-gray-200`}
+          placeholder="Detail instructions / description"
+          value={cur.description || ''}
+          onChange={onDesc}
         />
       </div>
-
-      <div className="w-full sm:w-1/3">
-        <select
-          className={`${inputCls}`}
-          value={method} onChange={onMethod}
-        >
-          <option value="Cash">Cash</option>
-          <option value="UPI">UPI</option>
-          <option value="Bank Transfer">Bank Transfer</option>
-          <option value="Card">Card</option>
-        </select>
+      <div className="sm:w-36">
+        {/* Price locked — snapshot comes from services.base_price on save */}
+        <MoneyInput value={cur.price || ''} onChange={() => {}} disabled />
       </div>
     </div>
   );
-}
+});
 
-/* ─── main component ──────────────────────────────────────────── */
 export default function InvoiceForm({ initial, onSubmit, loading, onCustomerSelect }) {
   const today = new Date().toISOString().slice(0, 10);
+  const { data: customers = [] } = useClients();
+  const { data: serviceOptions = [] } = useServices();
 
   const [form, setForm] = useState(() => {
     const base = {
-      customer: { name: '', phone: '', address: '' },
+      customer: { name: '', phone: '', address: '', vehicles: [] },
+      vehicleId: null,
       carMake: '', carModel: '', licensePlate: '',
       serviceDate: '', location: '',
       services: [], subTotal: 0, discount: 0,
-      status: 'pending', notes: 'Thank you for choosing Detailing Masters for your car care needs!',
+      status: 'draft', notes: 'Thank you for choosing Detailing Masters for your car care needs!',
       payments: [],
       showTerms: true, termsAndConditions: ''
     };
     if (!initial) return base;
-
     return {
       ...base, ...initial,
       customer: initial.customer || base.customer,
+      vehicleId: initial.vehicleId || initial.vehicle_id || null,
       services: initial.services || [],
       subTotal: initial.subTotal || 0,
-      payments: (initial.payments || []).map(p => ({
-        ...p,
-        date: p.date ? (typeof p.date === 'string' ? p.date.substring(0,10) : new Date(p.date).toISOString().substring(0,10)) : today,
-        amount: p.amount || 0,
-        method: p.method || 'Cash',
-        type: p.type || 'Advance'
-      })),
+      payments: (initial.payments || []).map(p => {
+        const methodRaw = p.payment_method || p.method || 'cash';
+        const methodMap = {
+          cash: 'Cash',
+          upi: 'UPI',
+          bank_transfer: 'Bank Transfer',
+          card: 'Card',
+          other: 'Cash',
+        };
+        const method = methodMap[String(methodRaw).toLowerCase()] || methodRaw;
+        const dateSrc = p.payment_date || p.date;
+        return {
+          id: p.id || null,
+          amount: p.amount || 0,
+          date: dateSrc
+            ? (typeof dateSrc === 'string' ? dateSrc.substring(0, 10) : new Date(dateSrc).toISOString().substring(0, 10))
+            : today,
+          method,
+          reference_no: p.reference_no || '',
+          locked: !!p.id,
+        };
+      }),
     };
   });
 
-  const [serviceOptions, setServiceOptions] = useState([]);
-  const [customers, setCustomers] = useState([]);
-  
-  const setF = (k, v) => setForm(f => ({ ...f, [k]: v }));
-
-  useEffect(() => {
-    api.get('/clients').then(r => {
-      const data = Array.isArray(r.data) ? r.data.map(c => ({
-        ...c,
-        id: c.id,
-        name: c.full_name
-      })) : [];
-      setCustomers(data);
-    }).catch(() => setCustomers([]));
-
-    api.get('/services').then(r => {
-      const data = Array.isArray(r.data) ? r.data.map(s => ({
-        ...s,
-        id: s.id,
-        name: s.service_name,
-        price: Number(s.base_price || 0),
-        description: s.category || ''
-      })) : [];
-      setServiceOptions(data);
-    }).catch(() => setServiceOptions([]));
-  }, []);
+  const setF = useCallback((k, v) => setForm(f => ({ ...f, [k]: v })), []);
 
   const subTotal = Number(form.subTotal || 0);
   const discount = Number(form.discount || 0);
   const discountExceedsTotal = discount > subTotal && subTotal > 0;
   const total = Math.max(0, subTotal - discount);
-  const paid = form.payments.reduce((sum, p) => sum + Number(p.amount || 0), 0);
+  const paid = useMemo(
+    () => form.payments.reduce((sum, p) => sum + Number(p.amount || 0), 0),
+    [form.payments]
+  );
   const balance = total - paid;
+  const derivedStatus = total <= 0
+    ? form.status
+    : balance <= 0
+      ? 'paid'
+      : balance < total
+        ? 'partial'
+        : 'pending';
 
-  useEffect(() => {
-    if (total <= 0) return;
-    const next = balance <= 0 ? 'paid' : balance < total ? 'partial' : 'pending';
-    if (form.status !== next) setF('status', next);
-  }, [balance, total]);
-
-  function toggleService(opt, checked) {
+  const toggleService = useCallback((opt, checked) => {
     setForm(f => {
       if (checked) {
-        const newServices = [...f.services, { service: opt.name, description: opt.description || '', price: opt.price || 0, total: opt.price || 0 }];
-        return {
-          ...f,
-          services: newServices,
-          subTotal: newServices.reduce((acc, s) => acc + (Number(s.total) || 0), 0)
-        };
-      } else {
-        const newServices = f.services.filter(s => s.service !== opt.name);
+        const newServices = [...f.services, {
+          service_id: opt.id,
+          service: opt.name,
+          description: opt.description || '',
+          price: opt.price || 0,
+          total: opt.price || 0,
+        }];
         return {
           ...f,
           services: newServices,
           subTotal: newServices.reduce((acc, s) => acc + (Number(s.total) || 0), 0)
         };
       }
-    });
-  }
-
-  function updateServiceField(name, field, val) {
-    setForm(f => {
-      const newServices = f.services.map(s => {
-        if (s.service === name) {
-          const updated = { ...s, [field]: val };
-          if (field === 'price') updated.total = val;
-          return updated;
-        }
-        return s;
-      });
+      const newServices = f.services.filter(s => s.service_id !== opt.id && s.service !== opt.name);
       return {
         ...f,
         services: newServices,
         subTotal: newServices.reduce((acc, s) => acc + (Number(s.total) || 0), 0)
       };
     });
-  }
+  }, []);
+
+  const updateServiceField = useCallback((name, field, val) => {
+    // Price is not editable — only description notes on the form
+    if (field === 'price') return;
+    setForm(f => {
+      const newServices = f.services.map(s => {
+        if (s.service !== name) return s;
+        return { ...s, [field]: val };
+      });
+      return { ...f, services: newServices };
+    });
+  }, []);
 
   function handleSubmit(e) {
     e.preventDefault();
-    if (!form.customer.name) return toast.error('Please select a customer.');
-    if (!Number(form.subTotal) || Number(form.subTotal) <= 0)
-      return toast.error('Please enter a valid Total Price.');
+    if (!form.customer?.id) return toast.error('Please select a customer.');
+    if (!form.vehicleId) return toast.error('Please select a vehicle.');
+    if (!form.services.length) return toast.error('Please select at least one service.');
 
-    const validPayments = form.payments.filter(p => Number(p.amount) > 0).map(p => ({
-      amount: Number(p.amount),
-      date: p.date,
-      method: p.method,
-      type: p.type
-    }));
+    // Only NEW payment rows (no id) are sent — existing ones stay in DB
+    const newPayments = form.payments
+      .filter(p => !p.id && Number(p.amount) > 0)
+      .map(p => ({
+        amount: Number(p.amount),
+        date: p.date,
+        method: p.method,
+        reference_no: (p.method === 'UPI' || p.method === 'Bank Transfer')
+          ? (p.reference_no || null)
+          : null,
+      }));
 
-    const { payments: _discarded, ...cleanForm } = form;
+    const service_ids = form.services
+      .map(s => Number(s.service_id || s.serviceId))
+      .filter(id => Number.isFinite(id) && id > 0);
+
+    if (!service_ids.length) return toast.error('Selected services are missing ids. Refresh and try again.');
 
     onSubmit({
-      ...cleanForm, subTotal, total, balance, 
-      payments: validPayments,
+      client_id: form.customer.id,
+      vehicle_id: form.vehicleId,
+      service_ids,
+      discount: Number(form.discount) || 0,
+      special_notes: form.notes || null,
+      include_terms: !!form.showTerms,
+      terms_conditions: form.termsAndConditions || null,
+      status: derivedStatus === 'paid' ? 'completed' : derivedStatus === 'partial' ? 'open' : 'draft',
+      payments: newPayments,
     });
   }
 
@@ -275,30 +325,53 @@ export default function InvoiceForm({ initial, onSubmit, loading, onCustomerSele
     ? { value: form.customer.id, label: `${form.customer.name} — ${form.customer.phone}` }
     : null;
 
+  const customerId = form.customer?.id;
+  const customerOptions = useMemo(
+    () => customers
+      .filter(c => c.isActive !== false || c.id === customerId)
+      .map(c => ({ value: c.id, label: `${c.name} — ${c.phone}`, customer: c })),
+    [customers, customerId]
+  );
+
+  const selectedServiceNames = useMemo(
+    () => new Set(form.services.map(s => s.service)),
+    [form.services]
+  );
+  const selectedServiceIds = useMemo(
+    () => new Set(form.services.map(s => s.service_id).filter(Boolean)),
+    [form.services]
+  );
+
+  const vehicleOptions = useMemo(() => {
+    const vehicles = form.customer?.vehicles || [];
+    return vehicles.map(v => ({
+      value: v.id,
+      label: `${[v.make, v.model].filter(Boolean).join(' ') || 'Vehicle'}${v.plate ? ` — ${v.plate}` : ''}`,
+      vehicle: v,
+    }));
+  }, [form.customer]);
+
+  const selectedVehicle = vehicleOptions.find(v => v.value === form.vehicleId) || null;
+
   const statusConfig = {
     pending: { label: 'Pending', bg: 'bg-rose-100', text: 'text-rose-700', dot: 'bg-rose-500' },
     partial: { label: 'Partial', bg: 'bg-blue-100', text: 'text-blue-700', dot: 'bg-blue-500' },
     paid: { label: 'Paid', bg: 'bg-emerald-100', text: 'text-emerald-700', dot: 'bg-emerald-500' },
   };
-  const sc = statusConfig[form.status] || statusConfig.pending;
-  
+  const sc = statusConfig[derivedStatus] || statusConfig.pending;
   const isStep1Complete = !!form.customer.name;
-  const isStep2Complete = !!form.carMake || !!form.licensePlate;
+  const isStep2Complete = !!form.vehicleId;
   const isStep3Complete = form.services.length > 0;
 
   return (
     <div className="relative">
-      {/* Subtle Automotive Blueprint Background Pattern */}
       <div className="absolute inset-0 z-0 pointer-events-none opacity-[0.03]" style={{
         backgroundImage: 'linear-gradient(rgba(0,0,0,0.8) 1px, transparent 1px), linear-gradient(90deg, rgba(0,0,0,0.8) 1px, transparent 1px)',
         backgroundSize: '40px 40px'
-      }}></div>
+      }} />
 
       <form onSubmit={handleSubmit} className="w-full font-sans pb-12 relative z-10 flex flex-col lg:flex-row gap-8">
-        
-        {/* ── LEFT COLUMN: 70% Scrollable Form Area ── */}
         <div className="w-full lg:flex-1 flex flex-col gap-8 shrink-0">
-          
           <div className="flex items-center justify-between mb-2 border-b border-gray-200 pb-4">
             <h1 className="text-2xl font-black text-gray-900 tracking-tight flex items-center gap-3">
               <Hash size={20} className="text-gray-400" /> New Job Card
@@ -309,18 +382,14 @@ export default function InvoiceForm({ initial, onSubmit, loading, onCustomerSele
           </div>
 
           <div className="flex flex-col gap-6">
-            
-            {/* 1. Customer Details */}
             <div className="bg-white/90 backdrop-blur-md rounded-2xl shadow-sm border border-gray-200 p-6 flex flex-col gap-5">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className={`w-6 h-6 rounded-full flex items-center justify-center border-2 transition-colors ${isStep1Complete ? 'border-emerald-500 text-emerald-500 bg-emerald-50' : 'border-gray-300 text-gray-400 bg-gray-50'}`}>
-                    {isStep1Complete ? <CheckCircle2 size={14} className="fill-emerald-50" /> : <span className="text-[10px] font-bold">1</span>}
-                  </div>
-                  <h2 className="text-[15px] font-bold text-gray-900 tracking-tight">Client Details</h2>
+              <div className="flex items-center gap-3">
+                <div className={`w-6 h-6 rounded-full flex items-center justify-center border-2 transition-colors ${isStep1Complete ? 'border-emerald-500 text-emerald-500 bg-emerald-50' : 'border-gray-300 text-gray-400 bg-gray-50'}`}>
+                  {isStep1Complete ? <CheckCircle2 size={14} className="fill-emerald-50" /> : <span className="text-[10px] font-bold">1</span>}
                 </div>
+                <h2 className="text-[15px] font-bold text-gray-900 tracking-tight">Client Details</h2>
               </div>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
                 <Select
                   isClearable
@@ -329,14 +398,36 @@ export default function InvoiceForm({ initial, onSubmit, loading, onCustomerSele
                   styles={selectStyles()}
                   menuPortalTarget={document.body}
                   menuPosition="fixed"
-                  options={customers
-                    .filter(c => c.isActive !== false || c.id === form.customer?.id)
-                    .map(c => ({ value: c.id, label: `${c.name} — ${c.phone}`, customer: c }))}
+                  options={customerOptions}
                   value={selectedCustomer}
                   onChange={sel => {
-                    if (!sel) { setForm(f => ({ ...f, customer: { name: '', phone: '', address: '' } })); return; }
+                    if (!sel) {
+                      setForm(f => ({
+                        ...f,
+                        customer: { name: '', phone: '', address: '', vehicles: [] },
+                        vehicleId: null,
+                        carMake: '',
+                        licensePlate: '',
+                      }));
+                      onCustomerSelect?.(null);
+                      return;
+                    }
                     const m = sel.customer;
-                    setForm(f => ({ ...f, customer: { id: m.id, name: m.name, phone: m.phone, address: m.address || '' } }));
+                    const vehicles = Array.isArray(m.vehicles) ? m.vehicles : [];
+                    const first = vehicles[0];
+                    setForm(f => ({
+                      ...f,
+                      customer: {
+                        id: m.id,
+                        name: m.name,
+                        phone: m.phone,
+                        address: m.address || '',
+                        vehicles,
+                      },
+                      vehicleId: first?.id || null,
+                      carMake: first ? `${first.make || ''} ${first.model || ''}`.trim() : '',
+                      licensePlate: first?.plate || '',
+                    }));
                     onCustomerSelect?.(m);
                   }}
                   isDisabled={!!initial}
@@ -365,36 +456,40 @@ export default function InvoiceForm({ initial, onSubmit, loading, onCustomerSele
               </div>
             </div>
 
-            {/* 2. Vehicle Details */}
             <div className="bg-white/90 backdrop-blur-md rounded-2xl shadow-sm border border-gray-200 p-6 flex flex-col gap-5">
               <div className="flex items-center gap-3">
                 <div className={`w-6 h-6 rounded-full flex items-center justify-center border-2 transition-colors ${isStep2Complete ? 'border-emerald-500 text-emerald-500 bg-emerald-50' : 'border-gray-300 text-gray-400 bg-gray-50'}`}>
                   {isStep2Complete ? <CheckCircle2 size={14} className="fill-emerald-50" /> : <span className="text-[10px] font-bold">2</span>}
                 </div>
-                <h2 className="text-[15px] font-bold text-gray-900 tracking-tight flex items-center gap-2">
-                  Vehicle Identifiers
-                </h2>
+                <h2 className="text-[15px] font-bold text-gray-900 tracking-tight">Vehicle Identifiers</h2>
               </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Field label="Make & Model">
-                  <input
-                    className={inputCls}
-                    value={form.carMake}
-                    onChange={e => setF('carMake', e.target.value)}
-                    placeholder="e.g. Porsche 911 GT3"
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Field label="Vehicle" required>
+                  <Select
+                    isClearable
+                    isSearchable
+                    placeholder={form.customer?.id ? 'Select client vehicle…' : 'Select client first…'}
+                    styles={selectStyles()}
+                    menuPortalTarget={document.body}
+                    menuPosition="fixed"
+                    options={vehicleOptions}
+                    value={selectedVehicle}
+                    isDisabled={!form.customer?.id || !!initial}
+                    onChange={sel => {
+                      if (!sel) {
+                        setForm(f => ({ ...f, vehicleId: null, carMake: '', licensePlate: '' }));
+                        return;
+                      }
+                      const v = sel.vehicle;
+                      setForm(f => ({
+                        ...f,
+                        vehicleId: v.id,
+                        carMake: `${v.make || ''} ${v.model || ''}`.trim(),
+                        licensePlate: v.plate || '',
+                      }));
+                    }}
                   />
                 </Field>
-                
-                <Field label="License / VIN">
-                  <input
-                    className={`${inputCls} font-mono uppercase tracking-wider bg-yellow-50/30`}
-                    value={form.licensePlate}
-                    onChange={e => setF('licensePlate', e.target.value)}
-                    placeholder="1FA-XXX"
-                  />
-                </Field>
-
                 <Field label="Induction Date">
                   <div className="relative">
                     <Calendar size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
@@ -410,125 +505,78 @@ export default function InvoiceForm({ initial, onSubmit, loading, onCustomerSele
                   </div>
                 </Field>
               </div>
+              {form.customer?.id && vehicleOptions.length === 0 && (
+                <p className="text-[12px] font-medium text-rose-600">
+                  This client has no vehicles. Add a vehicle in Master Customer first.
+                </p>
+              )}
             </div>
 
-            {/* 3. Services Rendered */}
             <div className="bg-white/90 backdrop-blur-md rounded-2xl shadow-sm border border-gray-200 p-6 flex flex-col gap-5">
-              
               <div className="flex items-center gap-3">
                 <div className={`w-6 h-6 rounded-full flex items-center justify-center border-2 transition-colors ${isStep3Complete ? 'border-emerald-500 text-emerald-500 bg-emerald-50' : 'border-gray-300 text-gray-400 bg-gray-50'}`}>
                   {isStep3Complete ? <CheckCircle2 size={14} className="fill-emerald-50" /> : <span className="text-[10px] font-bold">3</span>}
                 </div>
-                <h2 className="text-[15px] font-bold text-gray-900 tracking-tight flex items-center gap-2">
-                   Services Grid
-                </h2>
+                <h2 className="text-[15px] font-bold text-gray-900 tracking-tight">Services Grid</h2>
               </div>
-
               <div>
                 <div className="flex flex-wrap gap-2.5">
-                  {serviceOptions.filter(o => o.isActive !== false).map(opt => {
-                    const checked = form.services.some(s => s.service === opt.name);
-                    return (
-                      <label key={opt.id} className={`flex items-center gap-2 cursor-pointer px-4 py-2.5 rounded-xl text-[13px] font-bold transition-all border ${
-                        checked 
-                          ? 'bg-gray-900 text-white border-gray-900 shadow-md shadow-gray-900/20' 
-                          : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50 hover:border-gray-300'
-                      }`}>
-                        <input type="checkbox" checked={checked} onChange={e => toggleService(opt, e.target.checked)} className="sr-only" />
-                        {opt.name}
-                      </label>
-                    );
-                  })}
+                  {serviceOptions.filter(o => o.isActive !== false).map(opt => (
+                    <ServiceChip
+                      key={opt.id}
+                      opt={opt}
+                      checked={selectedServiceIds.has(opt.id) || selectedServiceNames.has(opt.name)}
+                      onToggle={toggleService}
+                    />
+                  ))}
                   {serviceOptions.length === 0 && (
                     <div className="text-[13px] font-medium text-gray-500 p-4 border border-dashed border-gray-300 rounded-xl bg-gray-50">
                       No services available.
                     </div>
                   )}
                 </div>
-
                 {form.services.length > 0 && (
                   <div className="mt-6 flex flex-col gap-3">
                     {form.services.map(cur => (
-                      <div key={cur.service} className="flex flex-col sm:flex-row sm:items-center gap-4 bg-gray-50 p-4 rounded-xl border border-gray-100">
-                        <div className="sm:w-2/5 font-bold text-[14px] text-gray-900 flex items-center gap-2">
-                          <CheckCircle2 size={14} className="text-emerald-500" /> {cur.service}
-                        </div>
-                        <div className="flex-1">
-                          <input
-                            className={`${inputCls} bg-white shadow-sm border-gray-200`}
-                            placeholder="Detail instructions / description"
-                            value={cur.description || ''}
-                            onChange={e => updateServiceField(cur.service, 'description', e.target.value)}
-                          />
-                        </div>
-                        <div className="sm:w-36">
-                          <MoneyInput
-                            value={cur.price || ''}
-                            onChange={e => updateServiceField(cur.service, 'price', e.target.value)}
-                          />
-                        </div>
-                      </div>
+                      <SelectedServiceRow
+                        key={cur.service_id || cur.service}
+                        cur={cur}
+                        onDesc={e => updateServiceField(cur.service, 'description', e.target.value)}
+                      />
                     ))}
                   </div>
                 )}
               </div>
             </div>
 
-            {/* 4. Additional Settings */}
             <div className="bg-white/90 backdrop-blur-md rounded-2xl shadow-sm border border-gray-200 p-6 flex flex-col gap-5">
               <div className="flex items-center gap-3">
-                <div className={`w-6 h-6 rounded-full flex items-center justify-center border-2 transition-colors border-gray-300 text-gray-400 bg-gray-50`}>
+                <div className="w-6 h-6 rounded-full flex items-center justify-center border-2 border-gray-300 text-gray-400 bg-gray-50">
                   <Settings size={12} />
                 </div>
-                <h2 className="text-[15px] font-bold text-gray-900 tracking-tight flex items-center gap-2">
-                   Additional Terms & Notes
-                </h2>
+                <h2 className="text-[15px] font-bold text-gray-900 tracking-tight">Additional Terms & Notes</h2>
               </div>
-              
               <div className="flex flex-col gap-4">
                 <Field label="Special Notes for Client">
-                  <textarea
-                    className={`${inputCls} resize-none h-16 bg-gray-50 border-gray-200`}
-                    value={form.notes}
-                    onChange={e => setF('notes', e.target.value)}
-                    placeholder="e.g. Thanks for your business!"
-                  />
+                  <textarea className={`${inputCls} resize-none h-16 bg-gray-50 border-gray-200`} value={form.notes} onChange={e => setF('notes', e.target.value)} placeholder="e.g. Thanks for your business!" />
                 </Field>
-
                 <label className="flex items-center gap-3 cursor-pointer group mt-2">
-                  <input
-                    type="checkbox"
-                    checked={form.showTerms}
-                    onChange={e => setF('showTerms', e.target.checked)}
-                    className="w-4 h-4 text-gray-900 border-gray-300 rounded focus:ring-gray-900"
-                  />
+                  <input type="checkbox" checked={form.showTerms} onChange={e => setF('showTerms', e.target.checked)} className="w-4 h-4 text-gray-900 border-gray-300 rounded focus:ring-gray-900" />
                   <span className="text-[13px] font-bold text-gray-700 group-hover:text-gray-900 transition-colors">Include Terms & Conditions on Invoice</span>
                 </label>
-                
                 {form.showTerms && (
                   <Field label="Terms & Conditions">
-                    <textarea
-                      className={`${inputCls} resize-none h-20 bg-gray-50 border-gray-200`}
-                      value={form.termsAndConditions}
-                      onChange={e => setF('termsAndConditions', e.target.value)}
-                      placeholder="Enter custom terms or leave blank for default terms."
-                    />
+                    <textarea className={`${inputCls} resize-none h-20 bg-gray-50 border-gray-200`} value={form.termsAndConditions} onChange={e => setF('termsAndConditions', e.target.value)} placeholder="Enter custom terms or leave blank for default terms." />
                   </Field>
                 )}
               </div>
             </div>
-
           </div>
         </div>
 
-        {/* ── RIGHT COLUMN: 30% Sticky Receipt ── */}
         <div className="w-full lg:w-[420px] shrink-0">
           <div className="sticky top-6 flex flex-col gap-4">
-            
-            {/* The Receipt Container */}
             <div className="bg-white shadow-xl shadow-gray-200/50 rounded-3xl border border-gray-100 overflow-hidden flex flex-col">
-              
-              {/* Receipt Header */}
               <div className="bg-gray-900 p-5 text-white flex flex-col gap-1">
                 <div className="flex items-center justify-between">
                   <h3 className="font-bold text-[15px] tracking-wide flex items-center gap-2">
@@ -541,15 +589,12 @@ export default function InvoiceForm({ initial, onSubmit, loading, onCustomerSele
                 </div>
               </div>
 
-              {/* Receipt Body */}
               <div className="p-6 flex flex-col gap-5 bg-[#fafafa]">
-                
                 <div className="flex flex-col gap-3">
                   <div className="flex items-center justify-between text-[14px]">
                     <span className="font-bold text-gray-500">Sub Total</span>
                     <span className="font-mono font-bold text-gray-900">₹{fmt(subTotal)}</span>
                   </div>
-                  
                   <div className="flex items-center justify-between group">
                     <span className="font-bold text-gray-500 text-[14px]">Discount</span>
                     <div className="w-28">
@@ -563,42 +608,40 @@ export default function InvoiceForm({ initial, onSubmit, loading, onCustomerSele
                   )}
                 </div>
 
-                <div className="border-t border-dashed border-gray-300"></div>
+                <div className="border-t border-dashed border-gray-300" />
 
-                <div className="flex flex-col gap-1">
-                  <div className="flex items-end justify-between">
-                    <span className="font-black text-gray-900 text-[15px] uppercase tracking-wider">Grand Total</span>
-                    <span className="font-mono font-black text-gray-900 text-3xl tracking-tighter">₹{fmt(total)}</span>
-                  </div>
+                <div className="flex items-end justify-between">
+                  <span className="font-black text-gray-900 text-[15px] uppercase tracking-wider">Grand Total</span>
+                  <span className="font-mono font-black text-gray-900 text-3xl tracking-tighter">₹{fmt(total)}</span>
                 </div>
 
-                {/* Payments Section in Receipt */}
                 <div className="mt-2 bg-white rounded-2xl border border-gray-200 p-4 shadow-sm flex flex-col gap-3">
                   <div className="flex items-center justify-between">
                     <span className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">Payments Received</span>
-                    <button 
-                      type="button" 
+                    <button
+                      type="button"
                       disabled={form.payments.length >= 4}
-                      onClick={() => setForm(f => ({ ...f, payments: [...f.payments, { amount: 0, date: today, method: 'Cash', type: 'Advance' }] }))}
+                      onClick={() => setForm(f => ({
+                        ...f,
+                        payments: [...f.payments, { amount: 0, date: today, method: 'Cash', reference_no: '', locked: false }],
+                      }))}
                       className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest px-2.5 py-1.5 rounded bg-gray-100 hover:bg-gray-200 transition-colors text-gray-600 disabled:opacity-50"
                     >
                       <Plus size={12} /> Add
                     </button>
                   </div>
-                  
                   <div className="flex flex-col gap-2">
                     {form.payments.length === 0 ? (
-                      <div className="text-[12px] font-medium text-gray-400 italic text-center py-2">
-                        No payments added
-                      </div>
+                      <div className="text-[12px] font-medium text-gray-400 italic text-center py-2">No payments added</div>
                     ) : (
                       form.payments.map((p, idx) => (
-                        <PaymentRow 
-                          key={idx}
-                          idx={idx}
+                        <PaymentRow
+                          key={p.id || `new-${idx}`}
                           amount={p.amount}
                           date={p.date}
                           method={p.method}
+                          referenceNo={p.reference_no}
+                          locked={!!p.locked}
                           onAmount={e => {
                             const val = e.target.value;
                             setForm(f => ({
@@ -616,7 +659,16 @@ export default function InvoiceForm({ initial, onSubmit, loading, onCustomerSele
                             const val = e.target.value;
                             setForm(f => ({
                               ...f,
-                              payments: f.payments.map((pm, i) => i === idx ? { ...pm, method: val } : pm)
+                              payments: f.payments.map((pm, i) => i === idx
+                                ? { ...pm, method: val, reference_no: (val === 'UPI' || val === 'Bank Transfer') ? pm.reference_no : '' }
+                                : pm)
+                            }));
+                          }}
+                          onReferenceNo={e => {
+                            const val = e.target.value;
+                            setForm(f => ({
+                              ...f,
+                              payments: f.payments.map((pm, i) => i === idx ? { ...pm, reference_no: val } : pm)
                             }));
                           }}
                           removePayment={() => setForm(f => ({ ...f, payments: f.payments.filter((_, i) => i !== idx) }))}
@@ -630,10 +682,8 @@ export default function InvoiceForm({ initial, onSubmit, loading, onCustomerSele
                   <span className="text-[12px] font-bold uppercase tracking-wider text-gray-600">Balance Due</span>
                   <span className={`font-mono font-black text-xl ${balance <= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>₹{fmt(Math.max(0, balance))}</span>
                 </div>
-
               </div>
-              
-              {/* Primary Action Button (Fixed inside Receipt) */}
+
               <button
                 type="submit"
                 disabled={loading}
@@ -646,16 +696,12 @@ export default function InvoiceForm({ initial, onSubmit, loading, onCustomerSele
                 )}
                 {initial ? 'Update Invoice' : 'Create Invoice'}
               </button>
-
             </div>
-            
             <p className="text-center text-[11px] font-medium text-gray-400 mt-2 px-6">
               Review all services and financial details before generating the final order.
             </p>
-
           </div>
         </div>
-
       </form>
     </div>
   );

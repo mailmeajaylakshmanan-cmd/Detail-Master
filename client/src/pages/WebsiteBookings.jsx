@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Globe, Search, Calendar, Car, Phone, Mail, Clock, MoreVertical,
@@ -9,43 +10,63 @@ import { format, parseISO } from 'date-fns';
 import toast from 'react-hot-toast';
 
 export default function WebsiteBookings() {
-  const [activeTab, setActiveTab] = useState('Pending');
+  const [activeTab, setActiveTab] = useState('pending');
   const [searchQuery, setSearchQuery] = useState('');
   const [reschedulingId, setReschedulingId] = useState(null);
   const [rescheduleValue, setRescheduleValue] = useState('');
   const queryClient = useQueryClient();
 
-  const { data: rawBookings = [], isLoading } = useQuery({
-    queryKey: ['websiteBookings'],
-    queryFn: () => api.get('/website_bookings').then(res => res.data)
+  const { data: bookings = [], isLoading } = useQuery({
+    queryKey: ['web_bookings'],
+    queryFn: async () => {
+      const res = await api.get('/web_bookings');
+      return res.data;
+    }
   });
 
-  const bookings = rawBookings.map(b => ({
-    id: b.id,
-    customerName: b.customer_name,
-    customerPhone: b.customer_phone,
-    customerEmail: b.customer_email,
-    carMake: b.car_make,
-    carModel: b.car_model,
-    serviceInterested: b.service_interested,
-    preferredDate: b.preferred_date,
-    notes: b.notes,
-    status: b.status
-  }));
-
   const updateStatusMutation = useMutation({
-    mutationFn: ({ id, status }) => api.put(`/website_bookings/${id}`, { status }),
+    mutationFn: async ({ id, status }) => {
+      const res = await api.put(`/web_bookings/${id}`, { status });
+      return res.data;
+    },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['websiteBookings'] });
+      queryClient.invalidateQueries(['web_bookings']);
       toast.success('Booking status updated!');
     },
-    onError: () => toast.error('Failed to update booking status')
+    onError: (err) => {
+      toast.error('Failed to update booking status.');
+    }
+  });
+
+  const navigate = useNavigate();
+
+  const convertBookingMutation = useMutation({
+    mutationFn: async (id) => {
+      const res = await api.post(`/web_bookings/${id}/convert`, {
+        // You could open a modal here to collect amount_paid, payment_method, discount, etc.
+        // For now, doing a direct conversion with no initial payment.
+      });
+      return res.data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries(['web_bookings']);
+      toast.success('Booking converted to invoice!');
+      if (data.invoice_id) {
+        navigate(`/invoices/${data.invoice_id}`);
+      }
+    },
+    onError: (err) => {
+      toast.error(err.response?.data?.message || 'Failed to convert booking.');
+    }
   });
 
   const rescheduleMutation = useMutation({
-    mutationFn: ({ id, preferred_date }) => api.put(`/website_bookings/${id}`, { preferred_date }),
+    mutationFn: async ({ id, preferred_date }) => {
+      const res = await api.put(`/web_bookings/${id}`, { preferred_date });
+      return res.data;
+    },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['websiteBookings'] });
+      queryClient.invalidateQueries(['web_bookings']);
       toast.success('Booking rescheduled — customer notified by email');
       setReschedulingId(null);
     },
@@ -53,22 +74,22 @@ export default function WebsiteBookings() {
   });
 
   const startReschedule = (booking) => {
-    setReschedulingId(booking.id);
-    setRescheduleValue(booking.preferredDate ? booking.preferredDate.slice(0, 16) : '');
+    setReschedulingId(booking.booking_id);
+    setRescheduleValue(booking.preferred_date ? booking.preferred_date.slice(0, 10) : '');
   };
 
   const confirmReschedule = (id) => {
     if (!rescheduleValue) return;
-    rescheduleMutation.mutate({ id, preferred_date: new Date(rescheduleValue).toISOString() });
+    rescheduleMutation.mutate({ id, preferred_date: rescheduleValue });
   };
 
   const filteredBookings = bookings.filter(booking => {
     const matchesTab = booking.status === activeTab;
     const searchLower = searchQuery.toLowerCase();
     const matchesSearch = 
-      (booking.customerName || '').toLowerCase().includes(searchLower) ||
-      (booking.carMake || '').toLowerCase().includes(searchLower) ||
-      (booking.carModel || '').toLowerCase().includes(searchLower);
+      (booking.full_name || '').toLowerCase().includes(searchLower) ||
+      (booking.vehicle_brand || '').toLowerCase().includes(searchLower) ||
+      (booking.vehicle_model || '').toLowerCase().includes(searchLower);
     return matchesTab && matchesSearch;
   });
 
@@ -128,21 +149,26 @@ export default function WebsiteBookings() {
         <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
           {/* Tabs */}
           <div className="flex items-center bg-white/90 backdrop-blur-xl rounded-2xl p-1.5 border border-gray-100 shadow-xl shadow-gray-200/50">
-            {['Pending', 'Confirmed', 'Completed', 'Cancelled'].map(tab => (
+            {[
+              { id: 'pending', label: 'Pending' }, 
+              { id: 'confirmed', label: 'Confirmed' }, 
+              { id: 'converted', label: 'Completed' }, 
+              { id: 'cancelled', label: 'Cancelled' }
+            ].map(tab => (
               <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
                 className={`px-6 py-2.5 rounded-xl text-[13px] font-black uppercase tracking-widest transition-all ${
-                  activeTab === tab 
+                  activeTab === tab.id 
                     ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30 ring-2 ring-blue-600 ring-offset-1' 
                     : 'text-gray-500 hover:bg-gray-100 hover:text-gray-900'
                 }`}
               >
-                {tab}
+                {tab.label}
                 <span className={`ml-2 px-2 py-0.5 rounded-full text-[10px] font-black ${
-                  activeTab === tab ? 'bg-white/20 text-white' : 'bg-gray-200 text-gray-600'
+                  activeTab === tab.id ? 'bg-white/20 text-white' : 'bg-gray-200 text-gray-600'
                 }`}>
-                  {bookings.filter(b => b.status === tab).length}
+                  {bookings.filter(b => b.status === tab.id).length}
                 </span>
               </button>
             ))}
@@ -171,7 +197,7 @@ export default function WebsiteBookings() {
             <div className="w-24 h-24 bg-gray-50 rounded-full flex items-center justify-center mb-4 border border-gray-100 shadow-inner">
               <Globe className="text-gray-300" size={48} />
             </div>
-            <h2 className="text-xl font-black text-gray-900 mb-2">No {activeTab} Bookings</h2>
+            <h2 className="text-xl font-black text-gray-900 mb-2">No {activeTab === 'converted' ? 'completed' : activeTab} Bookings</h2>
             <p className="text-gray-500 font-bold">There are currently no website bookings in this status.</p>
           </div>
         ) : (
@@ -190,37 +216,37 @@ export default function WebsiteBookings() {
                 </thead>
                 <tbody className="divide-y divide-gray-50">
                   {filteredBookings.map(booking => (
-                    <tr key={booking.id} className="hover:bg-gray-50/30 transition-colors group">
+                    <tr key={booking.booking_id} className="hover:bg-gray-50/30 transition-colors group">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center font-black text-sm border border-blue-100 shadow-sm shrink-0">
-                            {booking.customerName.charAt(0)}
+                            {(booking.full_name || 'U').charAt(0).toUpperCase()}
                           </div>
                           <div>
-                            <p className="text-[13px] font-black text-gray-900">{booking.customerName}</p>
-                            <p className="text-[11px] font-bold text-gray-500">{booking.customerPhone}</p>
+                            <p className="text-[13px] font-black text-gray-900">{booking.full_name}</p>
+                            <p className="text-[11px] font-bold text-gray-500">{booking.phone}</p>
                           </div>
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <p className="text-[13px] font-black text-gray-900">{booking.carMake}</p>
-                        <p className="text-[11px] font-bold text-gray-500">{booking.carModel}</p>
+                        <p className="text-[13px] font-black text-gray-900">{booking.vehicle_brand}</p>
+                        <p className="text-[11px] font-bold text-gray-500">{booking.vehicle_model}</p>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-[#FCDF4C]/20 text-[#D8A700] text-[11px] font-black tracking-widest border border-[#FCDF4C]/30 shadow-sm">
-                          <CheckSquare size={12} /> {booking.serviceInterested || 'General Inquiry'}
+                          <CheckSquare size={12} /> {booking.service_name || 'General Inquiry'}
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        {reschedulingId === booking.id ? (
+                        {reschedulingId === booking.booking_id ? (
                           <div className="flex items-center gap-1.5">
                             <input
-                              type="datetime-local"
+                              type="date"
                               value={rescheduleValue}
                               onChange={(e) => setRescheduleValue(e.target.value)}
                               className="text-[12px] font-bold text-gray-700 bg-white px-2 py-1 rounded-lg border border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                             />
-                            <button onClick={() => confirmReschedule(booking.id)} className="w-7 h-7 flex items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 border border-emerald-200 hover:bg-emerald-100">
+                            <button onClick={() => confirmReschedule(booking.booking_id)} className="w-7 h-7 flex items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 border border-emerald-200 hover:bg-emerald-100">
                               <Check size={14} />
                             </button>
                             <button onClick={() => setReschedulingId(null)} className="w-7 h-7 flex items-center justify-center rounded-lg bg-gray-100 text-gray-500 border border-gray-200 hover:bg-gray-200">
@@ -230,7 +256,7 @@ export default function WebsiteBookings() {
                         ) : (
                           <span className="flex items-center gap-1.5 text-[12px] font-bold text-gray-700 bg-gray-50 px-3 py-1 rounded-lg border border-gray-200 group/date">
                             <Calendar size={14} className="text-gray-400" />
-                            {booking.preferredDate ? format(parseISO(booking.preferredDate), 'MMM d, yyyy h:mm a') : 'No Date'}
+                            {booking.preferred_date ? format(parseISO(booking.preferred_date), 'MMM d, yyyy') : 'No Date'}
                             <button onClick={() => startReschedule(booking)} title="Reschedule" className="ml-1 text-gray-400 hover:text-blue-600">
                               <PenSquare size={13} />
                             </button>
@@ -238,34 +264,43 @@ export default function WebsiteBookings() {
                         )}
                       </td>
                       <td className="px-6 py-4 max-w-[200px]">
-                        <p className="text-[12px] text-gray-600 font-medium truncate" title={booking.notes}>
-                          {booking.notes || '—'}
+                        <p className="text-[12px] text-gray-600 font-medium truncate" title={booking.additional_notes}>
+                          {booking.additional_notes || '—'}
                         </p>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center justify-center gap-2 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
-                          {activeTab === 'Pending' && (
+                          {activeTab === 'pending' && (
                             <>
-                              <button onClick={() => updateStatusMutation.mutate({ id: booking.id, status: 'Confirmed' })} className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-black rounded-lg transition-all shadow-sm">
+                              <button onClick={() => updateStatusMutation.mutate({ id: booking.booking_id, status: 'confirmed' })} className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-black rounded-lg transition-all shadow-sm">
                                 Confirm
                               </button>
-                              <button onClick={() => updateStatusMutation.mutate({ id: booking.id, status: 'Cancelled' })} className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 text-[11px] font-black rounded-lg transition-all shadow-sm">
+                              <button onClick={() => updateStatusMutation.mutate({ id: booking.booking_id, status: 'cancelled' })} className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 text-[11px] font-black rounded-lg transition-all shadow-sm">
                                 Cancel
                               </button>
                             </>
                           )}
-                          {activeTab === 'Confirmed' && (
+                          {activeTab === 'confirmed' && (
                             <>
-                              <button onClick={() => updateStatusMutation.mutate({ id: booking.id, status: 'Completed' })} className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-black rounded-lg transition-all shadow-sm">
-                                Complete
+                              <button 
+                                onClick={() => {
+                                  if (window.confirm('Are you sure you want to convert this booking into an invoice?')) {
+                                    convertBookingMutation.mutate(booking.booking_id);
+                                  }
+                                }} 
+                                disabled={convertBookingMutation.isPending}
+                                className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-black rounded-lg transition-all shadow-sm flex items-center gap-1 disabled:opacity-50"
+                              >
+                                {convertBookingMutation.isPending && convertBookingMutation.variables === booking.booking_id ? <Globe className="animate-spin" size={12} /> : null}
+                                Convert to Invoice
                               </button>
-                              <button onClick={() => updateStatusMutation.mutate({ id: booking.id, status: 'Pending' })} className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-600 border border-gray-200 text-[11px] font-black rounded-lg transition-all shadow-sm">
+                              <button onClick={() => updateStatusMutation.mutate({ id: booking.booking_id, status: 'pending' })} className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-600 border border-gray-200 text-[11px] font-black rounded-lg transition-all shadow-sm">
                                 Revert
                               </button>
                             </>
                           )}
-                          {(activeTab === 'Completed' || activeTab === 'Cancelled') && (
-                            <button onClick={() => updateStatusMutation.mutate({ id: booking.id, status: 'Pending' })} className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-600 border border-gray-200 text-[11px] font-black rounded-lg transition-all shadow-sm">
+                          {(activeTab === 'converted' || activeTab === 'cancelled') && (
+                            <button onClick={() => updateStatusMutation.mutate({ id: booking.booking_id, status: 'pending' })} className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-600 border border-gray-200 text-[11px] font-black rounded-lg transition-all shadow-sm">
                               Reopen
                             </button>
                           )}

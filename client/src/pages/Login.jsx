@@ -48,13 +48,14 @@ export default function Login() {
           <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-blue-400/10 rounded-full blur-[100px] translate-y-1/3 -translate-x-1/4"></div>
           
           <div className="relative z-10 flex flex-col items-center mt-12 text-center">
-            {/* Logo Container */}
-            <div className="w-48 h-48 bg-white shadow-[0_8px_30px_rgba(0,0,0,0.08)] rounded-[28px] border border-gray-100 p-6 mb-8 flex items-center justify-center transition-transform hover:scale-105 duration-300">
-              <img src={brandLogo} alt="Logo" className="w-full h-full object-contain filter drop-shadow-sm rounded-[16px]" />
+            {/* Brand logo only — name is already in the crest */}
+            <div className="w-52 h-52 bg-white shadow-[0_8px_30px_rgba(0,0,0,0.08)] rounded-[28px] border border-gray-100 p-5 mb-6 flex items-center justify-center transition-transform hover:scale-105 duration-300">
+              <img
+                src={brandLogo}
+                alt="Detailing Masters"
+                className="w-full h-full object-contain drop-shadow-sm"
+              />
             </div>
-            <h1 className="text-[26px] font-black tracking-tight text-slate-800 mb-1.5">
-              DETAILING MASTERS
-            </h1>
             <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-orange-600">
               Auto Detailing
             </p>
@@ -76,10 +77,9 @@ export default function Login() {
           
           {/* Mobile Header (Hidden on Desktop) */}
           <div className="md:hidden flex flex-col items-center text-center mb-10">
-            <div className="w-32 h-32 bg-white shadow-md rounded-[24px] p-4 mb-5 flex items-center justify-center border border-white">
-              <img src={brandLogo} alt="Logo" className="w-full h-full object-contain" />
+            <div className="w-36 h-36 bg-white shadow-md rounded-[24px] p-4 mb-4 flex items-center justify-center border border-white">
+              <img src={brandLogo} alt="Detailing Masters" className="w-full h-full object-contain" />
             </div>
-            <h1 className="text-[24px] font-black tracking-tight text-gray-900 mb-1">DETAILING MASTERS</h1>
             <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-orange-600">Auto Detailing</p>
           </div>
 
