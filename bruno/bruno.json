@@ -1,0 +1,6 @@
+{
+  "version": "1",
+  "name": "Detail Master - Website Bookings",
+  "type": "collection",
+  "ignore": ["node_modules", ".git"]
+}

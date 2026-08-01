@@ -1,0 +1,17 @@
+meta {
+  name: 04 Reschedule Booking
+  type: http
+  seq: 4
+}
+
+put {
+  url: {{baseUrl}}/website_bookings/1
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "preferred_date": "2026-08-10T14:00:00Z"
+  }
+}

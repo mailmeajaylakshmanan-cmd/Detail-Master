@@ -1,0 +1,24 @@
+meta {
+  name: 01 Create Booking
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/website_bookings
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "customer_name": "Original SivaPunithan",
+    "customer_phone": "9876543210",
+    "customer_email": "punithansiva987@gmail.com",
+    "car_make": "Tata",
+    "car_model": "Nexon",
+    "service_interested": "Puncture Service",
+    "preferred_date": "2026-08-05T10:00:00Z",
+    "notes": "Created via Bruno for local testing"
+  }
+}

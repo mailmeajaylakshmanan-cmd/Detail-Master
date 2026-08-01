@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { 
-  Globe, Search, Calendar, Car, Phone, Mail, Clock, MoreVertical, 
-  CheckCircle2, XCircle, Clock4, CheckSquare 
+import {
+  Globe, Search, Calendar, Car, Phone, Mail, Clock, MoreVertical,
+  CheckCircle2, XCircle, Clock4, CheckSquare, PenSquare, Check, X as XIcon
 } from 'lucide-react';
 import api from '../api/axios';
 import { format, parseISO } from 'date-fns';
@@ -11,17 +11,55 @@ import toast from 'react-hot-toast';
 export default function WebsiteBookings() {
   const [activeTab, setActiveTab] = useState('Pending');
   const [searchQuery, setSearchQuery] = useState('');
-  
-  // No website_bookings Postgres table/route yet — empty until connected
-  const [bookings, setBookings] = useState([]);
+  const [reschedulingId, setReschedulingId] = useState(null);
+  const [rescheduleValue, setRescheduleValue] = useState('');
+  const queryClient = useQueryClient();
 
-  const isLoading = false;
+  const { data: rawBookings = [], isLoading } = useQuery({
+    queryKey: ['websiteBookings'],
+    queryFn: () => api.get('/website_bookings').then(res => res.data)
+  });
 
-  const updateStatusMutation = {
-    mutate: ({ id, status }) => {
-      setBookings(prev => prev.map(b => (b.id === id || b._id === id) ? { ...b, status } : b));
+  const bookings = rawBookings.map(b => ({
+    id: b.id,
+    customerName: b.customer_name,
+    customerPhone: b.customer_phone,
+    customerEmail: b.customer_email,
+    carMake: b.car_make,
+    carModel: b.car_model,
+    serviceInterested: b.service_interested,
+    preferredDate: b.preferred_date,
+    notes: b.notes,
+    status: b.status
+  }));
+
+  const updateStatusMutation = useMutation({
+    mutationFn: ({ id, status }) => api.put(`/website_bookings/${id}`, { status }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['websiteBookings'] });
       toast.success('Booking status updated!');
-    }
+    },
+    onError: () => toast.error('Failed to update booking status')
+  });
+
+  const rescheduleMutation = useMutation({
+    mutationFn: ({ id, preferred_date }) => api.put(`/website_bookings/${id}`, { preferred_date }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['websiteBookings'] });
+      toast.success('Booking rescheduled — customer notified by email');
+      setReschedulingId(null);
+    },
+    onError: () => toast.error('Failed to reschedule booking')
+  });
+
+  const startReschedule = (booking) => {
+    setReschedulingId(booking.id);
+    setRescheduleValue(booking.preferredDate ? booking.preferredDate.slice(0, 16) : '');
+  };
+
+  const confirmReschedule = (id) => {
+    if (!rescheduleValue) return;
+    rescheduleMutation.mutate({ id, preferred_date: new Date(rescheduleValue).toISOString() });
   };
 
   const filteredBookings = bookings.filter(booking => {
@@ -174,10 +212,30 @@ export default function WebsiteBookings() {
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="flex items-center gap-1.5 text-[12px] font-bold text-gray-700 bg-gray-50 px-3 py-1 rounded-lg border border-gray-200">
-                          <Calendar size={14} className="text-gray-400" />
-                          {booking.preferredDate ? format(parseISO(booking.preferredDate), 'MMM d, yyyy') : 'No Date'}
-                        </span>
+                        {reschedulingId === booking.id ? (
+                          <div className="flex items-center gap-1.5">
+                            <input
+                              type="datetime-local"
+                              value={rescheduleValue}
+                              onChange={(e) => setRescheduleValue(e.target.value)}
+                              className="text-[12px] font-bold text-gray-700 bg-white px-2 py-1 rounded-lg border border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                            />
+                            <button onClick={() => confirmReschedule(booking.id)} className="w-7 h-7 flex items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 border border-emerald-200 hover:bg-emerald-100">
+                              <Check size={14} />
+                            </button>
+                            <button onClick={() => setReschedulingId(null)} className="w-7 h-7 flex items-center justify-center rounded-lg bg-gray-100 text-gray-500 border border-gray-200 hover:bg-gray-200">
+                              <XIcon size={14} />
+                            </button>
+                          </div>
+                        ) : (
+                          <span className="flex items-center gap-1.5 text-[12px] font-bold text-gray-700 bg-gray-50 px-3 py-1 rounded-lg border border-gray-200 group/date">
+                            <Calendar size={14} className="text-gray-400" />
+                            {booking.preferredDate ? format(parseISO(booking.preferredDate), 'MMM d, yyyy h:mm a') : 'No Date'}
+                            <button onClick={() => startReschedule(booking)} title="Reschedule" className="ml-1 text-gray-400 hover:text-blue-600">
+                              <PenSquare size={13} />
+                            </button>
+                          </span>
+                        )}
                       </td>
                       <td className="px-6 py-4 max-w-[200px]">
                         <p className="text-[12px] text-gray-600 font-medium truncate" title={booking.notes}>
