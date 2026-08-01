@@ -33,6 +33,7 @@ app.use('/api/job_order_services', require('./routes/job_order_services'));
 app.use('/api/invoices', require('./routes/invoices'));
 app.use('/api/payments', require('./routes/payments'));
 app.use('/api/permissions', require('./routes/permissions'));
+app.use('/api/web_bookings', require('./routes/web_bookings'));
 
 // Health check
 app.get('/api/health', (req, res) => res.json({ status: 'ok', app: 'DETAILING MASTERS Billing' }));
