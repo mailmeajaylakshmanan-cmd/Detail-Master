@@ -14,9 +14,9 @@ const transporter = nodemailer.createTransport({
 // event: 'created' | 'rescheduled' | 'pending' | 'confirmed' | 'converted' | 'cancelled'
 const MESSAGES = {
   created: {
-    subject: 'Your Detailing Masters appointment request was received',
-    headline: 'Booking request received',
-    body: (b, dateStr) => `Hi ${b.full_name}, we received your booking request for ${dateStr}. We'll confirm shortly.`
+    subject: 'Your Detailing Masters appointment request is pending',
+    headline: 'Booking Request Pending',
+    body: (b, dateStr) => `Dear ${b.full_name}, thank you for choosing Detailing Masters. Your booking request for ${dateStr} has been successfully received and is currently pending confirmation. Our team will review your request and contact you shortly.`
   },
   rescheduled: {
     subject: 'Your Detailing Masters appointment has been rescheduled',
@@ -61,7 +61,8 @@ async function sendScheduleEmail(booking, event = 'created') {
   });
 
   const info = await transporter.sendMail({
-    from: '"Detailing Masters" <no-reply@detailingmasters.in>',
+    from: `"Detailing Masters" <${process.env.SMTP_USER}>`,
+    replyTo: process.env.SMTP_USER,
     to: booking.email,
     subject: template.subject,
     text: message,
