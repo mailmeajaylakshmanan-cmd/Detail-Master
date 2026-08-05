@@ -19,6 +19,7 @@ export function mapClient(c) {
     ...c,
     id: c.id,
     name: c.full_name ?? c.name ?? '',
+    createdAt: c.created_at ?? c.createdAt,
   };
 }
 
