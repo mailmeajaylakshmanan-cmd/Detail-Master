@@ -6,10 +6,10 @@ const cookieParser = require('cookie-parser');
 
 const app = express();
 
-const allowedOrigins = (process.env.CLIENT_URL || 'http://localhost:5173')
-  .split(',')
-  .map(s => s.trim())
-  .filter(Boolean);
+const allowedOrigins = [
+  ...(process.env.CLIENT_URL ? process.env.CLIENT_URL.split(',') : ['http://localhost:5173']),
+  'https://detailingmasters.in'
+].map(s => s.trim()).filter(Boolean);
 
 app.use(compression());
 app.use(cors({
