@@ -13,7 +13,7 @@ const pool = new Pool({
     : { rejectUnauthorized: false },
   max: Number(process.env.PG_POOL_MAX || 5),
   idleTimeoutMillis: 20_000,
-  connectionTimeoutMillis: 10_000,
+  connectionTimeoutMillis: 30_000,
   allowExitOnIdle: true,
 });
 

@@ -144,8 +144,9 @@ function SidebarNav({ navItems, openGroups, setOpenGroups, onNavigate }) {
 export default function Layout() {
   const navigate = useNavigate();
   const location = useLocation();
-  const [scrolled, setScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isDesktopSidebarOpen, setIsDesktopSidebarOpen] = useState(true);
+  const [scrolled, setScrolled] = useState(false);
   // Load menus synchronously so first paint already has full sidebar (no blink)
   const [navItems, setNavItems] = useState(() => readNavItemsFromStorage());
   const [openGroups, setOpenGroups] = useState(() =>
@@ -216,9 +217,9 @@ export default function Layout() {
           fixed top-0 left-0 z-[70] h-full w-[260px]
           bg-white/70 backdrop-blur-2xl border-r border-white/50
           flex flex-col shadow-xl lg:shadow-none
-          transform lg:transform-none lg:transition-none transition-transform duration-300 ease-in-out
+          transform transition-transform duration-300 ease-in-out
           ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}
-          lg:translate-x-0
+          ${isDesktopSidebarOpen ? 'lg:translate-x-0' : 'lg:-translate-x-full'}
         `}
       >
         <div className="flex items-center justify-between px-3 py-4 border-b border-white/40 shrink-0 gap-2">
@@ -234,6 +235,13 @@ export default function Layout() {
             className="lg:hidden w-8 h-8 flex items-center justify-center rounded-full bg-white/60 text-gray-500 hover:text-rose-500 hover:bg-rose-50 shrink-0"
           >
             <X size={18} />
+          </button>
+          <button
+            type="button"
+            onClick={() => setIsDesktopSidebarOpen(false)}
+            className="hidden lg:flex w-8 h-8 items-center justify-center rounded-full bg-white/60 text-gray-500 hover:text-blue-600 hover:bg-blue-50 shrink-0"
+          >
+            <Menu size={18} />
           </button>
         </div>
 
@@ -256,7 +264,7 @@ export default function Layout() {
       </aside>
 
       {/* Main column */}
-      <div className="flex-1 flex flex-col min-w-0 lg:pl-[260px] bg-transparent">
+      <div className={`flex-1 flex flex-col min-w-0 transition-all duration-300 ${isDesktopSidebarOpen ? 'lg:pl-[260px]' : 'lg:pl-0'} bg-transparent`}>
         <header
           className={`sticky top-0 z-50 transition-all duration-200 bg-white/45 backdrop-blur-xl border-b border-white/40 ${
             scrolled ? 'shadow-md' : ''
@@ -271,13 +279,24 @@ export default function Layout() {
               >
                 <Menu size={20} />
               </button>
+              
+              {!isDesktopSidebarOpen && (
+                <button
+                  type="button"
+                  onClick={() => setIsDesktopSidebarOpen(true)}
+                  className="hidden lg:flex w-10 h-10 items-center justify-center rounded-xl bg-white/50 border border-white/50 text-gray-700 hover:bg-white/80 shrink-0"
+                >
+                  <Menu size={20} />
+                </button>
+              )}
+
               <div className="lg:hidden flex items-center gap-2 min-w-0">
                 <img src={brandLogo} alt="" className="h-8 w-8 object-contain shrink-0" />
                 <span className="text-[12px] font-black text-blue-900 tracking-tight leading-tight uppercase truncate">
                   Detailing Masters
                 </span>
               </div>
-              <p className="hidden lg:block text-sm font-semibold text-gray-600/80 truncate">
+              <p className="hidden lg:block text-sm font-semibold text-gray-600/80 truncate ml-1">
                 Billing & Operations
               </p>
             </div>

@@ -13,7 +13,8 @@ router.get('/', async (req, res) => {
             json_build_object(
               'id', v.id,
               'make_model', v.make_model,
-              'license_vin', v.license_vin
+              'license_vin', v.license_vin,
+              'vehicle_type', v.vehicle_type
             )
             ORDER BY v.id
           ) FILTER (WHERE v.id IS NOT NULL),
@@ -38,7 +39,8 @@ router.get('/', async (req, res) => {
             id: v.id,
             make: parts[0] || '',
             model: parts.slice(1).join(' ') || '',
-            plate: v.license_vin || ''
+            plate: v.license_vin || '',
+            type: v.vehicle_type || ''
           };
         })
       };
@@ -83,10 +85,10 @@ router.post('/', async (req, res) => {
       newClient.vehicles = [];
       for (const v of vehicles) {
         if (v.make || v.model || v.plate) {
-          const make_model = `${v.make || ''} ${v.model || ''}`.trim();
+          const make_model = `${v.make || ''} ${v.model || ''}`.trim() || 'Unknown';
           const vRows = await client.query(
-            'INSERT INTO vehicles (client_id, make_model, license_vin) VALUES ($1, $2, $3) RETURNING *',
-            [newClient.id, make_model, v.plate]
+            'INSERT INTO vehicles (client_id, make_model, license_vin, vehicle_type) VALUES ($1, $2, $3, $4) RETURNING *',
+            [newClient.id, make_model, v.plate || '', v.type || 'Sedan']
           );
           newClient.vehicles.push(vRows.rows[0]);
         }
@@ -97,8 +99,8 @@ router.post('/', async (req, res) => {
     res.status(201).json(newClient);
   } catch (err) {
     await client.query('ROLLBACK');
-    console.error(err);
-    res.status(500).json({ message: 'Server error' });
+    console.error('Error creating client:', err);
+    res.status(500).json({ message: err.message || 'Server error' });
   } finally {
     client.release();
   }
@@ -123,18 +125,43 @@ router.put('/:id', async (req, res) => {
     }
     const updatedClient = rows[0];
 
-    // Handle vehicles (simple approach: delete existing and re-insert)
+    // Handle vehicles (smart upsert approach to preserve foreign keys)
     if (vehicles !== undefined) {
-      await client.query('DELETE FROM vehicles WHERE client_id = $1', [id]);
       updatedClient.vehicles = [];
+      const incomingIds = vehicles.map(v => parseInt(v.id)).filter(id => !isNaN(id));
+
+      if (incomingIds.length > 0) {
+        await client.query(`
+          DELETE FROM vehicles 
+          WHERE client_id = $1 
+            AND id != ALL($2::int[])
+            AND id NOT IN (SELECT vehicle_id FROM invoices WHERE vehicle_id IS NOT NULL)
+        `, [id, incomingIds]);
+      } else {
+        await client.query(`
+          DELETE FROM vehicles 
+          WHERE client_id = $1 
+            AND id NOT IN (SELECT vehicle_id FROM invoices WHERE vehicle_id IS NOT NULL)
+        `, [id]);
+      }
+
       for (const v of vehicles) {
         if (v.make || v.model || v.plate) {
-          const make_model = `${v.make || ''} ${v.model || ''}`.trim();
-          const vRows = await client.query(
-            'INSERT INTO vehicles (client_id, make_model, license_vin) VALUES ($1, $2, $3) RETURNING *',
-            [id, make_model, v.plate]
-          );
-          updatedClient.vehicles.push(vRows.rows[0]);
+          const make_model = `${v.make || ''} ${v.model || ''}`.trim() || 'Unknown';
+          
+          if (v.id) {
+            const vRows = await client.query(
+              'UPDATE vehicles SET make_model = $1, license_vin = $2, vehicle_type = $3 WHERE id = $4 AND client_id = $5 RETURNING *',
+              [make_model, v.plate || '', v.type || 'Sedan', v.id, id]
+            );
+            if (vRows.rows.length > 0) updatedClient.vehicles.push(vRows.rows[0]);
+          } else {
+            const vRows = await client.query(
+              'INSERT INTO vehicles (client_id, make_model, license_vin, vehicle_type) VALUES ($1, $2, $3, $4) RETURNING *',
+              [id, make_model, v.plate || '', v.type || 'Sedan']
+            );
+            updatedClient.vehicles.push(vRows.rows[0]);
+          }
         }
       }
     }
@@ -143,8 +170,8 @@ router.put('/:id', async (req, res) => {
     res.json(updatedClient);
   } catch (err) {
     await client.query('ROLLBACK');
-    console.error(err);
-    res.status(500).json({ message: 'Server error' });
+    console.error('Error updating client:', err);
+    res.status(500).json({ message: err.message || 'Server error' });
   } finally {
     client.release();
   }

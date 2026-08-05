@@ -29,3 +29,14 @@ export function parseSafeDate(dateStr) {
   // Fallback to standard parsing (handles ISO format: YYYY-MM-DDTHH:mm:ss.sssZ, etc)
   return new Date(trimmed);
 }
+
+/**
+ * Safely formats a date string to locale date string, preventing RangeError
+ * if the date is invalid.
+ */
+export function formatDate(dateStr, fallback = '—') {
+  if (!dateStr) return fallback;
+  const d = parseSafeDate(dateStr);
+  if (isNaN(d.getTime())) return fallback;
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
