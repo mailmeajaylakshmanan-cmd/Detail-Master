@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { 
-  Globe, Search, Calendar, Car, Phone, Mail, Clock, MoreVertical, 
-  CheckCircle2, XCircle, Clock4, CheckSquare 
+import {
+  Globe, Search, Calendar, Car, Phone, Mail, Clock, MoreVertical,
+  CheckCircle2, XCircle, Clock4, CheckSquare, PenSquare, Check, X as XIcon
 } from 'lucide-react';
 import api from '../api/axios';
 import { format, parseISO } from 'date-fns';
@@ -12,19 +12,21 @@ import toast from 'react-hot-toast';
 export default function WebsiteBookings() {
   const [activeTab, setActiveTab] = useState('pending');
   const [searchQuery, setSearchQuery] = useState('');
+  const [reschedulingId, setReschedulingId] = useState(null);
+  const [rescheduleValue, setRescheduleValue] = useState('');
   const queryClient = useQueryClient();
-  
+
   const { data: bookings = [], isLoading } = useQuery({
     queryKey: ['web_bookings'],
     queryFn: async () => {
-      const res = await api.get('/api/web_bookings');
+      const res = await api.get('/web_bookings');
       return res.data;
     }
   });
 
   const updateStatusMutation = useMutation({
     mutationFn: async ({ id, status }) => {
-      const res = await api.put(`/api/web_bookings/${id}`, { status });
+      const res = await api.put(`/web_bookings/${id}`, { status });
       return res.data;
     },
     onSuccess: () => {
@@ -40,8 +42,8 @@ export default function WebsiteBookings() {
 
   const convertBookingMutation = useMutation({
     mutationFn: async (id) => {
-      const res = await api.post(`/api/web_bookings/${id}/convert`, {
-        // You could open a modal here to collect amount_paid, payment_method, discount, etc. 
+      const res = await api.post(`/web_bookings/${id}/convert`, {
+        // You could open a modal here to collect amount_paid, payment_method, discount, etc.
         // For now, doing a direct conversion with no initial payment.
       });
       return res.data;
@@ -57,6 +59,29 @@ export default function WebsiteBookings() {
       toast.error(err.response?.data?.message || 'Failed to convert booking.');
     }
   });
+
+  const rescheduleMutation = useMutation({
+    mutationFn: async ({ id, preferred_date }) => {
+      const res = await api.put(`/web_bookings/${id}`, { preferred_date });
+      return res.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(['web_bookings']);
+      toast.success('Booking rescheduled — customer notified by email');
+      setReschedulingId(null);
+    },
+    onError: () => toast.error('Failed to reschedule booking')
+  });
+
+  const startReschedule = (booking) => {
+    setReschedulingId(booking.booking_id);
+    setRescheduleValue(booking.preferred_date ? booking.preferred_date.slice(0, 10) : '');
+  };
+
+  const confirmReschedule = (id) => {
+    if (!rescheduleValue) return;
+    rescheduleMutation.mutate({ id, preferred_date: rescheduleValue });
+  };
 
   const filteredBookings = bookings.filter(booking => {
     const matchesTab = booking.status === activeTab;
@@ -213,10 +238,30 @@ export default function WebsiteBookings() {
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="flex items-center gap-1.5 text-[12px] font-bold text-gray-700 bg-gray-50 px-3 py-1 rounded-lg border border-gray-200">
-                          <Calendar size={14} className="text-gray-400" />
-                          {booking.preferred_date ? format(parseISO(booking.preferred_date), 'MMM d, yyyy') : 'No Date'}
-                        </span>
+                        {reschedulingId === booking.booking_id ? (
+                          <div className="flex items-center gap-1.5">
+                            <input
+                              type="date"
+                              value={rescheduleValue}
+                              onChange={(e) => setRescheduleValue(e.target.value)}
+                              className="text-[12px] font-bold text-gray-700 bg-white px-2 py-1 rounded-lg border border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                            />
+                            <button onClick={() => confirmReschedule(booking.booking_id)} className="w-7 h-7 flex items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 border border-emerald-200 hover:bg-emerald-100">
+                              <Check size={14} />
+                            </button>
+                            <button onClick={() => setReschedulingId(null)} className="w-7 h-7 flex items-center justify-center rounded-lg bg-gray-100 text-gray-500 border border-gray-200 hover:bg-gray-200">
+                              <XIcon size={14} />
+                            </button>
+                          </div>
+                        ) : (
+                          <span className="flex items-center gap-1.5 text-[12px] font-bold text-gray-700 bg-gray-50 px-3 py-1 rounded-lg border border-gray-200 group/date">
+                            <Calendar size={14} className="text-gray-400" />
+                            {booking.preferred_date ? format(parseISO(booking.preferred_date), 'MMM d, yyyy') : 'No Date'}
+                            <button onClick={() => startReschedule(booking)} title="Reschedule" className="ml-1 text-gray-400 hover:text-blue-600">
+                              <PenSquare size={13} />
+                            </button>
+                          </span>
+                        )}
                       </td>
                       <td className="px-6 py-4 max-w-[200px]">
                         <p className="text-[12px] text-gray-600 font-medium truncate" title={booking.additional_notes}>
