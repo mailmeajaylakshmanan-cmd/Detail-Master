@@ -79,22 +79,25 @@ router.get('/', async (req, res) => {
       db.query(
         `SELECT COUNT(*)::int AS total
          FROM invoices i
-         JOIN clients c ON i.client_id = c.id
-         JOIN vehicles v ON i.vehicle_id = v.id
+         LEFT JOIN clients c ON i.client_id = c.id
+         LEFT JOIN organizations o ON i.organization_id = o.id
+         LEFT JOIN vehicles v ON i.vehicle_id = v.id
          ${whereSql}`,
         params
       ),
       db.query(
         `SELECT
-           i.id, i.invoice_number, i.client_id, i.vehicle_id, i.status,
+           i.id, i.invoice_number, i.client_id, i.organization_id, i.vehicle_id, i.status,
            i.sub_total, i.discount, i.grand_total, i.amount_paid, i.balance_due,
            i.special_notes, i.include_terms, i.terms_conditions,
            i.created_at, i.updated_at,
            c.full_name AS client_name, c.phone AS client_phone,
+           o.org_name AS organization_name, o.phone AS organization_phone,
            v.make_model AS vehicle_name, v.license_vin
          FROM invoices i
-         JOIN clients c ON i.client_id = c.id
-         JOIN vehicles v ON i.vehicle_id = v.id
+         LEFT JOIN clients c ON i.client_id = c.id
+         LEFT JOIN organizations o ON i.organization_id = o.id
+         LEFT JOIN vehicles v ON i.vehicle_id = v.id
          ${whereSql}
          ORDER BY i.created_at DESC
          LIMIT $${limitIdx} OFFSET $${offsetIdx}`,
@@ -126,10 +129,12 @@ router.get('/:id', async (req, res) => {
       `SELECT
          i.*,
          c.full_name AS client_name, c.phone AS client_phone, c.email AS client_email, c.address AS client_address,
+         o.org_name AS organization_name, o.phone AS organization_phone, o.email AS organization_email, o.address AS organization_address,
          v.make_model AS vehicle_name, v.license_vin, v.vehicle_type
        FROM invoices i
-       JOIN clients c ON i.client_id = c.id
-       JOIN vehicles v ON i.vehicle_id = v.id
+       LEFT JOIN clients c ON i.client_id = c.id
+       LEFT JOIN organizations o ON i.organization_id = o.id
+       LEFT JOIN vehicles v ON i.vehicle_id = v.id
        WHERE i.id = $1`,
       [id]
     );
@@ -173,6 +178,7 @@ router.post('/', async (req, res) => {
   try {
     const {
       client_id,
+      organization_id,
       vehicle_id,
       service_ids,
       discount,
@@ -183,8 +189,8 @@ router.post('/', async (req, res) => {
       payments,
     } = req.body;
 
-    if (!client_id || !vehicle_id) {
-      return res.status(400).json({ message: 'client_id and vehicle_id are required' });
+    if (!client_id && !organization_id) {
+      return res.status(400).json({ message: 'client_id or organization_id is required' });
     }
 
     const ids = Array.isArray(service_ids)
@@ -235,18 +241,19 @@ router.post('/', async (req, res) => {
 
     const invRes = await client.query(
       `INSERT INTO invoices (
-         invoice_number, client_id, vehicle_id, status,
+         invoice_number, client_id, organization_id, vehicle_id, status,
          sub_total, discount, grand_total, amount_paid, balance_due,
          special_notes, include_terms, terms_conditions
        ) VALUES (
-         $1, $2, $3, $4,
-         $5, $6, $7, $8, $9,
-         $10, $11, $12
+         $1, $2, $3, $4, $5,
+         $6, $7, $8, $9, $10,
+         $11, $12, $13
        ) RETURNING *`,
       [
         invoiceNumber,
-        client_id,
-        vehicle_id,
+        client_id || null,
+        organization_id || null,
+        vehicle_id || null,
         finalStatus,
         subTotal,
         discountAmt,
@@ -376,8 +383,9 @@ router.put('/:id', async (req, res) => {
          terms_conditions = COALESCE($4, terms_conditions),
          status = COALESCE($5, status),
          vehicle_id = COALESCE($6, vehicle_id),
+         organization_id = COALESCE($7, organization_id),
          updated_at = CURRENT_TIMESTAMP
-       WHERE id = $7`,
+       WHERE id = $8`,
       [
         discount !== undefined ? Number(discount) || 0 : null,
         special_notes !== undefined ? special_notes : null,
@@ -385,6 +393,7 @@ router.put('/:id', async (req, res) => {
         terms_conditions !== undefined ? terms_conditions : null,
         status ? mapStatus(status) : null,
         vehicle_id || null,
+        req.body.organization_id || null,
         id,
       ]
     );

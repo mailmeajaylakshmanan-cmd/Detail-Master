@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import {
   ArrowLeft, Printer, MessageCircle, Pencil,
-  ChevronDown, FileText, X, Plus, IndianRupee
+  ChevronDown, FileText, X, Plus, IndianRupee,
+  Car, Shield, Droplets, Sparkles, Wrench, CircleDashed
 } from 'lucide-react';
 import { parseSafeDate } from '../utils/dateFormatter.js';
 import api from '../api/axios.js';
@@ -70,6 +71,8 @@ function normalizeInvoice(row) {
     payments: row.payments || [],
   };
 }
+
+const ICONS = [Car, Shield, CircleDashed, Sparkles, Droplets, Wrench];
 
 export default function InvoiceView() {
   const { id } = useParams();
@@ -312,139 +315,183 @@ export default function InvoiceView() {
       </div>
 
       <div id="invoice-print" style={doc.wrap}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '40px 40px 20px', backgroundColor: '#fafafa' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-            <div style={{ background: '#000', padding: 8, borderRadius: '6px' }}>
-              <img src={brandLogo} alt="Logo" style={{ height: 48, objectFit: 'contain' }} />
-            </div>
-            <div style={{ lineHeight: 1 }}>
-              <p style={{ fontFamily: "'Inter', sans-serif", fontSize: 24, fontWeight: 300, color: '#374151', margin: 0 }}>DETAIL</p>
-              <p style={{ fontFamily: "'Inter', sans-serif", fontSize: 24, fontWeight: 700, color: '#374151', margin: '4px 0 0' }}>MASTERS</p>
-            </div>
+        {/* HEADER */}
+        <div style={{ position: 'relative', height: '140px', backgroundColor: '#fff', width: '100%', overflow: 'hidden' }}>
+          
+          {/* Main Background with gradient */}
+          <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: 'linear-gradient(135deg, #0A0A0A 0%, #1F1F1F 100%)', clipPath: 'polygon(0 0, 56% 0, 71% 100%, 0 100%)', zIndex: 1 }}></div>
+
+          {/* Top left yellow triangle */}
+          <div style={{ position: 'absolute', top: 0, left: 0, width: '100px', height: '100px', filter: 'drop-shadow(2px 2px 4px rgba(0,0,0,0.3))', zIndex: 2 }}>
+             <div style={{ width: '100%', height: '100%', backgroundColor: '#EDCB19', clipPath: 'polygon(0 0, 100% 0, 0 100%)' }}></div>
           </div>
-          <div>
-            <h1 style={{ fontSize: 36, fontWeight: 400, color: '#4b5563', margin: 0, letterSpacing: '0.05em' }}>INVOICE</h1>
+          
+          {/* Thin white pinstripe with shadow */}
+          <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', filter: 'drop-shadow(-1px 0px 3px rgba(0,0,0,0.4))', zIndex: 3 }}>
+             <div style={{ width: '100%', height: '100%', backgroundColor: '#ffffff', clipPath: 'polygon(50.5% 0, 50.8% 0, 65.5% 100%, 65.8% 100%)' }}></div>
+          </div>
+
+          {/* Gold wedge with shadow */}
+          <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', filter: 'drop-shadow(-3px 0px 5px rgba(0,0,0,0.5))', zIndex: 4 }}>
+             <div style={{ width: '100%', height: '100%', backgroundColor: '#EDCB19', clipPath: 'polygon(51.8% 0, 54.5% 0, 66.8% 100%, 69.5% 100%)' }}></div>
+          </div>
+
+          {/* Right Black shape for INVOICE */}
+          <div style={{ position: 'absolute', top: 0, right: 0, width: '100%', height: '65px', background: '#0A0A0A', clipPath: 'polygon(75% 0, 100% 0, 100% 100%, 80% 100%)', zIndex: 1 }}></div>
+          
+          {/* Right Yellow stripe below INVOICE */}
+          <div style={{ position: 'absolute', top: '65px', right: 0, width: '100%', height: '12px', filter: 'drop-shadow(-2px 2px 4px rgba(0,0,0,0.4))', zIndex: 2 }}>
+             <div style={{ width: '100%', height: '100%', backgroundColor: '#EDCB19', clipPath: 'polygon(80.5% 0, 100% 0, 100% 100%, 81.5% 100%)' }}></div>
+          </div>
+
+          <div style={{ position: 'relative', zIndex: 10, display: 'flex', justifyContent: 'space-between', padding: '15px 40px', height: '100%' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+              {/* Logo directly on gradient background */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <img src={brandLogo} alt="Logo" style={{ height: 50, objectFit: 'contain', filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))' }} />
+              </div>
+              <div style={{ lineHeight: 1.1 }}>
+                <p style={{ 
+                    fontFamily: "Georgia, serif", 
+                    fontSize: 18, 
+                    margin: 0, 
+                    letterSpacing: '4px', 
+                    fontWeight: 600,
+                    background: 'linear-gradient(to bottom, #F4E5B2 0%, #B8860B 100%)',
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
+                    filter: 'drop-shadow(1px 1px 1px rgba(0,0,0,0.5))'
+                }}>DETAILING</p>
+                <p style={{ 
+                    fontFamily: "Georgia, serif", 
+                    fontSize: 28, 
+                    margin: 0, 
+                    letterSpacing: '2px', 
+                    fontWeight: 700,
+                    background: 'linear-gradient(to bottom, #FFFFFF 0%, #E8E8E8 100%)',
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
+                    filter: 'drop-shadow(1px 1px 2px rgba(0,0,0,0.6))'
+                }}>MASTERS</p>
+              </div>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'flex-start', paddingRight: '15px', paddingTop: '10px' }}>
+              <h1 style={{ 
+                  fontFamily: "Georgia, serif",
+                  fontSize: 32, 
+                  fontWeight: 700, 
+                  margin: 0, 
+                  letterSpacing: '0.05em',
+                  background: 'linear-gradient(to bottom, #FFFFFF 0%, #E8E8E8 100%)',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  filter: 'drop-shadow(1px 1px 2px rgba(0,0,0,0.6))'
+              }}>INVOICE</h1>
+            </div>
           </div>
         </div>
 
-        <div style={{ padding: '0 40px', marginTop: 20 }}>
-          <div style={{ textAlign: 'center', fontWeight: 700, fontSize: 13, marginBottom: 8, color: '#111827' }}>VEHICLE SPECS</div>
-          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'center', fontSize: 12 }}>
-            <thead>
-              <tr style={{ backgroundColor: '#e5e7eb' }}>
-                <th style={{ border: `1px solid ${borderCol}`, padding: '8px', fontWeight: 600, color: textDark, width: '33.33%' }}>VEHICLE NO</th>
-                <th style={{ border: `1px solid ${borderCol}`, padding: '8px', fontWeight: 600, color: textDark, width: '33.33%' }}>CAR MAKE</th>
-                <th style={{ border: `1px solid ${borderCol}`, padding: '8px', fontWeight: 600, color: textDark, width: '33.33%' }}>CAR MODEL</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td style={{ border: `1px solid ${borderCol}`, padding: '8px', color: textMuted }}>{invoice.licensePlate || 'N/A'}</td>
-                <td style={{ border: `1px solid ${borderCol}`, padding: '8px', color: textMuted }}>{invoice.carMake || 'N/A'}</td>
-                <td style={{ border: `1px solid ${borderCol}`, padding: '8px', color: textMuted }}>{invoice.carModel || 'N/A'}</td>
-              </tr>
-            </tbody>
-          </table>
+        {/* INFO SECTIONS */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '30px 40px', backgroundColor: '#f9fafb' }}>
+           <div style={{ flex: 1 }}>
+              <h3 style={{ fontSize: 15, fontWeight: 700, margin: '0 0 12px 0', color: '#111', textTransform: 'uppercase' }}>INVOICE INFO</h3>
+              <div style={{ fontSize: 13, color: '#333', lineHeight: 1.8 }}>
+                 <div style={{ display: 'flex' }}><span style={{ width: 65, fontWeight: 600 }}>Address:</span> <span style={{ flex: 1 }}>Opposite KTM Bike Showroom, Kulasekharam, Kanyakumari</span></div>
+                 <div style={{ display: 'flex' }}><span style={{ width: 65, fontWeight: 600 }}>Phone:</span> <span>+91 9994122652</span></div>
+                 <div style={{ display: 'flex' }}><span style={{ width: 65, fontWeight: 600 }}>Email:</span> <span>detailingmasters@gmail.com</span></div>
+              </div>
+           </div>
+           <div style={{ flex: 1, paddingLeft: 40 }}>
+              <h3 style={{ fontSize: 15, fontWeight: 700, margin: '0 0 12px 0', color: '#111', textTransform: 'uppercase' }}>CLIENT INFO</h3>
+              <div style={{ fontSize: 13, color: '#333', lineHeight: 1.8 }}>
+                 <div style={{ display: 'flex' }}><span style={{ width: 75, fontWeight: 600 }}>Name:</span> <span>{invoice.customer?.name}</span></div>
+                 <div style={{ display: 'flex' }}><span style={{ width: 75, fontWeight: 600 }}>Car Make:</span> <span>{invoice.carMake} {invoice.carModel}</span></div>
+                 <div style={{ display: 'flex' }}><span style={{ width: 75, fontWeight: 600 }}>Plate:</span> <span>{invoice.licensePlate}</span></div>
+                 <div style={{ display: 'flex' }}><span style={{ width: 75, fontWeight: 600 }}>Date:</span> <span>{dateStr}</span></div>
+              </div>
+           </div>
         </div>
 
-        <div style={{ padding: '24px 40px', display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
-          <div style={{ flex: 1 }}>
-            <div style={{ display: 'flex', marginBottom: 6 }}>
-              <span style={{ fontWeight: 700, color: textDark, width: 140 }}>Customer Name:</span>
-              <span style={{ color: textMuted }}>{invoice.customer?.name}</span>
-            </div>
-            <div style={{ display: 'flex', marginBottom: 6 }}>
-              <span style={{ fontWeight: 700, color: textDark, width: 140 }}>Car Make/Model:</span>
-              <span style={{ color: textMuted }}>{invoice.carMake} {invoice.carModel}</span>
-            </div>
-            <div style={{ display: 'flex', marginBottom: 6 }}>
-              <span style={{ fontWeight: 700, color: textDark, width: 140 }}>Invoice No:</span>
-              <span style={{ color: textMuted }}>{invoice.invoiceNo}</span>
-            </div>
-          </div>
-          <div style={{ flex: 1, paddingLeft: 40 }}>
-            <div style={{ display: 'flex', marginBottom: 6 }}>
-              <span style={{ fontWeight: 700, color: textDark, width: 70 }}>Phone:</span>
-              <span style={{ color: textMuted }}>{invoice.customer?.phone}</span>
-            </div>
-            <div style={{ display: 'flex', marginBottom: 6 }}>
-              <span style={{ fontWeight: 700, color: textDark, width: 70 }}>Email:</span>
-              <span style={{ color: textMuted }}>detailingmasters@gmail.com</span>
-            </div>
-            <div style={{ display: 'flex', marginBottom: 6 }}>
-              <span style={{ fontWeight: 700, color: textDark, width: 70 }}>Date:</span>
-              <span style={{ color: textMuted }}>{dateStr}</span>
-            </div>
-          </div>
+        {/* SERVICES TABLE */}
+        <div style={{ padding: '20px 40px 0 40px', flex: 1 }}>
+           <h3 style={{ fontSize: 15, fontWeight: 700, margin: '0 0 8px 0', color: '#0A0A0A', textTransform: 'uppercase' }}>SERVICES RENDERED</h3>
+           <div style={{ height: 2, backgroundColor: '#0A0A0A', marginBottom: 16 }}></div>
+           
+           <div style={{ position: 'relative' }}>
+              <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.08, pointerEvents: 'none', zIndex: 0 }}>
+                 <img src={brandLogo} style={{ width: '350px' }} />
+              </div>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, border: '1px solid #e2e8f0', position: 'relative', zIndex: 1 }}>
+                 <thead>
+                    <tr style={{ backgroundColor: '#0A0A0A', color: '#fff' }}>
+                       <th style={{ padding: '12px 12px', textAlign: 'left', fontWeight: 600, border: '1px solid #333', width: '50%' }}>Service</th>
+                       <th style={{ padding: '12px 12px', textAlign: 'center', fontWeight: 600, border: '1px solid #333', width: '15%' }}>Quantity</th>
+                       <th style={{ padding: '12px 12px', textAlign: 'center', fontWeight: 600, border: '1px solid #333', width: '17.5%' }}>Unit Price (₹)</th>
+                       <th style={{ padding: '12px 12px', textAlign: 'center', fontWeight: 600, border: '1px solid #333', width: '17.5%' }}>Amount (₹)</th>
+                    </tr>
+                 </thead>
+                 <tbody>
+                    {invoice.services?.length > 0 ? invoice.services.map((s, idx) => {
+                       const IconComponent = ICONS[idx % ICONS.length];
+                       return (
+                       <tr key={idx} style={{ backgroundColor: idx % 2 === 0 ? '#f8fafc' : '#fff' }}>
+                          <td style={{ padding: '10px 12px', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: 12 }}>
+                             <div style={{ backgroundColor: '#EDCB19', borderRadius: 4, width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                <IconComponent size={14} color="#0A0A0A" />
+                             </div>
+                             <div>
+                                <div style={{ fontWeight: 500, color: '#111' }}>{s.service}</div>
+                                {s.description && <div style={{ fontSize: 11, color: '#666' }}>{s.description}</div>}
+                             </div>
+                          </td>
+                          <td style={{ padding: '10px 12px', border: '1px solid #e2e8f0', textAlign: 'center', color: '#111' }}>{s.quantity || 1}</td>
+                          <td style={{ padding: '10px 12px', border: '1px solid #e2e8f0', textAlign: 'center', color: '#111' }}>₹{fmt(s.price)}</td>
+                          <td style={{ padding: '10px 12px', border: '1px solid #e2e8f0', textAlign: 'center', color: '#111', fontWeight: 600 }}>₹{fmt(s.total)}</td>
+                       </tr>
+                    )}) : (
+                       <tr style={{ backgroundColor: '#fff' }}>
+                          <td colSpan="4" style={{ padding: '12px', textAlign: 'center', color: '#666', border: '1px solid #e2e8f0' }}>No services added</td>
+                       </tr>
+                    )}
+                    <tr style={{ backgroundColor: '#EDCB19', color: '#0A0A0A' }}>
+                       <td colSpan="3" style={{ padding: '16px', fontWeight: 800, fontSize: 15, textAlign: 'right', border: '1px solid #e2e8f0', textTransform: 'uppercase' }}>
+                          TOTAL AMOUNT DUE:
+                       </td>
+                       <td style={{ padding: '16px', fontWeight: 800, fontSize: 16, textAlign: 'center', border: '1px solid #e2e8f0' }}>
+                          ₹{fmt(invoice.total)}
+                       </td>
+                    </tr>
+                 </tbody>
+              </table>
+           </div>
         </div>
 
-        <div style={{ padding: '0 40px' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-            <thead>
-              <tr style={{ backgroundColor: '#e5e7eb', borderTop: `1px solid ${borderCol}` }}>
-                <th style={{ border: `1px solid ${borderCol}`, borderLeft: 'none', padding: '10px 12px', textAlign: 'left', fontWeight: 700, color: textDark }}>Services</th>
-                <th style={{ border: `1px solid ${borderCol}`, padding: '10px 12px', textAlign: 'center', fontWeight: 700, color: textDark, width: '10%' }}>Qty</th>
-                <th style={{ border: `1px solid ${borderCol}`, padding: '10px 12px', textAlign: 'center', fontWeight: 700, color: textDark, width: '20%' }}>Unit Price</th>
-                <th style={{ border: `1px solid ${borderCol}`, borderRight: 'none', padding: '10px 12px', textAlign: 'center', fontWeight: 700, color: textDark, width: '25%', backgroundColor: brandGold }}>TOTAL (₹)</th>
-              </tr>
-            </thead>
-            <tbody>
-              {invoice.services?.length > 0 ? invoice.services.map((s, idx) => (
-                <tr key={idx} style={{ backgroundColor: '#ffffff' }}>
-                  <td style={{ border: `1px solid ${borderCol}`, borderLeft: 'none', padding: '12px', color: textMuted }}>
-                    {s.service}
-                    {s.description && <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 2 }}>{s.description}</div>}
-                  </td>
-                  <td style={{ border: `1px solid ${borderCol}`, padding: '12px', textAlign: 'center', color: textMuted }}>{s.quantity || 1}</td>
-                  <td style={{ border: `1px solid ${borderCol}`, padding: '12px', textAlign: 'center', color: textMuted, fontVariantNumeric: 'tabular-nums' }}>₹{fmt(s.price)}</td>
-                  <td style={{ border: `1px solid ${borderCol}`, borderRight: 'none', padding: '12px', textAlign: 'center', color: textDark, fontWeight: 600, fontVariantNumeric: 'tabular-nums', backgroundColor: brandGold }}>₹{fmt(s.total)}</td>
-                </tr>
-              )) : (
-                <tr style={{ backgroundColor: '#ffffff' }}>
-                  <td colSpan="4" style={{ border: `1px solid ${borderCol}`, borderLeft: 'none', borderRight: 'none', padding: '12px', textAlign: 'center', color: textMuted }}>No services added</td>
-                </tr>
+        {/* PAYMENT DETAILS */}
+        <div style={{ padding: '20px 40px', marginTop: 20 }}>
+           <h3 style={{ fontSize: 15, fontWeight: 700, margin: '0 0 10px 0', color: '#111', textTransform: 'uppercase' }}>PAYMENT DETAILS</h3>
+           <div style={{ fontSize: 13, color: '#333', lineHeight: 1.6 }}>
+              <div>+91 9994122652</div>
+              <div>detailingmasters@gmail.com</div>
+              {invoice.showTerms && invoice.termsAndConditions && (
+                 <div style={{ marginTop: 12, fontSize: 11, color: '#666', maxWidth: '70%' }}>
+                    <strong>Terms:</strong> {invoice.termsAndConditions}
+                 </div>
               )}
-              {invoice.discount > 0 && (
-                <tr style={{ backgroundColor: '#ffffff' }}>
-                  <td colSpan="3" style={{ border: `1px solid ${borderCol}`, borderLeft: 'none', padding: '10px 12px', textAlign: 'right', fontWeight: 600, color: textDark }}>Discount</td>
-                  <td style={{ border: `1px solid ${borderCol}`, borderRight: 'none', padding: '10px 12px', textAlign: 'center', fontWeight: 600, color: '#dc2626', fontVariantNumeric: 'tabular-nums', backgroundColor: brandGold }}>− ₹{fmt(invoice.discount)}</td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-
-          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 0 }}>
-            <div style={{ display: 'flex', alignItems: 'center' }}>
-              <div style={{ padding: '12px 16px', fontWeight: 700, fontSize: 14, color: textDark, textTransform: 'uppercase' }}>TOTAL AMOUNT DUE</div>
-              <div style={{ backgroundColor: brandGold, padding: '12px 24px', fontWeight: 700, fontSize: 16, color: textDark, fontVariantNumeric: 'tabular-nums', width: '25%', textAlign: 'center', boxSizing: 'border-box', borderBottom: `1px solid ${borderCol}` }}>₹{fmt(invoice.total)}</div>
-            </div>
-          </div>
+           </div>
         </div>
 
-        <div style={{ padding: '40px 40px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', minHeight: 180 }}>
-          <div style={{ maxWidth: '65%' }}>
-            <h4 style={{ fontSize: 12, fontWeight: 700, color: textDark, marginBottom: 8 }}>TERMS & CONDITIONS</h4>
-            <ul style={{ margin: 0, paddingLeft: 16, fontSize: 11, color: textMuted, lineHeight: 1.5, listStyleType: 'disc' }}>
-              <li>20% advance payment is required to confirm the booking.</li>
-              <li>Balance payment must be completed before delivery.</li>
-              <li>{invoice.notes || 'Thank you for choosing Detailing Masters!'}</li>
-              {invoice.showTerms && invoice.termsAndConditions && <li>{invoice.termsAndConditions}</li>}
-            </ul>
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: 10 }}>
-            <div style={{ backgroundColor: '#111827', color: '#FBD904', width: 80, height: 90, clipPath: 'polygon(50% 0%, 100% 0, 100% 70%, 50% 100%, 0 70%, 0 0)', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', textAlign: 'center', padding: '10px 4px 16px' }}>
-              <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.05em' }}>WARRANTY</div>
-              <div style={{ fontSize: 12, fontWeight: 800, marginTop: 2 }}>BADGE</div>
-              <div style={{ fontSize: 8, marginTop: 4, opacity: 0.8, textTransform: 'uppercase' }}>Guaranteed</div>
-            </div>
-          </div>
-        </div>
-
-        <div style={{ borderTop: `1px solid ${borderCol}`, padding: '16px 40px', textAlign: 'center', backgroundColor: '#f9fafb' }}>
-          <p style={{ margin: 0, fontSize: 12, color: textDark, fontWeight: 500 }}>
-            <strong>Detailing Masters</strong>, Opposite KTM Bike Showroom, Kulasekharam, Kanyakumari.
-          </p>
-          <p style={{ margin: '4px 0 0', fontSize: 11, color: textMuted }}>Ph: +91 9994122652 | E-mail: detailingmasters@gmail.com</p>
+        {/* FOOTER */}
+        <div style={{ position: 'relative', width: '100%', marginTop: 'auto', overflow: 'hidden', minHeight: '110px' }}>
+           <div style={{ position: 'relative', textAlign: 'center', fontSize: 11, color: '#0A0A0A', zIndex: 10, padding: '20px 40px 60px 40px' }}>
+              <strong>Detailing Masters</strong>, Opposite KTM Bike Showroom, Kulasekharam, Kanyakumari.<br/>
+              Ph: +91 9994122652 | E-mail: detailingmasters@gmail.com
+           </div>
+           
+           {/* Diagonal closing band mirroring header */}
+           <div style={{ position: 'absolute', bottom: 0, left: 0, width: '100%', height: '40px', backgroundColor: '#0A0A0A', clipPath: 'polygon(0 100%, 70% 100%, 60% 0, 0 0)', zIndex: 1 }}></div>
+           
+           <div style={{ position: 'absolute', bottom: 0, left: 0, width: '100%', height: '40px', backgroundColor: '#fff', clipPath: 'polygon(69.2% 100%, 70% 100%, 60% 0, 59.2% 0)', zIndex: 2 }}></div>
+           <div style={{ position: 'absolute', bottom: 0, left: 0, width: '100%', height: '40px', backgroundColor: '#EDCB19', clipPath: 'polygon(69.5% 100%, 100% 100%, 100% 0, 59.5% 0)', zIndex: 1 }}></div>
         </div>
       </div>
 
@@ -597,11 +644,16 @@ const bar = {
 
 const doc = {
   wrap: {
-    maxWidth: 820, margin: '0 auto',
+    maxWidth: 820,
+    minHeight: 'auto',
+    margin: '0 auto',
     background: '#ffffff',
     boxShadow: '0 12px 40px rgba(0,0,0,0.06)',
     fontFamily: "'Inter', system-ui, sans-serif",
     position: 'relative',
     border: '1px solid #e5e7eb',
+    display: 'flex',
+    flexDirection: 'column',
+    overflow: 'hidden',
   },
 };

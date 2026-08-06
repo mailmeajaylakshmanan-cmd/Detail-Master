@@ -12,6 +12,10 @@ export const queryKeys = {
     list: (filters = {}) => [...queryKeys.invoices.all, 'list', filters],
     openByClient: (clientId) => [...queryKeys.invoices.all, 'open', clientId],
   },
+  organizations: {
+    all: ['organizations'],
+    list: () => [...queryKeys.organizations.all, 'list'],
+  },
 };
 
 export function mapClient(c) {
@@ -20,6 +24,14 @@ export function mapClient(c) {
     id: c.id,
     name: c.full_name ?? c.name ?? '',
     createdAt: c.created_at ?? c.createdAt,
+  };
+}
+
+export function mapOrganization(o) {
+  return {
+    ...o,
+    id: o.id,
+    name: o.org_name ?? o.name ?? '',
   };
 }
 

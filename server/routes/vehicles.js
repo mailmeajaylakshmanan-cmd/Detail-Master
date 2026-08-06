@@ -6,9 +6,10 @@ const db = require('../db');
 router.get('/', async (req, res) => {
   try {
     const { rows } = await db.query(`
-      SELECT v.*, c.full_name as client_name 
+      SELECT v.*, c.full_name as client_name, o.org_name as organization_name 
       FROM vehicles v 
-      JOIN clients c ON v.client_id = c.id 
+      LEFT JOIN clients c ON v.client_id = c.id 
+      LEFT JOIN organizations o ON v.organization_id = o.id
       ORDER BY v.created_at DESC
     `);
     res.json(rows);
@@ -34,12 +35,14 @@ router.get('/:id', async (req, res) => {
 // CREATE a vehicle
 router.post('/', async (req, res) => {
   try {
-    const { client_id, make_model, license_vin, induction_date } = req.body;
-    if (!client_id || !make_model) return res.status(400).json({ message: 'client_id and make_model are required' });
+    const { client_id, organization_id, make_model, license_vin, induction_date } = req.body;
+    if ((!client_id && !organization_id) || !make_model) {
+      return res.status(400).json({ message: 'Either client_id or organization_id, and make_model are required' });
+    }
     
     const { rows } = await db.query(
-      'INSERT INTO vehicles (client_id, make_model, license_vin, induction_date) VALUES ($1, $2, $3, $4) RETURNING *',
-      [client_id, make_model, license_vin, induction_date || new Date()]
+      'INSERT INTO vehicles (client_id, organization_id, make_model, license_vin, induction_date) VALUES ($1, $2, $3, $4, $5) RETURNING *',
+      [client_id || null, organization_id || null, make_model, license_vin, induction_date || new Date()]
     );
     res.status(201).json(rows[0]);
   } catch (err) {
@@ -52,12 +55,14 @@ router.post('/', async (req, res) => {
 router.put('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { client_id, make_model, license_vin, induction_date } = req.body;
-    if (!client_id || !make_model) return res.status(400).json({ message: 'client_id and make_model are required' });
+    const { client_id, organization_id, make_model, license_vin, induction_date } = req.body;
+    if ((!client_id && !organization_id) || !make_model) {
+      return res.status(400).json({ message: 'Either client_id or organization_id, and make_model are required' });
+    }
     
     const { rows } = await db.query(
-      'UPDATE vehicles SET client_id = $1, make_model = $2, license_vin = $3, induction_date = $4 WHERE id = $5 RETURNING *',
-      [client_id, make_model, license_vin, induction_date, id]
+      'UPDATE vehicles SET client_id = $1, organization_id = $2, make_model = $3, license_vin = $4, induction_date = $5 WHERE id = $6 RETURNING *',
+      [client_id || null, organization_id || null, make_model, license_vin, induction_date, id]
     );
     if (rows.length === 0) return res.status(404).json({ message: 'Vehicle not found' });
     res.json(rows[0]);

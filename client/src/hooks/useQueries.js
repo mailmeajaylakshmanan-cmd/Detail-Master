@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import api from '../api/axios.js';
-import { queryKeys, mapClient, mapService, mapInvoice } from '../api/queryKeys.js';
+import { queryKeys, mapClient, mapService, mapInvoice, mapOrganization } from '../api/queryKeys.js';
 
 export function useClients() {
   return useQuery({
@@ -9,6 +9,17 @@ export function useClients() {
       const res = await api.get('/clients');
       const rows = Array.isArray(res.data) ? res.data : [];
       return rows.map(mapClient);
+    },
+  });
+}
+
+export function useOrganizations() {
+  return useQuery({
+    queryKey: queryKeys.organizations.list(),
+    queryFn: async () => {
+      const res = await api.get('/organizations');
+      const rows = Array.isArray(res.data) ? res.data : [];
+      return rows.map(mapOrganization);
     },
   });
 }
