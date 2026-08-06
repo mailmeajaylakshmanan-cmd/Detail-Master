@@ -41,6 +41,7 @@ const EditInvoice = lazy(() => import('./pages/EditInvoice.jsx'));
 const InvoiceView = lazy(() => import('./pages/InvoiceView.jsx'));
 const MasterService = lazy(() => import('./pages/MasterService.jsx'));
 const MasterCustomer = lazy(() => import('./pages/MasterCustomer.jsx'));
+const MasterOrganization = lazy(() => import('./pages/MasterOrganization.jsx'));
 const CustomerProfile = lazy(() => import('./pages/CustomerProfile.jsx'));
 const QuotationView = lazy(() => import('./pages/QuotationView.jsx'));
 const UpdateCredentials = lazy(() => import('./pages/UpdateCredentials.jsx'));
@@ -89,6 +90,7 @@ export default function App() {
         <Route path="master-service" element={<LazyPage><MasterService /></LazyPage>} />
         <Route path="master-customer" element={<LazyPage><MasterCustomer /></LazyPage>} />
         <Route path="master-customer/:phone" element={<LazyPage><CustomerProfile /></LazyPage>} />
+        <Route path="master-organization" element={<LazyPage><MasterOrganization /></LazyPage>} />
         <Route path="master-offers" element={<LazyPage><MasterOffers /></LazyPage>} />
         <Route path="offers/new" element={<LazyPage><AssignOffer /></LazyPage>} />
         <Route path="offers/:id" element={<LazyPage><OfferView /></LazyPage>} />

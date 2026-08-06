@@ -72,14 +72,16 @@ router.get('/:id', verifyToken, async (req, res) => {
 
 // Create a new organization
 router.post('/', verifyToken, async (req, res) => {
+  const client = await db.pool.connect();
   try {
-    const { org_name, contact_person, phone, email, address, is_active } = req.body;
+    const { org_name, contact_person, phone, email, address, is_active, vehicles } = req.body;
     
     if (!org_name) {
       return res.status(400).json({ error: 'org_name is required' });
     }
 
-    const result = await db.query(
+    await client.query('BEGIN');
+    const result = await client.query(
       `INSERT INTO organizations 
        (org_name, contact_person, phone, email, address, is_active, created_at)
        VALUES ($1, $2, $3, $4, $5, $6, CURRENT_TIMESTAMP)
@@ -87,20 +89,42 @@ router.post('/', verifyToken, async (req, res) => {
       [org_name, contact_person, phone, email, address, is_active !== undefined ? is_active : true]
     );
     
-    res.status(201).json(result.rows[0]);
+    const newOrg = result.rows[0];
+
+    if (vehicles && vehicles.length > 0) {
+      newOrg.vehicles = [];
+      for (const v of vehicles) {
+        if (v.make || v.model || v.plate) {
+          const make_model = `${v.make || ''} ${v.model || ''}`.trim();
+          const vRows = await client.query(
+            'INSERT INTO vehicles (organization_id, make_model, license_vin) VALUES ($1, $2, $3) RETURNING *',
+            [newOrg.id, make_model, v.plate]
+          );
+          newOrg.vehicles.push(vRows.rows[0]);
+        }
+      }
+    }
+
+    await client.query('COMMIT');
+    res.status(201).json(newOrg);
   } catch (err) {
+    await client.query('ROLLBACK');
     console.error('Error creating organization:', err);
     res.status(500).json({ error: 'Failed to create organization' });
+  } finally {
+    client.release();
   }
 });
 
 // Update an organization
 router.put('/:id', verifyToken, async (req, res) => {
+  const client = await db.pool.connect();
   try {
     const { id } = req.params;
-    const { org_name, contact_person, phone, email, address, is_active } = req.body;
+    const { org_name, contact_person, phone, email, address, is_active, vehicles } = req.body;
 
-    const result = await db.query(
+    await client.query('BEGIN');
+    const result = await client.query(
       `UPDATE organizations 
        SET org_name = COALESCE($1, org_name),
            contact_person = COALESCE($2, contact_person),
@@ -114,13 +138,36 @@ router.put('/:id', verifyToken, async (req, res) => {
     );
 
     if (result.rows.length === 0) {
+      await client.query('ROLLBACK');
       return res.status(404).json({ error: 'Organization not found' });
     }
     
-    res.json(result.rows[0]);
+    const updatedOrg = result.rows[0];
+
+    // Handle vehicles (delete existing and re-insert)
+    if (vehicles !== undefined) {
+      await client.query('DELETE FROM vehicles WHERE organization_id = $1', [id]);
+      updatedOrg.vehicles = [];
+      for (const v of vehicles) {
+        if (v.make || v.model || v.plate) {
+          const make_model = `${v.make || ''} ${v.model || ''}`.trim();
+          const vRows = await client.query(
+            'INSERT INTO vehicles (organization_id, make_model, license_vin) VALUES ($1, $2, $3) RETURNING *',
+            [id, make_model, v.plate]
+          );
+          updatedOrg.vehicles.push(vRows.rows[0]);
+        }
+      }
+    }
+
+    await client.query('COMMIT');
+    res.json(updatedOrg);
   } catch (err) {
+    await client.query('ROLLBACK');
     console.error('Error updating organization:', err);
     res.status(500).json({ error: 'Failed to update organization' });
+  } finally {
+    client.release();
   }
 });
 
