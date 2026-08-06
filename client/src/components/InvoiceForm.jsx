@@ -8,7 +8,7 @@ import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import { format, parseISO } from 'date-fns';
 import Select from 'react-select';
-import { useClients, useServices } from '../hooks/useQueries.js';
+import { useClients, useServices, useOrganizations } from '../hooks/useQueries.js';
 
 function fmt(n) { return Number(n || 0).toLocaleString('en-IN'); }
 
@@ -183,7 +183,10 @@ const SelectedServiceRow = memo(function SelectedServiceRow({ cur, onDesc }) {
 export default function InvoiceForm({ initial, onSubmit, loading, onCustomerSelect }) {
   const today = new Date().toISOString().slice(0, 10);
   const { data: customers = [] } = useClients();
+  const { data: organizations = [] } = useOrganizations();
   const { data: serviceOptions = [] } = useServices();
+
+  const [clientType, setClientType] = useState(initial?.organizationId || initial?.organization_id ? 'organization' : 'individual');
 
   const [form, setForm] = useState(() => {
     const base = {
@@ -286,8 +289,8 @@ export default function InvoiceForm({ initial, onSubmit, loading, onCustomerSele
 
   function handleSubmit(e) {
     e.preventDefault();
-    if (!form.customer?.id) return toast.error('Please select a customer.');
-    if (!form.vehicleId) return toast.error('Please select a vehicle.');
+    if (!form.customer?.id) return toast.error(clientType === 'individual' ? 'Please select a client.' : 'Please select an organization.');
+    if (clientType === 'individual' && !form.vehicleId) return toast.error('Please select a vehicle.');
     if (!form.services.length) return toast.error('Please select at least one service.');
 
     // Only NEW payment rows (no id) are sent — existing ones stay in DB
@@ -309,8 +312,9 @@ export default function InvoiceForm({ initial, onSubmit, loading, onCustomerSele
     if (!service_ids.length) return toast.error('Selected services are missing ids. Refresh and try again.');
 
     onSubmit({
-      client_id: form.customer.id,
-      vehicle_id: form.vehicleId,
+      client_id: clientType === 'individual' ? form.customer.id : null,
+      organization_id: clientType === 'organization' ? form.customer.id : null,
+      vehicle_id: form.vehicleId || null,
       service_ids,
       discount: Number(form.discount) || 0,
       special_notes: form.notes || null,
@@ -326,12 +330,16 @@ export default function InvoiceForm({ initial, onSubmit, loading, onCustomerSele
     : null;
 
   const customerId = form.customer?.id;
-  const customerOptions = useMemo(
-    () => customers
+  const customerOptions = useMemo(() => {
+    if (clientType === 'organization') {
+      return organizations
+        .filter(o => o.isActive !== false || o.id === customerId)
+        .map(o => ({ value: o.id, label: `${o.name} — ${o.phone || o.contact_person || ''}`, customer: o }));
+    }
+    return customers
       .filter(c => c.isActive !== false || c.id === customerId)
-      .map(c => ({ value: c.id, label: `${c.name} — ${c.phone}`, customer: c })),
-    [customers, customerId]
-  );
+      .map(c => ({ value: c.id, label: `${c.name} — ${c.phone}`, customer: c }));
+  }, [clientType, customers, organizations, customerId]);
 
   const selectedServiceNames = useMemo(
     () => new Set(form.services.map(s => s.service)),
@@ -360,7 +368,7 @@ export default function InvoiceForm({ initial, onSubmit, loading, onCustomerSele
   };
   const sc = statusConfig[derivedStatus] || statusConfig.pending;
   const isStep1Complete = !!form.customer.name;
-  const isStep2Complete = !!form.vehicleId;
+  const isStep2Complete = clientType === 'organization' ? true : !!form.vehicleId;
   const isStep3Complete = form.services.length > 0;
 
   return (
@@ -387,14 +395,18 @@ export default function InvoiceForm({ initial, onSubmit, loading, onCustomerSele
                 <div className={`w-6 h-6 rounded-full flex items-center justify-center border-2 transition-colors ${isStep1Complete ? 'border-emerald-500 text-emerald-500 bg-emerald-50' : 'border-gray-300 text-gray-400 bg-gray-50'}`}>
                   {isStep1Complete ? <CheckCircle2 size={14} className="fill-emerald-50" /> : <span className="text-[10px] font-bold">1</span>}
                 </div>
-                <h2 className="text-[15px] font-bold text-gray-900 tracking-tight">Client Details</h2>
+                <h2 className="text-[15px] font-bold text-gray-900 tracking-tight">{clientType === 'individual' ? 'Client Details' : 'Organization Details'}</h2>
+                <div className="ml-auto flex items-center gap-1 bg-gray-100 p-1 rounded-lg">
+                  <button type="button" onClick={() => { setClientType('individual'); setForm(f => ({...f, customer: { name: '', phone: '', address: '', vehicles: [] }, vehicleId: null})); }} className={`px-3 py-1 text-[12px] font-bold rounded-md transition-colors ${clientType === 'individual' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}>Individual</button>
+                  <button type="button" onClick={() => { setClientType('organization'); setForm(f => ({...f, customer: { name: '', phone: '', address: '', vehicles: [] }, vehicleId: null})); }} className={`px-3 py-1 text-[12px] font-bold rounded-md transition-colors ${clientType === 'organization' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}>Organization</button>
+                </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
                 <Select
                   isClearable
                   isSearchable
-                  placeholder="Search existing client database…"
+                  placeholder={clientType === 'individual' ? "Search existing client database…" : "Search organizations…"}
                   styles={selectStyles()}
                   menuPortalTarget={document.body}
                   menuPosition="fixed"
@@ -468,7 +480,7 @@ export default function InvoiceForm({ initial, onSubmit, loading, onCustomerSele
                   <Select
                     isClearable
                     isSearchable
-                    placeholder={form.customer?.id ? 'Select client vehicle…' : 'Select client first…'}
+                    placeholder={form.customer?.id ? 'Select vehicle… (Optional for orgs)' : 'Select first…'}
                     styles={selectStyles()}
                     menuPortalTarget={document.body}
                     menuPosition="fixed"

@@ -30,11 +30,12 @@ export default function EditInvoice() {
         invoiceNo: row.invoice_number,
         invoiceNumber: row.invoice_number,
         vehicleId: row.vehicle_id,
+        organizationId: row.organization_id,
         customer: {
-          id: row.client_id,
-          name: row.client_name || '',
-          phone: row.client_phone || '',
-          address: row.client_address || '',
+          id: row.organization_id || row.client_id,
+          name: row.organization_name || row.client_name || '',
+          phone: row.organization_phone || row.client_phone || '',
+          address: row.organization_address || row.client_address || '',
           vehicles: [{
             id: row.vehicle_id,
             make: parts[0] || '',
