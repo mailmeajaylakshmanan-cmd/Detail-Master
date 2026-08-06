@@ -1,10 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../db');
-const { verifyToken } = require('../middleware/auth');
+const { protect } = require('../middleware/auth');
 
 // Get all organizations with vehicles
-router.get('/', verifyToken, async (req, res) => {
+router.get('/', protect, async (req, res) => {
   try {
     const { rows } = await db.query(`
       SELECT
@@ -53,7 +53,7 @@ router.get('/', verifyToken, async (req, res) => {
 });
 
 // Get a single organization
-router.get('/:id', verifyToken, async (req, res) => {
+router.get('/:id', protect, async (req, res) => {
   try {
     const { id } = req.params;
     const result = await db.query(
@@ -71,7 +71,7 @@ router.get('/:id', verifyToken, async (req, res) => {
 });
 
 // Create a new organization
-router.post('/', verifyToken, async (req, res) => {
+router.post('/', protect, async (req, res) => {
   const client = await db.pool.connect();
   try {
     const { org_name, contact_person, phone, email, address, is_active, vehicles } = req.body;
@@ -117,7 +117,7 @@ router.post('/', verifyToken, async (req, res) => {
 });
 
 // Update an organization
-router.put('/:id', verifyToken, async (req, res) => {
+router.put('/:id', protect, async (req, res) => {
   const client = await db.pool.connect();
   try {
     const { id } = req.params;
@@ -172,7 +172,7 @@ router.put('/:id', verifyToken, async (req, res) => {
 });
 
 // Delete an organization
-router.delete('/:id', verifyToken, async (req, res) => {
+router.delete('/:id', protect, async (req, res) => {
   try {
     const { id } = req.params;
     const result = await db.query(
