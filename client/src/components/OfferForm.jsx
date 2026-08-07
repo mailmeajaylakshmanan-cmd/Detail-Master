@@ -131,8 +131,10 @@ export default function OfferForm({ initial, onSubmit, loading, onCustomerSelect
     onSubmit(form);
   }
 
+  const fullCustomerObj = useMemo(() => customers.find(c => c.id === form.customer?.id), [customers, form.customer?.id]);
+
   const selectedCustomer = form.customer?.id
-    ? { value: form.customer.id, label: `${form.customer.name} — ${form.customer.phone}` }
+    ? { value: form.customer.id, label: `${form.customer.name} — ${form.customer.phone}`, customer: fullCustomerObj }
     : null;
 
   const isStep1Complete = !!form.customer?.name;
@@ -222,7 +224,7 @@ export default function OfferForm({ initial, onSubmit, loading, onCustomerSelect
                     styles={selectStyles()}
                     menuPortalTarget={document.body}
                     menuPosition="fixed"
-                    isDisabled={!selectedCustomer || !selectedCustomer.customer.vehicles || selectedCustomer.customer.vehicles.length === 0}
+                    isDisabled={!selectedCustomer || !selectedCustomer.customer?.vehicles || selectedCustomer.customer.vehicles.length === 0}
                     options={selectedCustomer?.customer?.vehicles?.map(v => ({
                       value: v.id,
                       label: `${v.make} ${v.model} - ${v.plate}`,
