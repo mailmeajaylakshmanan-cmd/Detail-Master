@@ -14,10 +14,13 @@ router.get('/roles', protect, async (req, res) => {
   }
 });
 
-// GET all menus
+// GET all menus (Ordered logically by parent-child relation)
 router.get('/menus', protect, async (req, res) => {
   try {
-    const result = await pool.query('SELECT * FROM public.menus ORDER BY id ASC');
+    const result = await pool.query(
+      `SELECT * FROM public.menus 
+       ORDER BY COALESCE(parent_id, id) ASC, (parent_id IS NOT NULL) ASC, sort_order ASC, id ASC`
+    );
     res.json(result.rows);
   } catch (error) {
     console.error('Error fetching menus:', error);
