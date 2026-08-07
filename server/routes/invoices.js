@@ -220,10 +220,6 @@ router.post('/', async (req, res) => {
 
     await client.query('BEGIN');
 
-    // Snapshot current service prices
-    const priceRes = await client.query(
-    await client.query('BEGIN');
-
     let lines = [];
     
     // Support new payload format: service_items = [{ service_id, vehicle_ids: [1, 2] }]
