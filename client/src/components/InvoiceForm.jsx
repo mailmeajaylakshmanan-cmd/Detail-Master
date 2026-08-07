@@ -308,7 +308,7 @@ export default function InvoiceForm({ initial, onSubmit, loading, onCustomerSele
       serviceDate: '', location: '',
       services: [], thirdPartyItems: [], subTotal: 0, discount: 0,
       status: 'draft', notes: 'Thank you for choosing Detailing Masters for your car care needs!',
-      payments: [],
+      payments: [{ amount: '', date: new Date().toISOString().slice(0, 10), method: 'Cash', reference_no: '' }],
       showTerms: true, termsAndConditions: ''
     };
     if (!initial) return base;
@@ -328,28 +328,34 @@ export default function InvoiceForm({ initial, onSubmit, loading, onCustomerSele
         selling_price: t.selling_price ?? 0,
       })),
       subTotal: initial.subTotal || 0,
-      payments: (initial.payments || []).map(p => {
-        const methodRaw = p.payment_method || p.method || 'cash';
-        const methodMap = {
-          cash: 'Cash',
-          upi: 'UPI',
-          bank_transfer: 'Bank Transfer',
-          card: 'Card',
-          other: 'Cash',
-        };
-        const method = methodMap[String(methodRaw).toLowerCase()] || methodRaw;
-        const dateSrc = p.payment_date || p.date;
-        return {
-          id: p.id || null,
-          amount: p.amount || 0,
-          date: dateSrc
-            ? (typeof dateSrc === 'string' ? dateSrc.substring(0, 10) : new Date(dateSrc).toISOString().substring(0, 10))
-            : today,
-          method,
-          reference_no: p.reference_no || '',
-          locked: !!p.id,
-        };
-      }),
+      payments: (() => {
+        const mapped = (initial.payments || []).map(p => {
+          const methodRaw = p.payment_method || p.method || 'cash';
+          const methodMap = {
+            cash: 'Cash',
+            upi: 'UPI',
+            bank_transfer: 'Bank Transfer',
+            card: 'Card',
+            other: 'Cash',
+          };
+          const method = methodMap[String(methodRaw).toLowerCase()] || methodRaw;
+          const dateSrc = p.payment_date || p.date;
+          return {
+            id: p.id || null,
+            amount: p.amount || 0,
+            date: dateSrc
+              ? (typeof dateSrc === 'string' ? dateSrc.substring(0, 10) : new Date(dateSrc).toISOString().substring(0, 10))
+              : today,
+            method,
+            reference_no: p.reference_no || '',
+            locked: !!p.id,
+          };
+        });
+        if (mapped.length === 0) {
+          mapped.push({ amount: '', date: today, method: 'Cash', reference_no: '' });
+        }
+        return mapped;
+      })(),
     };
   });
 
