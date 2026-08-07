@@ -35,15 +35,15 @@
 
 @layer components {
   .btn-primary {
-    background: #2563EB;
-    color: white;
-    @apply font-semibold px-4 py-2 rounded-xl transition-all duration-200 text-sm;
-    box-shadow: 0 4px 10px rgba(37, 99, 235, 0.2);
+    background: #FBD904;
+    color: #111827;
+    @apply font-bold px-4 py-2 rounded-xl transition-all duration-200 text-sm;
+    box-shadow: 0 4px 10px rgba(251, 217, 4, 0.2);
   }
   .btn-primary:hover {
-    background: #1D4ED8;
+    background: #e5c503;
     transform: translateY(-1px);
-    box-shadow: 0 6px 14px rgba(37, 99, 235, 0.3);
+    box-shadow: 0 6px 14px rgba(251, 217, 4, 0.3);
   }
   .btn-secondary {
     @apply bg-white/70 backdrop-blur-md hover:bg-white/90 text-gray-700 font-medium px-4 py-2 rounded-xl border border-white/50 transition-all duration-200 text-sm shadow-sm;

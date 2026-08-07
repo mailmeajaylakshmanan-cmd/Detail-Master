@@ -179,7 +179,7 @@ export default function MasterCustomer() {
 
             <button
               onClick={handleAdd}
-              className="text-[12px] font-bold px-5 py-2.5 rounded-[12px] bg-[#856404] text-white shadow-sm hover:bg-[#725303] transition-all flex items-center gap-1.5"
+              className="btn-primary whitespace-nowrap flex items-center gap-1.5"
             >
               <UserPlus size={14} strokeWidth={2.5} /> Add New Customer
             </button>
