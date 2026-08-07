@@ -144,13 +144,19 @@ router.get('/:id', async (req, res) => {
 
     const invoice = invRes.rows[0];
 
-    const [servicesRes, paymentsRes] = await Promise.all([
+    const [servicesRes, thirdPartyRes, paymentsRes] = await Promise.all([
       db.query(
         `SELECT isv.*, s.service_name, s.category
          FROM invoice_services isv
          JOIN services s ON isv.service_id = s.id
          WHERE isv.invoice_order_id = $1
          ORDER BY isv.id ASC`,
+        [id]
+      ),
+      db.query(
+        `SELECT * FROM invoice_third_party_services
+         WHERE invoice_order_id = $1
+         ORDER BY id ASC`,
         [id]
       ),
       db.query(
@@ -162,6 +168,7 @@ router.get('/:id', async (req, res) => {
     ]);
 
     invoice.services = servicesRes.rows;
+    invoice.thirdPartyServices = thirdPartyRes.rows;
     invoice.payments = paymentsRes.rows;
     res.json(invoice);
   } catch (err) {
@@ -172,7 +179,9 @@ router.get('/:id', async (req, res) => {
 
 // CREATE invoice + all service lines (+ optional payments) in one call
 // Body: client_id, vehicle_id, service_ids: number[], discount?, amount_paid?,
-//       status?, special_notes?, include_terms?, terms_conditions?, payments?
+//       status?, special_notes?, include_terms?, terms_conditions?, payments?,
+//       third_party_items?: [{ third_party_service_id?, service_name, vendor_name?,
+//                              labour_count?, labour_charge?, service_cost?, selling_price }]
 router.post('/', async (req, res) => {
   const client = await db.pool.connect();
   try {
@@ -187,6 +196,7 @@ router.post('/', async (req, res) => {
       terms_conditions,
       status,
       payments,
+      third_party_items,
     } = req.body;
 
     if (!client_id && !organization_id) {
@@ -197,8 +207,12 @@ router.post('/', async (req, res) => {
       ? [...new Set(service_ids.map(Number).filter((n) => Number.isFinite(n) && n > 0))]
       : [];
 
-    if (ids.length === 0) {
-      return res.status(400).json({ message: 'At least one service_id is required' });
+    const thirdPartyItems = Array.isArray(third_party_items)
+      ? third_party_items.filter((t) => t && t.service_name)
+      : [];
+
+    if (ids.length === 0 && thirdPartyItems.length === 0) {
+      return res.status(400).json({ message: 'At least one service_id or third-party item is required' });
     }
 
     await client.query('BEGIN');
@@ -277,6 +291,24 @@ router.post('/', async (req, res) => {
       );
     }
 
+    for (const t of thirdPartyItems) {
+      await client.query(
+        `INSERT INTO invoice_third_party_services
+         (invoice_order_id, third_party_service_id, service_name, vendor_name, labour_count, labour_charge, service_cost, selling_price)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+        [
+          invoice.id,
+          t.third_party_service_id || null,
+          t.service_name,
+          t.vendor_name || null,
+          t.labour_count !== undefined ? t.labour_count : 1,
+          t.labour_charge || 0,
+          t.service_cost || 0,
+          t.selling_price || 0,
+        ]
+      );
+    }
+
     for (const p of paymentRows) {
       const method = mapPaymentMethod(p.method || p.payment_method);
       const ref =
@@ -339,6 +371,7 @@ router.put('/:id', async (req, res) => {
       status,
       service_ids,
       vehicle_id,
+      third_party_items,
     } = req.body;
 
     await client.query('BEGIN');
@@ -371,6 +404,28 @@ router.put('/:id', async (req, res) => {
           `INSERT INTO invoice_services (invoice_order_id, service_id, unit_price)
            VALUES ($1, $2, $3)`,
           [id, row.id, Number(row.base_price) || 0]
+        );
+      }
+    }
+
+    if (Array.isArray(third_party_items)) {
+      const items = third_party_items.filter((t) => t && t.service_name);
+      await client.query('DELETE FROM invoice_third_party_services WHERE invoice_order_id = $1', [id]);
+      for (const t of items) {
+        await client.query(
+          `INSERT INTO invoice_third_party_services
+           (invoice_order_id, third_party_service_id, service_name, vendor_name, labour_count, labour_charge, service_cost, selling_price)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+          [
+            id,
+            t.third_party_service_id || null,
+            t.service_name,
+            t.vendor_name || null,
+            t.labour_count !== undefined ? t.labour_count : 1,
+            t.labour_charge || 0,
+            t.service_cost || 0,
+            t.selling_price || 0,
+          ]
         );
       }
     }

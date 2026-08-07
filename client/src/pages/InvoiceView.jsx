@@ -431,24 +431,46 @@ export default function InvoiceView() {
                     </tr>
                  </thead>
                  <tbody>
-                    {invoice.services?.length > 0 ? invoice.services.map((s, idx) => {
-                       const IconComponent = ICONS[idx % ICONS.length];
-                       return (
-                       <tr key={idx} style={{ backgroundColor: idx % 2 === 0 ? '#f8fafc' : '#fff' }}>
-                          <td style={{ padding: '10px 12px', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: 12 }}>
-                             <div style={{ backgroundColor: '#EDCB19', borderRadius: 4, width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                                <IconComponent size={14} color="#0A0A0A" />
-                             </div>
-                             <div>
-                                <div style={{ fontWeight: 500, color: '#111' }}>{s.service}</div>
-                                {s.description && <div style={{ fontSize: 11, color: '#666' }}>{s.description}</div>}
-                             </div>
-                          </td>
-                          <td style={{ padding: '10px 12px', border: '1px solid #e2e8f0', textAlign: 'center', color: '#111' }}>{s.quantity || 1}</td>
-                          <td style={{ padding: '10px 12px', border: '1px solid #e2e8f0', textAlign: 'center', color: '#111' }}>₹{fmt(s.price)}</td>
-                          <td style={{ padding: '10px 12px', border: '1px solid #e2e8f0', textAlign: 'center', color: '#111', fontWeight: 600 }}>₹{fmt(s.total)}</td>
-                       </tr>
-                    )}) : (
+                    {(invoice.services?.length > 0 || invoice.thirdPartyServices?.length > 0) ? (
+                       <>
+                       {invoice.services?.map((s, idx) => {
+                          const IconComponent = ICONS[idx % ICONS.length];
+                          return (
+                          <tr key={`s-${idx}`} style={{ backgroundColor: idx % 2 === 0 ? '#f8fafc' : '#fff' }}>
+                             <td style={{ padding: '10px 12px', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: 12 }}>
+                                <div style={{ backgroundColor: '#EDCB19', borderRadius: 4, width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                   <IconComponent size={14} color="#0A0A0A" />
+                                </div>
+                                <div>
+                                   <div style={{ fontWeight: 500, color: '#111' }}>{s.service}</div>
+                                   {s.description && <div style={{ fontSize: 11, color: '#666' }}>{s.description}</div>}
+                                </div>
+                             </td>
+                             <td style={{ padding: '10px 12px', border: '1px solid #e2e8f0', textAlign: 'center', color: '#111' }}>{s.quantity || 1}</td>
+                             <td style={{ padding: '10px 12px', border: '1px solid #e2e8f0', textAlign: 'center', color: '#111' }}>₹{fmt(s.price)}</td>
+                             <td style={{ padding: '10px 12px', border: '1px solid #e2e8f0', textAlign: 'center', color: '#111', fontWeight: 600 }}>₹{fmt(s.total)}</td>
+                          </tr>
+                       )})}
+                       {invoice.thirdPartyServices?.map((t, idx) => {
+                          const IconComponent = ICONS[((invoice.services?.length || 0) + idx) % ICONS.length];
+                          return (
+                          <tr key={`tp-${idx}`} style={{ backgroundColor: ((invoice.services?.length || 0) + idx) % 2 === 0 ? '#f8fafc' : '#fff' }}>
+                             <td style={{ padding: '10px 12px', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: 12 }}>
+                                <div style={{ backgroundColor: '#EDCB19', borderRadius: 4, width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                   <IconComponent size={14} color="#0A0A0A" />
+                                </div>
+                                <div>
+                                   <div style={{ fontWeight: 500, color: '#111' }}>{t.service_name}</div>
+                                   {t.vendor_name && <div style={{ fontSize: 11, color: '#666' }}>Vendor: {t.vendor_name}</div>}
+                                </div>
+                             </td>
+                             <td style={{ padding: '10px 12px', border: '1px solid #e2e8f0', textAlign: 'center', color: '#111' }}>1</td>
+                             <td style={{ padding: '10px 12px', border: '1px solid #e2e8f0', textAlign: 'center', color: '#111' }}>₹{fmt(t.selling_price)}</td>
+                             <td style={{ padding: '10px 12px', border: '1px solid #e2e8f0', textAlign: 'center', color: '#111', fontWeight: 600 }}>₹{fmt(t.selling_price)}</td>
+                          </tr>
+                       )})}
+                       </>
+                    ) : (
                        <tr style={{ backgroundColor: '#fff' }}>
                           <td colSpan="4" style={{ padding: '12px', textAlign: 'center', color: '#666', border: '1px solid #e2e8f0' }}>No services added</td>
                        </tr>
