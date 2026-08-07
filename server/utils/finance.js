@@ -1,8 +1,8 @@
 const db = require('../db');
 
 /**
- * Recalculate invoice money fields from invoice_services + payments.
- * sub_total = sum(unit_price)
+ * Recalculate invoice money fields from invoice_services + invoice_third_party_services + payments.
+ * sub_total = sum(unit_price) + sum(third-party selling_price)
  * grand_total = sub_total - discount
  * amount_paid = sum(payments.amount)
  * balance_due = grand_total - amount_paid
@@ -13,13 +13,16 @@ const db = require('../db');
 async function recalculateInvoiceTotals(invoiceId, executor = db) {
   const { rows } = await executor.query(
     `SELECT
-       (SELECT COALESCE(SUM(unit_price), 0) FROM invoice_services WHERE invoice_order_id = $1) AS sub_total,
+       (SELECT COALESCE(SUM(unit_price), 0) FROM invoice_services WHERE invoice_order_id = $1) AS services_total,
+       (SELECT COALESCE(SUM(selling_price), 0) FROM invoice_third_party_services WHERE invoice_order_id = $1) AS third_party_total,
        (SELECT COALESCE(SUM(amount), 0) FROM payments WHERE invoice_order_id = $1) AS amount_paid,
        (SELECT COALESCE(discount, 0) FROM invoices WHERE id = $1) AS discount`,
     [invoiceId]
   );
 
-  const sub_total = parseFloat(rows[0]?.sub_total) || 0;
+  const services_total = parseFloat(rows[0]?.services_total) || 0;
+  const third_party_total = parseFloat(rows[0]?.third_party_total) || 0;
+  const sub_total = services_total + third_party_total;
   const amount_paid = parseFloat(rows[0]?.amount_paid) || 0;
   const discount = parseFloat(rows[0]?.discount) || 0;
   const grand_total = Math.max(0, sub_total - discount);

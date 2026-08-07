@@ -2,13 +2,13 @@ import { useState, useCallback, useMemo, memo } from 'react';
 import toast from 'react-hot-toast';
 import {
   User, Phone, MapPin, Plus, Trash2, Sparkles,
-  CheckCircle2, AlertCircle, Calendar, IndianRupee, Hash, Receipt, Settings
+  CheckCircle2, AlertCircle, Calendar, IndianRupee, Hash, Receipt, Settings, Truck
 } from 'lucide-react';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import { format, parseISO } from 'date-fns';
 import Select from 'react-select';
-import { useClients, useServices, useOrganizations } from '../hooks/useQueries.js';
+import { useClients, useServices, useOrganizations, useThirdPartyServices } from '../hooks/useQueries.js';
 
 function fmt(n) { return Number(n || 0).toLocaleString('en-IN'); }
 
@@ -158,6 +158,25 @@ const ServiceChip = memo(function ServiceChip({ opt, checked, onToggle }) {
   );
 });
 
+const ThirdPartyServiceChip = memo(function ThirdPartyServiceChip({ opt, checked, onToggle }) {
+  return (
+    <label className={`flex flex-col gap-0.5 cursor-pointer px-4 py-2.5 rounded-xl text-[13px] font-bold transition-all border ${
+      checked
+        ? 'bg-amber-500 text-white border-amber-500 shadow-md shadow-amber-500/20'
+        : 'bg-white text-gray-600 border-gray-200 hover:bg-amber-50 hover:border-amber-200'
+    }`}>
+      <input type="checkbox" checked={checked} onChange={e => onToggle(opt, e.target.checked)} className="sr-only" />
+      <span className="flex items-center gap-1.5">
+        <Truck size={12} className={checked ? 'text-white' : 'text-amber-500'} />
+        {opt.name}
+      </span>
+      <span className={`text-[11px] font-medium ${checked ? 'text-amber-50' : 'text-gray-400'}`}>
+        {opt.vendorName ? `${opt.vendorName} · ` : ''}₹{Number(opt.sellingPrice || 0).toLocaleString('en-IN')}
+      </span>
+    </label>
+  );
+});
+
 const SelectedServiceRow = memo(function SelectedServiceRow({ cur, onDesc }) {
   return (
     <div className="flex flex-col sm:flex-row sm:items-center gap-4 bg-gray-50 p-4 rounded-xl border border-gray-100">
@@ -180,11 +199,49 @@ const SelectedServiceRow = memo(function SelectedServiceRow({ cur, onDesc }) {
   );
 });
 
+const ThirdPartyServiceRow = memo(function ThirdPartyServiceRow({ item, onField, onRemove }) {
+  return (
+    <div className="flex flex-col gap-3 bg-amber-50/50 p-4 rounded-xl border border-amber-100 relative">
+      <button
+        type="button"
+        onClick={onRemove}
+        className="absolute -top-2.5 -right-2.5 w-6 h-6 rounded-full bg-white shadow-sm border border-gray-100 flex items-center justify-center text-gray-400 hover:text-rose-500 hover:border-rose-200 transition-all"
+      >
+        <Trash2 size={12} />
+      </button>
+      <div className="flex items-center gap-2 text-[14px] font-bold text-gray-900">
+        <Truck size={14} className="text-amber-500 shrink-0" />
+        {item.service_name}
+        {item.vendor_name && <span className="text-[12px] font-medium text-gray-400">— {item.vendor_name}</span>}
+      </div>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <Field label="Labour Count">
+          <input
+            type="number" min="1" className={`${inputCls} text-right`}
+            value={item.labour_count}
+            onChange={e => onField('labour_count', e.target.value)}
+          />
+        </Field>
+        <Field label="Labour Charge (₹)">
+          <MoneyInput value={item.labour_charge} onChange={e => onField('labour_charge', e.target.value)} />
+        </Field>
+        <Field label="Vendor Cost (₹)">
+          <MoneyInput value={item.service_cost} onChange={e => onField('service_cost', e.target.value)} />
+        </Field>
+        <Field label="Selling Price (₹)">
+          <MoneyInput value={item.selling_price} onChange={e => onField('selling_price', e.target.value)} />
+        </Field>
+      </div>
+    </div>
+  );
+});
+
 export default function InvoiceForm({ initial, onSubmit, loading, onCustomerSelect }) {
   const today = new Date().toISOString().slice(0, 10);
   const { data: customers = [] } = useClients();
   const { data: organizations = [] } = useOrganizations();
   const { data: serviceOptions = [] } = useServices();
+  const { data: thirdPartyOptions = [] } = useThirdPartyServices();
 
   const [clientType, setClientType] = useState(initial?.organizationId || initial?.organization_id ? 'organization' : 'individual');
 
@@ -194,7 +251,7 @@ export default function InvoiceForm({ initial, onSubmit, loading, onCustomerSele
       vehicleId: null,
       carMake: '', carModel: '', licensePlate: '',
       serviceDate: '', location: '',
-      services: [], subTotal: 0, discount: 0,
+      services: [], thirdPartyItems: [], subTotal: 0, discount: 0,
       status: 'draft', notes: 'Thank you for choosing Detailing Masters for your car care needs!',
       payments: [],
       showTerms: true, termsAndConditions: ''
@@ -205,6 +262,15 @@ export default function InvoiceForm({ initial, onSubmit, loading, onCustomerSele
       customer: initial.customer || base.customer,
       vehicleId: initial.vehicleId || initial.vehicle_id || null,
       services: initial.services || [],
+      thirdPartyItems: (initial.thirdPartyServices || []).map(t => ({
+        third_party_service_id: t.third_party_service_id || null,
+        service_name: t.service_name,
+        vendor_name: t.vendor_name || '',
+        labour_count: t.labour_count ?? 1,
+        labour_charge: t.labour_charge ?? 0,
+        service_cost: t.service_cost ?? 0,
+        selling_price: t.selling_price ?? 0,
+      })),
       subTotal: initial.subTotal || 0,
       payments: (initial.payments || []).map(p => {
         const methodRaw = p.payment_method || p.method || 'cash';
@@ -233,7 +299,12 @@ export default function InvoiceForm({ initial, onSubmit, loading, onCustomerSele
 
   const setF = useCallback((k, v) => setForm(f => ({ ...f, [k]: v })), []);
 
-  const subTotal = Number(form.subTotal || 0);
+  const servicesSubTotal = Number(form.subTotal || 0);
+  const thirdPartySubTotal = useMemo(
+    () => form.thirdPartyItems.reduce((sum, t) => sum + (Number(t.selling_price) || 0), 0),
+    [form.thirdPartyItems]
+  );
+  const subTotal = servicesSubTotal + thirdPartySubTotal;
   const discount = Number(form.discount || 0);
   const discountExceedsTotal = discount > subTotal && subTotal > 0;
   const total = Math.max(0, subTotal - discount);
@@ -287,11 +358,51 @@ export default function InvoiceForm({ initial, onSubmit, loading, onCustomerSele
     });
   }, []);
 
+  const addThirdPartyItem = useCallback((catalogId) => {
+    const opt = thirdPartyOptions.find(t => t.id === Number(catalogId));
+    setForm(f => ({
+      ...f,
+      thirdPartyItems: [...f.thirdPartyItems, {
+        third_party_service_id: opt?.id || null,
+        service_name: opt?.name || 'Custom Third-Party Service',
+        vendor_name: opt?.vendorName || '',
+        labour_count: opt?.labourCount ?? 1,
+        labour_charge: opt?.labourCharge ?? 0,
+        service_cost: opt?.serviceCost ?? 0,
+        selling_price: opt?.sellingPrice ?? 0,
+      }],
+    }));
+  }, [thirdPartyOptions]);
+
+  const toggleThirdPartyItem = useCallback((opt, checked) => {
+    if (checked) {
+      addThirdPartyItem(opt.id);
+    } else {
+      setForm(f => ({
+        ...f,
+        thirdPartyItems: f.thirdPartyItems.filter(t => t.third_party_service_id !== opt.id),
+      }));
+    }
+  }, [addThirdPartyItem]);
+
+  const updateThirdPartyField = useCallback((idx, field, val) => {
+    setForm(f => ({
+      ...f,
+      thirdPartyItems: f.thirdPartyItems.map((t, i) => i === idx ? { ...t, [field]: val } : t),
+    }));
+  }, []);
+
+  const removeThirdPartyItem = useCallback((idx) => {
+    setForm(f => ({ ...f, thirdPartyItems: f.thirdPartyItems.filter((_, i) => i !== idx) }));
+  }, []);
+
   function handleSubmit(e) {
     e.preventDefault();
     if (!form.customer?.id) return toast.error(clientType === 'individual' ? 'Please select a client.' : 'Please select an organization.');
     if (clientType === 'individual' && !form.vehicleId) return toast.error('Please select a vehicle.');
-    if (!form.services.length) return toast.error('Please select at least one service.');
+    if (!form.services.length && !form.thirdPartyItems.length) {
+      return toast.error('Please select at least one service or third-party item.');
+    }
 
     // Only NEW payment rows (no id) are sent — existing ones stay in DB
     const newPayments = form.payments
@@ -309,13 +420,26 @@ export default function InvoiceForm({ initial, onSubmit, loading, onCustomerSele
       .map(s => Number(s.service_id || s.serviceId))
       .filter(id => Number.isFinite(id) && id > 0);
 
-    if (!service_ids.length) return toast.error('Selected services are missing ids. Refresh and try again.');
+    if (form.services.length && !service_ids.length) {
+      return toast.error('Selected services are missing ids. Refresh and try again.');
+    }
+
+    const third_party_items = form.thirdPartyItems.map(t => ({
+      third_party_service_id: t.third_party_service_id || null,
+      service_name: t.service_name,
+      vendor_name: t.vendor_name || null,
+      labour_count: Number(t.labour_count) || 1,
+      labour_charge: Number(t.labour_charge) || 0,
+      service_cost: Number(t.service_cost) || 0,
+      selling_price: Number(t.selling_price) || 0,
+    }));
 
     onSubmit({
       client_id: clientType === 'individual' ? form.customer.id : null,
       organization_id: clientType === 'organization' ? form.customer.id : null,
       vehicle_id: form.vehicleId || null,
       service_ids,
+      third_party_items,
       discount: Number(form.discount) || 0,
       special_notes: form.notes || null,
       include_terms: !!form.showTerms,
@@ -348,6 +472,10 @@ export default function InvoiceForm({ initial, onSubmit, loading, onCustomerSele
   const selectedServiceIds = useMemo(
     () => new Set(form.services.map(s => s.service_id).filter(Boolean)),
     [form.services]
+  );
+  const selectedThirdPartyIds = useMemo(
+    () => new Set(form.thirdPartyItems.map(t => t.third_party_service_id).filter(Boolean)),
+    [form.thirdPartyItems]
   );
 
   const vehicleOptions = useMemo(() => {
@@ -554,6 +682,46 @@ export default function InvoiceForm({ initial, onSubmit, loading, onCustomerSele
                         key={cur.service_id || cur.service}
                         cur={cur}
                         onDesc={e => updateServiceField(cur.service, 'description', e.target.value)}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="bg-white/90 backdrop-blur-md rounded-2xl shadow-sm border border-gray-200 p-6 flex flex-col gap-5">
+              <div className="flex items-center gap-3">
+                <div className="w-6 h-6 rounded-full flex items-center justify-center border-2 border-gray-300 text-gray-400 bg-gray-50">
+                  <Truck size={12} />
+                </div>
+                <h2 className="text-[15px] font-bold text-gray-900 tracking-tight">Third-Party Services</h2>
+                <span className="text-[11px] font-medium text-gray-400">(Optional — vendor-provided work)</span>
+              </div>
+              <div>
+                <div className="flex flex-wrap gap-2.5">
+                  {thirdPartyOptions.filter(t => t.isActive !== false).map(opt => (
+                    <ThirdPartyServiceChip
+                      key={opt.id}
+                      opt={opt}
+                      checked={selectedThirdPartyIds.has(opt.id)}
+                      onToggle={toggleThirdPartyItem}
+                    />
+                  ))}
+                  {thirdPartyOptions.length === 0 && (
+                    <div className="text-[13px] font-medium text-gray-500 p-4 border border-dashed border-gray-300 rounded-xl bg-gray-50">
+                      No vendor services available.
+                    </div>
+                  )}
+                </div>
+
+                {form.thirdPartyItems.length > 0 && (
+                  <div className="mt-6 flex flex-col gap-3">
+                    {form.thirdPartyItems.map((item, idx) => (
+                      <ThirdPartyServiceRow
+                        key={idx}
+                        item={item}
+                        onField={(field, val) => updateThirdPartyField(idx, field, val)}
+                        onRemove={() => removeThirdPartyItem(idx)}
                       />
                     ))}
                   </div>

@@ -16,6 +16,10 @@ export const queryKeys = {
     all: ['organizations'],
     list: () => [...queryKeys.organizations.all, 'list'],
   },
+  thirdPartyServices: {
+    all: ['thirdPartyServices'],
+    list: () => [...queryKeys.thirdPartyServices.all, 'list'],
+  },
 };
 
 export function mapClient(c) {
@@ -43,6 +47,20 @@ export function mapService(s) {
     price: Number(s.base_price ?? s.price ?? 0),
     description: s.category ?? s.description ?? '',
     isActive: s.is_active !== undefined ? !!s.is_active : s.isActive !== false,
+  };
+}
+
+export function mapThirdPartyService(t) {
+  return {
+    ...t,
+    id: t.id,
+    name: t.service_name ?? '',
+    vendorName: t.vendor_name ?? '',
+    labourCount: Number(t.labour_count ?? 1),
+    labourCharge: Number(t.labour_charge ?? 0),
+    serviceCost: Number(t.service_cost ?? 0),
+    sellingPrice: Number(t.selling_price ?? 0),
+    isActive: t.is_active !== undefined ? !!t.is_active : true,
   };
 }
 
