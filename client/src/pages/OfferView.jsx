@@ -256,6 +256,39 @@ export default function OfferView() {
           </table>
         </div>
 
+        {/* Wash Tracking Summary */}
+        {(offer.totalWashes > 0 || offer.freeWashes > 0) && (
+          <div style={{ padding: '24px 40px 0' }}>
+            <div style={{ border: `1px solid ${brandGold}`, borderRadius: 8, overflow: 'hidden' }}>
+              <div style={{ backgroundColor: 'rgba(251,217,4,0.1)', padding: '12px 16px', fontWeight: 700, fontSize: 12, color: textDark, borderBottom: `1px solid ${brandGold}` }}>
+                WASH TRACKING SUMMARY
+              </div>
+              <div style={{ display: 'flex', backgroundColor: '#fff', fontSize: 13, textAlign: 'center' }}>
+                <div style={{ flex: 1, padding: '16px', borderRight: `1px solid #f3f4f6` }}>
+                  <div style={{ color: textMuted, fontSize: 11, fontWeight: 600, marginBottom: 4 }}>TOTAL WASHES</div>
+                  <div style={{ color: textDark, fontSize: 18, fontWeight: 800 }}>{offer.totalWashes}</div>
+                </div>
+                <div style={{ flex: 1, padding: '16px', borderRight: `1px solid #f3f4f6` }}>
+                  <div style={{ color: textMuted, fontSize: 11, fontWeight: 600, marginBottom: 4 }}>COMPLETED</div>
+                  <div style={{ color: '#10b981', fontSize: 18, fontWeight: 800 }}>{offer.completedWashes || 0}</div>
+                </div>
+                <div style={{ flex: 1, padding: '16px', borderRight: offer.freeWashes > 0 ? `1px solid #f3f4f6` : 'none' }}>
+                  <div style={{ color: textMuted, fontSize: 11, fontWeight: 600, marginBottom: 4 }}>BALANCE</div>
+                  <div style={{ color: textDark, fontSize: 18, fontWeight: 800 }}>{Math.max(0, offer.totalWashes - (offer.completedWashes || 0))}</div>
+                </div>
+                {offer.freeWashes > 0 && (
+                  <div style={{ flex: 1, padding: '16px', backgroundColor: '#fffbeb' }}>
+                    <div style={{ color: '#d97706', fontSize: 11, fontWeight: 800, marginBottom: 4 }}>FREE WASHES</div>
+                    <div style={{ color: '#b45309', fontSize: 18, fontWeight: 800 }}>
+                      {(offer.freeWashesUsed || 0)} <span style={{ fontSize: 14, fontWeight: 600 }}>/ {offer.freeWashes}</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Footer section (Terms) */}
         <div style={{ padding: '40px 40px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', minHeight: 180 }}>
           <div style={{ maxWidth: '65%' }}>

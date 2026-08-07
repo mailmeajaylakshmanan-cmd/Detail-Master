@@ -1,4 +1,5 @@
-import { Edit3, Phone, MapPin, Calendar } from 'lucide-react';
+import { Edit3, Phone, MapPin, Calendar, Gift } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import CustomerAvatar from './CustomerAvatar.jsx';
 import { VipBadge } from './Badge.jsx';
 
@@ -35,6 +36,16 @@ export default function CustomerProfileHeader({ customer, isVIP, memberSince, on
             <Calendar size={12} className="text-gray-400" /> Member since {memberSince}
           </span>
         </div>
+      </div>
+
+      <div className="ml-auto flex items-center gap-3">
+        <Link 
+          to={`/offers/new?phone=${customer.phone}`}
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#FBD904] text-[#020029] hover:bg-[#e6c700] transition-colors shadow-sm font-bold text-[13px] tracking-wide"
+        >
+          <Gift size={16} strokeWidth={2.5} />
+          <span>Assign Package</span>
+        </Link>
       </div>
     </div>
   );

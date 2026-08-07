@@ -72,9 +72,9 @@ export default function OfferForm({ initial, onSubmit, loading, onCustomerSelect
   const [form, setForm] = useState(() => {
     const base = {
       customer: { name: '', phone: '', address: '' },
-      carMake: '', carModel: '', licensePlate: '',
+      vehicleId: '', carMake: '', carModel: '', licensePlate: '',
       masterOfferId: '', packageName: '', description: '',
-      price: '', validityDate: '', terms: '', status: 'active'
+      price: '', validityDate: '', totalWashes: '', freeWashes: '', terms: '', status: 'active'
     };
     if (!initial) return base;
     return { ...base, ...initial, customer: initial.customer || base.customer };
@@ -104,7 +104,7 @@ export default function OfferForm({ initial, onSubmit, loading, onCustomerSelect
 
   const handlePackageSelect = (masterOfferId) => {
     if (form.masterOfferId === masterOfferId) {
-      setForm(f => ({ ...f, masterOfferId: '', packageName: '', description: '', price: '', validityDate: '', terms: '' }));
+      setForm(f => ({ ...f, masterOfferId: '', packageName: '', description: '', price: '', validityDate: '', totalWashes: '', freeWashes: '', terms: '' }));
       return;
     }
     const selectedPackage = offerTemplates.find(o => o.id === masterOfferId);
@@ -115,6 +115,8 @@ export default function OfferForm({ initial, onSubmit, loading, onCustomerSelect
         packageName: selectedPackage.name,
         price: selectedPackage.defaultPrice,
         description: selectedPackage.description,
+        totalWashes: selectedPackage.totalWashes || 0,
+        freeWashes: selectedPackage.freeWashes || 0,
         terms: selectedPackage.terms,
         validityDate: calculateExpiry(selectedPackage.defaultValidityDays)
       }));
@@ -167,9 +169,13 @@ export default function OfferForm({ initial, onSubmit, loading, onCustomerSelect
                     .map(c => ({ value: c.id, label: `${c.name} — ${c.phone}`, customer: c }))}
                   value={selectedCustomer}
                   onChange={sel => {
-                    if (!sel) { setForm(f => ({ ...f, customer: { name: '', phone: '', address: '' } })); return; }
+                    if (!sel) { setForm(f => ({ ...f, customer: { name: '', phone: '', address: '' }, vehicleId: '', carMake: '', licensePlate: '' })); return; }
                     const m = sel.customer;
-                    setForm(f => ({ ...f, customer: { id: m.id, name: m.name, phone: m.phone, address: m.address || '' } }));
+                    setForm(f => ({ 
+                      ...f, 
+                      customer: { id: m.id, name: m.name, phone: m.phone, address: m.address || '' },
+                      vehicleId: '', carMake: '', licensePlate: ''
+                    }));
                     onCustomerSelect?.(m);
                   }}
                   isDisabled={!!initial}
@@ -209,15 +215,51 @@ export default function OfferForm({ initial, onSubmit, loading, onCustomerSelect
                 <Car className="text-gray-400/50" size={24} strokeWidth={1.5} />
               </div>
               <div className="space-y-4">
-                <Field label="MAKE & MODEL">
-                  <input className={customInputCls} value={form.carMake} onChange={e => setF('carMake', e.target.value)} placeholder="e.g. Ford Mustang Shelby" />
+                <Field label="SELECT VEHICLE">
+                  <Select
+                    isClearable
+                    placeholder={!selectedCustomer ? "Select a customer first..." : "Select a vehicle..."}
+                    styles={selectStyles()}
+                    menuPortalTarget={document.body}
+                    menuPosition="fixed"
+                    isDisabled={!selectedCustomer || !selectedCustomer.customer.vehicles || selectedCustomer.customer.vehicles.length === 0}
+                    options={selectedCustomer?.customer?.vehicles?.map(v => ({
+                      value: v.id,
+                      label: `${v.make} ${v.model} - ${v.plate}`,
+                      vehicle: v
+                    })) || []}
+                    value={
+                      form.vehicleId 
+                        ? { 
+                            value: form.vehicleId, 
+                            label: `${form.carMake} - ${form.licensePlate}` 
+                          } 
+                        : null
+                    }
+                    onChange={sel => {
+                      if (!sel) {
+                        setForm(f => ({ ...f, vehicleId: '', carMake: '', licensePlate: '' }));
+                        return;
+                      }
+                      const v = sel.vehicle;
+                      setForm(f => ({
+                        ...f,
+                        vehicleId: v.id,
+                        carMake: `${v.make} ${v.model}`,
+                        licensePlate: v.plate
+                      }));
+                    }}
+                  />
+                </Field>
+                <Field label="MAKE & MODEL (AUTO-FILLED)">
+                  <input className={customInputCls} value={form.carMake} readOnly placeholder="e.g. Ford Mustang Shelby" />
                 </Field>
                 <div className="grid grid-cols-2 gap-4">
-                  <Field label="YEAR">
+                  <Field label="YEAR (OPTIONAL)">
                     <input className={customInputCls} placeholder="e.g. 2023" />
                   </Field>
-                  <Field label="LICENSE / VIN">
-                    <input className={`${customInputCls} font-mono uppercase`} value={form.licensePlate} onChange={e => setF('licensePlate', e.target.value)} placeholder="1FA-XXX" />
+                  <Field label="LICENSE / VIN (AUTO-FILLED)">
+                    <input className={`${customInputCls} font-mono uppercase`} value={form.licensePlate} readOnly placeholder="1FA-XXX" />
                   </Field>
                 </div>
               </div>
@@ -296,6 +338,14 @@ export default function OfferForm({ initial, onSubmit, loading, onCustomerSelect
                 <Field label="VALIDITY">
                   <input type="date" className={customInputCls} value={form.validityDate} onChange={e => setF('validityDate', e.target.value)} />
                 </Field>
+                <div className="grid grid-cols-2 gap-4">
+                  <Field label="TOTAL WASHES">
+                    <input type="number" min="0" className={customInputCls} value={form.totalWashes} onChange={e => setF('totalWashes', e.target.value)} placeholder="0" />
+                  </Field>
+                  <Field label="FREE WASHES">
+                    <input type="number" min="0" className={customInputCls} value={form.freeWashes} onChange={e => setF('freeWashes', e.target.value)} placeholder="0" />
+                  </Field>
+                </div>
                 <Field label="TERMS & CONDITIONS">
                   <textarea 
                     className={`${customInputCls} resize-none min-h-[110px] leading-relaxed`} 

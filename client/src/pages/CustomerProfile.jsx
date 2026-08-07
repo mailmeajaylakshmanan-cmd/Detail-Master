@@ -10,8 +10,9 @@ import ServiceHistoryTable from '../components/customers/ServiceHistoryTable.jsx
 import CustomerFormModal from '../components/customers/CustomerFormModal.jsx';
 import toast from 'react-hot-toast';
 import api from '../api/axios.js';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '../api/queryKeys.js';
+import { Gift } from 'lucide-react';
 
 export default function CustomerProfile() {
   const { phone: routePhone } = useParams();
@@ -35,6 +36,16 @@ export default function CustomerProfile() {
   const selectedCustomer = useMemo(() => {
     return customers.find(c => c.phone === routePhone);
   }, [routePhone, customers]);
+
+  const { data: assignedOffers = [], isLoading: loadingOffers } = useQuery({
+    queryKey: ['customerOffers', selectedCustomer?.id],
+    queryFn: async () => {
+      if (!selectedCustomer?.id) return [];
+      const res = await api.get(`/offers?client_id=${selectedCustomer.id}`);
+      return Array.isArray(res.data) ? res.data : [];
+    },
+    enabled: !!selectedCustomer?.id
+  });
 
   const customerHistory = useMemo(() => {
     if (!selectedCustomer) return [];
@@ -200,6 +211,50 @@ export default function CustomerProfile() {
               onSelect={setSelectedVehicleIdx}
             />
           </div>
+
+          {assignedOffers.length > 0 && (
+            <div className="w-full card overflow-hidden">
+              <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-white">
+                <h3 className="text-[15px] font-bold text-gray-900 tracking-tight flex items-center gap-2">
+                  <Gift size={18} className="text-blue-600" /> Active Assigned Packages
+                </h3>
+              </div>
+              <div className="p-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 bg-gray-50/50">
+                {assignedOffers.map(offer => {
+                  const washBal = Math.max(0, (offer.totalWashes || 0) - (offer.completedWashes || 0));
+                  const freeBal = Math.max(0, (offer.freeWashes || 0) - (offer.freeWashesUsed || 0));
+                  return (
+                    <Link key={offer.id} to={`/offers/${offer.id}`} className="bg-white rounded-xl p-4 border border-gray-200 hover:border-blue-300 hover:shadow-md transition-all group">
+                      <div className="flex justify-between items-start mb-3">
+                        <div>
+                          <h4 className="font-bold text-gray-900 text-sm group-hover:text-blue-600 transition-colors">{offer.packageName}</h4>
+                          <p className="text-[11px] text-gray-500 font-medium">{offer.offerNo}</p>
+                        </div>
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                          offer.status === 'active' || !offer.status ? 'bg-emerald-100 text-emerald-700' :
+                          offer.status === 'expired' ? 'bg-rose-100 text-rose-700' :
+                          'bg-gray-100 text-gray-600'
+                        }`}>
+                          {offer.status || 'Active'}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-4 text-[12px]">
+                        <div className="flex flex-col">
+                          <span className="text-gray-400 font-semibold mb-1">Washes</span>
+                          <span className="font-black text-gray-800">{washBal} <span className="text-gray-400 font-medium">/ {offer.totalWashes || 0}</span></span>
+                        </div>
+                        <div className="w-px h-8 bg-gray-100"></div>
+                        <div className="flex flex-col">
+                          <span className="text-gray-400 font-semibold mb-1">Free</span>
+                          <span className="font-black text-gray-800">{freeBal} <span className="text-gray-400 font-medium">/ {offer.freeWashes || 0}</span></span>
+                        </div>
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           <div className="w-full">
             <ServiceHistoryTable 

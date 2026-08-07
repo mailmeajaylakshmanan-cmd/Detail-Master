@@ -23,6 +23,7 @@ function buildNavItems(menus) {
 
   return menus.map((menu) => {
     const item = {
+      id: menu.id,
       label: menu.menu_name,
       to: menu.route_path,
       icon: iconMap[menu.icon] || LayoutDashboard,
@@ -225,8 +226,8 @@ export default function Layout() {
         <div className="flex items-center justify-between px-3 py-4 border-b border-white/40 shrink-0 gap-2">
           <Link to="/" className="flex items-center gap-2.5 min-w-0 flex-1" onClick={() => setIsMobileMenuOpen(false)}>
             <img src={brandLogo} alt="" className="h-10 w-10 object-contain shrink-0" />
-            <span className="text-[12px] font-black text-blue-900 tracking-tight leading-tight uppercase">
-              Detailing<br />Masters
+            <span className="text-[13px] font-black tracking-tight leading-tight uppercase whitespace-nowrap drop-shadow-sm">
+              <span className="text-[#FBD904]">DETAILING</span> <span className="text-gray-600">MASTERS</span>
             </span>
           </Link>
           <button
@@ -292,8 +293,8 @@ export default function Layout() {
 
               <div className="lg:hidden flex items-center gap-2 min-w-0">
                 <img src={brandLogo} alt="" className="h-8 w-8 object-contain shrink-0" />
-                <span className="text-[12px] font-black text-blue-900 tracking-tight leading-tight uppercase truncate">
-                  Detailing Masters
+                <span className="text-[12px] font-black tracking-tight leading-tight uppercase truncate">
+                  <span className="text-[#FBD904]">DETAILING</span> <span className="text-gray-600">MASTERS</span>
                 </span>
               </div>
               <p className="hidden lg:block text-sm font-semibold text-gray-600/80 truncate ml-1">

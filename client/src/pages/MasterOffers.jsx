@@ -1,8 +1,9 @@
 import { useState, useMemo } from 'react';
 import api from '../api/axios.js';
 import toast from 'react-hot-toast';
-import { Plus, X, Search, Gift } from 'lucide-react';
+import { Plus, X, Search, Gift, Settings } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { Link } from 'react-router-dom';
 
 export default function MasterOffers() {
   const queryClient = useQueryClient();
@@ -27,6 +28,8 @@ export default function MasterOffers() {
   const [description, setDescription] = useState('');
   const [defaultPrice, setDefaultPrice] = useState('');
   const [defaultValidityDays, setDefaultValidityDays] = useState('365');
+  const [totalWashes, setTotalWashes] = useState('0');
+  const [freeWashes, setFreeWashes] = useState('0');
   const [terms, setTerms] = useState('');
   const [editId, setEditId] = useState(null);
 
@@ -51,6 +54,8 @@ export default function MasterOffers() {
       description,
       defaultPrice: Number(defaultPrice) || 0,
       defaultValidityDays: Number(defaultValidityDays) || 365,
+      totalWashes: Number(totalWashes) || 0,
+      freeWashes: Number(freeWashes) || 0,
       terms
     };
     
@@ -75,6 +80,8 @@ export default function MasterOffers() {
     setDescription('');
     setDefaultPrice('');
     setDefaultValidityDays('365');
+    setTotalWashes('0');
+    setFreeWashes('0');
     setTerms('');
     setIsModalOpen(true);
   }
@@ -85,6 +92,8 @@ export default function MasterOffers() {
     setDescription(offer.description || '');
     setDefaultPrice(offer.defaultPrice || '');
     setDefaultValidityDays(offer.defaultValidityDays || '365');
+    setTotalWashes(offer.totalWashes || '0');
+    setFreeWashes(offer.freeWashes || '0');
     setTerms(offer.terms || '');
     setIsModalOpen(true);
   }
@@ -95,6 +104,8 @@ export default function MasterOffers() {
     setDescription('');
     setDefaultPrice('');
     setDefaultValidityDays('365');
+    setTotalWashes('0');
+    setFreeWashes('0');
     setTerms('');
     setIsModalOpen(false);
   }
@@ -135,6 +146,9 @@ export default function MasterOffers() {
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
+          <Link to="/assigned-offers" className="btn bg-gray-100 hover:bg-gray-200 text-gray-700 whitespace-nowrap flex items-center gap-2 px-4 rounded-xl font-bold transition-colors">
+            <Settings size={18} /> Manage Assigned
+          </Link>
           <button onClick={handleAdd} className="btn-primary whitespace-nowrap flex items-center gap-2">
             <Plus size={18} /> Add Offer
           </button>
@@ -151,9 +165,17 @@ export default function MasterOffers() {
             <p className="text-[13px] text-gray-500 mb-2 flex-1 pr-12 line-clamp-2">
               {offer.description || <span className="italic text-gray-400">No description provided</span>}
             </p>
-            <p className="text-[12px] text-gray-500 mb-6 font-medium">
-              Validity: {offer.defaultValidityDays} Days
-            </p>
+            <div className="flex gap-4 text-[12px] text-gray-500 mb-6 font-medium">
+              <span>Validity: {offer.defaultValidityDays} Days</span>
+              <span>•</span>
+              <span>Total Washes: {offer.totalWashes}</span>
+              {offer.freeWashes > 0 && (
+                <>
+                  <span>•</span>
+                  <span className="text-amber-600 font-bold">{offer.freeWashes} Free</span>
+                </>
+              )}
+            </div>
 
             <div className="flex items-center justify-between mt-auto">
               <div className="text-gray-900 font-bold text-[22px] tracking-tight">
@@ -200,6 +222,16 @@ export default function MasterOffers() {
                 <div>
                   <label className="block text-sm font-medium text-gray-500 mb-1.5">Validity (Days) *</label>
                   <input required type="number" min="1" step="1" className="input" value={defaultValidityDays} onChange={e => setDefaultValidityDays(e.target.value)} placeholder="365" />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-500 mb-1.5">Total Washes *</label>
+                  <input required type="number" min="0" step="1" className="input" value={totalWashes} onChange={e => setTotalWashes(e.target.value)} placeholder="0" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-500 mb-1.5">Free Washes</label>
+                  <input required type="number" min="0" step="1" className="input" value={freeWashes} onChange={e => setFreeWashes(e.target.value)} placeholder="0" />
                 </div>
               </div>
               <div>
