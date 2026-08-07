@@ -46,10 +46,11 @@ function normalizeInvoice(row) {
     id: row.id,
     invoiceNo: row.invoice_number || row.invoiceNo,
     date: row.created_at || row.date,
+    isOrganization: !!(row.organization_id || row.organizationId),
     customer: {
-      name: row.client_name || row.customer?.name || '—',
-      phone: row.client_phone || row.customer?.phone || '',
-      address: row.client_address || row.customer?.address || '',
+      name: row.client_name || row.organization_name || row.customer?.name || '—',
+      phone: row.client_phone || row.organization_phone || row.customer?.phone || '',
+      address: row.client_address || row.organization_address || row.customer?.address || '',
     },
     carMake: parts[0] || row.carMake || '',
     carModel: parts.slice(1).join(' ') || row.carModel || '',
@@ -61,13 +62,39 @@ function normalizeInvoice(row) {
     notes: row.special_notes || row.notes || '',
     showTerms: row.include_terms !== false,
     termsAndConditions: row.terms_conditions || '',
-    services: (row.services || []).map((s) => ({
-      service: s.service_name || s.service,
-      description: s.category || s.description || '',
-      price: Number(s.unit_price ?? s.price) || 0,
-      total: Number(s.unit_price ?? s.total ?? s.grand_total) || 0,
-      quantity: s.quantity || 1,
-    })),
+    services: Object.values((row.services || []).reduce((acc, s) => {
+      const name = s.service_name || s.service;
+      if (!acc[name]) {
+        acc[name] = {
+          service: name,
+          description: s.category || s.description || '',
+          price: Number(s.unit_price ?? s.price) || 0,
+          total: 0,
+          quantity: 0,
+          plates: []
+        };
+      }
+      acc[name].quantity += (s.quantity || 1);
+      acc[name].total += (Number(s.unit_price ?? s.total ?? s.grand_total) || 0);
+      if (s.vehicle_plate) acc[name].plates.push(s.vehicle_plate);
+      return acc;
+    }, {})).map(s => ({ ...s, vehicle_plate: s.plates.join(', ') })),
+    thirdPartyServices: Object.values((row.thirdPartyServices || []).reduce((acc, t) => {
+      const name = t.service_name || t.service;
+      if (!acc[name]) {
+        acc[name] = {
+          ...t,
+          selling_price: Number(t.selling_price) || 0,
+          quantity: 0,
+          total: 0,
+          plates: []
+        };
+      }
+      acc[name].quantity += (t.quantity || 1);
+      acc[name].total += (Number(t.selling_price) || 0);
+      if (t.vehicle_plate) acc[name].plates.push(t.vehicle_plate);
+      return acc;
+    }, {})).map(t => ({ ...t, vehicle_plate: t.plates.join(', ') })),
     payments: row.payments || [],
   };
 }
@@ -402,11 +429,15 @@ export default function InvoiceView() {
               </div>
            </div>
            <div style={{ flex: 1, paddingLeft: 40 }}>
-              <h3 style={{ fontSize: 15, fontWeight: 700, margin: '0 0 12px 0', color: '#111', textTransform: 'uppercase' }}>CLIENT INFO</h3>
+              <h3 style={{ fontSize: 15, fontWeight: 700, margin: '0 0 12px 0', color: '#111', textTransform: 'uppercase' }}>{invoice.isOrganization ? 'ORGANIZATION INFO' : 'CLIENT INFO'}</h3>
               <div style={{ fontSize: 13, color: '#333', lineHeight: 1.8 }}>
                  <div style={{ display: 'flex' }}><span style={{ width: 75, fontWeight: 600 }}>Name:</span> <span>{invoice.customer?.name}</span></div>
-                 <div style={{ display: 'flex' }}><span style={{ width: 75, fontWeight: 600 }}>Car Make:</span> <span>{invoice.carMake} {invoice.carModel}</span></div>
-                 <div style={{ display: 'flex' }}><span style={{ width: 75, fontWeight: 600 }}>Plate:</span> <span>{invoice.licensePlate}</span></div>
+                 {!invoice.isOrganization && (
+                    <>
+                       <div style={{ display: 'flex' }}><span style={{ width: 75, fontWeight: 600 }}>Car Make:</span> <span>{invoice.carMake} {invoice.carModel}</span></div>
+                       <div style={{ display: 'flex' }}><span style={{ width: 75, fontWeight: 600 }}>Plate:</span> <span>{invoice.licensePlate}</span></div>
+                    </>
+                 )}
                  <div style={{ display: 'flex' }}><span style={{ width: 75, fontWeight: 600 }}>Date:</span> <span>{dateStr}</span></div>
               </div>
            </div>
@@ -474,9 +505,9 @@ export default function InvoiceView() {
                                    )}
                                 </div>
                              </td>
-                             <td style={{ padding: '10px 12px', border: '1px solid #e2e8f0', textAlign: 'center', color: '#111' }}>1</td>
+                             <td style={{ padding: '10px 12px', border: '1px solid #e2e8f0', textAlign: 'center', color: '#111' }}>{t.quantity || 1}</td>
                              <td style={{ padding: '10px 12px', border: '1px solid #e2e8f0', textAlign: 'center', color: '#111' }}>₹{fmt(t.selling_price)}</td>
-                             <td style={{ padding: '10px 12px', border: '1px solid #e2e8f0', textAlign: 'center', color: '#111', fontWeight: 600 }}>₹{fmt(t.selling_price)}</td>
+                             <td style={{ padding: '10px 12px', border: '1px solid #e2e8f0', textAlign: 'center', color: '#111', fontWeight: 600 }}>₹{fmt(t.total)}</td>
                           </tr>
                        )})}
                        </>
