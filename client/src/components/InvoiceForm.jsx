@@ -177,7 +177,7 @@ const ThirdPartyServiceChip = memo(function ThirdPartyServiceChip({ opt, checked
   );
 });
 
-const SelectedServiceRow = memo(function SelectedServiceRow({ cur, onDesc }) {
+const SelectedServiceRow = memo(function SelectedServiceRow({ cur, onDesc, vehicleOptions, onVehiclesChange }) {
   return (
     <div className="flex flex-col sm:flex-row sm:items-center gap-4 bg-gray-50 p-4 rounded-xl border border-gray-100">
       <div className="sm:w-2/5 font-bold text-[14px] text-gray-900 flex items-center gap-2">
@@ -191,15 +191,25 @@ const SelectedServiceRow = memo(function SelectedServiceRow({ cur, onDesc }) {
           onChange={onDesc}
         />
       </div>
-      <div className="sm:w-36">
-        {/* Price locked — snapshot comes from services.base_price on save */}
+      <div className="sm:w-36 flex flex-col gap-2">
         <MoneyInput value={cur.price || ''} onChange={() => {}} disabled />
+        {vehicleOptions && vehicleOptions.length > 1 && (
+          <Select
+            isMulti
+            options={vehicleOptions}
+            value={vehicleOptions.filter(v => (cur.vehicle_ids || []).includes(v.value))}
+            onChange={onVehiclesChange}
+            placeholder="Apply to..."
+            styles={selectStyles()}
+            menuPortalTarget={document.body}
+          />
+        )}
       </div>
     </div>
   );
 });
 
-const ThirdPartyServiceRow = memo(function ThirdPartyServiceRow({ item, onField, onRemove }) {
+const ThirdPartyServiceRow = memo(function ThirdPartyServiceRow({ item, onField, onRemove, vehicleOptions, onVehiclesChange }) {
   return (
     <div className="flex flex-col gap-3 bg-amber-50/50 p-4 rounded-xl border border-amber-100 relative">
       <button
@@ -214,6 +224,19 @@ const ThirdPartyServiceRow = memo(function ThirdPartyServiceRow({ item, onField,
         {item.service_name}
         {item.vendor_name && <span className="text-[12px] font-medium text-gray-400">— {item.vendor_name}</span>}
       </div>
+      {vehicleOptions && vehicleOptions.length > 1 && (
+        <div className="mb-2">
+          <Select
+            isMulti
+            options={vehicleOptions}
+            value={vehicleOptions.filter(v => (item.vehicle_ids || []).includes(v.value))}
+            onChange={onVehiclesChange}
+            placeholder="Apply to cars..."
+            styles={selectStyles()}
+            menuPortalTarget={document.body}
+          />
+        </div>
+      )}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <Field label="Labour Count">
           <input
@@ -248,6 +271,7 @@ export default function InvoiceForm({ initial, onSubmit, loading, onCustomerSele
   const [form, setForm] = useState(() => {
     const base = {
       customer: { name: '', phone: '', address: '', vehicles: [] },
+      vehicleIds: [],
       vehicleId: null,
       carMake: '', carModel: '', licensePlate: '',
       serviceDate: '', location: '',
@@ -260,10 +284,11 @@ export default function InvoiceForm({ initial, onSubmit, loading, onCustomerSele
     return {
       ...base, ...initial,
       customer: initial.customer || base.customer,
-      vehicleId: initial.vehicleId || initial.vehicle_id || null,
+      vehicleIds: initial?.vehicleIds || (initial?.vehicleId ? [initial.vehicleId] : []), vehicleId: initial?.vehicleId || null,
       services: initial.services || [],
       thirdPartyItems: (initial.thirdPartyServices || []).map(t => ({
         third_party_service_id: t.third_party_service_id || null,
+      vehicle_ids: t.vehicle_ids || [],
         service_name: t.service_name,
         vendor_name: t.vendor_name || '',
         labour_count: t.labour_count ?? 1,
@@ -299,9 +324,9 @@ export default function InvoiceForm({ initial, onSubmit, loading, onCustomerSele
 
   const setF = useCallback((k, v) => setForm(f => ({ ...f, [k]: v })), []);
 
-  const servicesSubTotal = Number(form.subTotal || 0);
+  const servicesSubTotal = form.services.reduce((acc, s) => acc + (Number(s.total) || 0) * (s.vehicle_ids?.length || 1), 0);
   const thirdPartySubTotal = useMemo(
-    () => form.thirdPartyItems.reduce((sum, t) => sum + (Number(t.selling_price) || 0), 0),
+    () => form.thirdPartyItems.reduce((sum, t) => sum + (Number(t.selling_price) || 0) * (t.vehicle_ids?.length || 1), 0),
     [form.thirdPartyItems]
   );
   const subTotal = servicesSubTotal + thirdPartySubTotal;
@@ -334,14 +359,14 @@ export default function InvoiceForm({ initial, onSubmit, loading, onCustomerSele
         return {
           ...f,
           services: newServices,
-          subTotal: newServices.reduce((acc, s) => acc + (Number(s.total) || 0), 0)
+          subTotal: newServices.reduce((acc, s) => acc + (Number(s.total) || 0) * (s.vehicle_ids?.length || 1), 0)
         };
       }
       const newServices = f.services.filter(s => s.service_id !== opt.id && s.service !== opt.name);
       return {
         ...f,
         services: newServices,
-        subTotal: newServices.reduce((acc, s) => acc + (Number(s.total) || 0), 0)
+        subTotal: newServices.reduce((acc, s) => acc + (Number(s.total) || 0) * (s.vehicle_ids?.length || 1), 0)
       };
     });
   }, []);
@@ -545,7 +570,8 @@ export default function InvoiceForm({ initial, onSubmit, loading, onCustomerSele
                       setForm(f => ({
                         ...f,
                         customer: { name: '', phone: '', address: '', vehicles: [] },
-                        vehicleId: null,
+                        vehicleIds: [],
+      vehicleId: null,
                         carMake: '',
                         licensePlate: '',
                       }));
@@ -617,7 +643,8 @@ export default function InvoiceForm({ initial, onSubmit, loading, onCustomerSele
                     isDisabled={!form.customer?.id || !!initial}
                     onChange={sel => {
                       if (!sel) {
-                        setForm(f => ({ ...f, vehicleId: null, carMake: '', licensePlate: '' }));
+                        setForm(f => ({ ...f, vehicleIds: [],
+      vehicleId: null, carMake: '', licensePlate: '' }));
                         return;
                       }
                       const v = sel.vehicle;
@@ -682,6 +709,8 @@ export default function InvoiceForm({ initial, onSubmit, loading, onCustomerSele
                         key={cur.service_id || cur.service}
                         cur={cur}
                         onDesc={e => updateServiceField(cur.service, 'description', e.target.value)}
+                        vehicleOptions={clientType === 'organization' && form.vehicleIds?.length > 1 ? vehicleOptions.filter(v => form.vehicleIds.includes(v.value)) : null}
+                        onVehiclesChange={opts => updateServiceField(cur.service, 'vehicle_ids', opts ? opts.map(o => o.value) : [])}
                       />
                     ))}
                   </div>
@@ -721,6 +750,8 @@ export default function InvoiceForm({ initial, onSubmit, loading, onCustomerSele
                         key={idx}
                         item={item}
                         onField={(field, val) => updateThirdPartyField(idx, field, val)}
+                        vehicleOptions={clientType === 'organization' && form.vehicleIds?.length > 1 ? vehicleOptions.filter(v => form.vehicleIds.includes(v.value)) : null}
+                        onVehiclesChange={opts => updateThirdPartyField(idx, 'vehicle_ids', opts ? opts.map(o => o.value) : [])}
                         onRemove={() => removeThirdPartyItem(idx)}
                       />
                     ))}

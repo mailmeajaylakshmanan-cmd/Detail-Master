@@ -443,7 +443,12 @@ export default function InvoiceView() {
                                 </div>
                                 <div>
                                    <div style={{ fontWeight: 500, color: '#111' }}>{s.service}</div>
-                                   {s.description && <div style={{ fontSize: 11, color: '#666' }}>{s.description}</div>}
+                                   {(s.description || s.vehicle_plate) && (
+                                      <div style={{ fontSize: 11, color: '#666' }}>
+                                         {s.vehicle_plate && <span style={{ fontWeight: 600, color: '#444' }}>[{s.vehicle_plate}] </span>}
+                                         {s.description}
+                                      </div>
+                                   )}
                                 </div>
                              </td>
                              <td style={{ padding: '10px 12px', border: '1px solid #e2e8f0', textAlign: 'center', color: '#111' }}>{s.quantity || 1}</td>
@@ -461,7 +466,12 @@ export default function InvoiceView() {
                                 </div>
                                 <div>
                                    <div style={{ fontWeight: 500, color: '#111' }}>{t.service_name}</div>
-                                   {t.vendor_name && <div style={{ fontSize: 11, color: '#666' }}>Vendor: {t.vendor_name}</div>}
+                                   {(t.vendor_name || t.vehicle_plate) && (
+                                      <div style={{ fontSize: 11, color: '#666' }}>
+                                         {t.vehicle_plate && <span style={{ fontWeight: 600, color: '#444' }}>[{t.vehicle_plate}] </span>}
+                                         {t.vendor_name && `Vendor: ${t.vendor_name}`}
+                                      </div>
+                                   )}
                                 </div>
                              </td>
                              <td style={{ padding: '10px 12px', border: '1px solid #e2e8f0', textAlign: 'center', color: '#111' }}>1</td>

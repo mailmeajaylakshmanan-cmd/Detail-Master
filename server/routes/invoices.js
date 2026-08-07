@@ -146,17 +146,20 @@ router.get('/:id', async (req, res) => {
 
     const [servicesRes, thirdPartyRes, paymentsRes] = await Promise.all([
       db.query(
-        `SELECT isv.*, s.service_name, s.category
+        `SELECT isv.*, s.service_name, s.category, v.license_vin AS vehicle_plate
          FROM invoice_services isv
          JOIN services s ON isv.service_id = s.id
+         LEFT JOIN vehicles v ON isv.vehicle_id = v.id
          WHERE isv.invoice_order_id = $1
          ORDER BY isv.id ASC`,
         [id]
       ),
       db.query(
-        `SELECT * FROM invoice_third_party_services
-         WHERE invoice_order_id = $1
-         ORDER BY id ASC`,
+        `SELECT itp.*, v.license_vin AS vehicle_plate 
+         FROM invoice_third_party_services itp
+         LEFT JOIN vehicles v ON itp.vehicle_id = v.id
+         WHERE itp.invoice_order_id = $1
+         ORDER BY itp.id ASC`,
         [id]
       ),
       db.query(
@@ -219,24 +222,51 @@ router.post('/', async (req, res) => {
 
     // Snapshot current service prices
     const priceRes = await client.query(
-      `SELECT id, base_price FROM services WHERE id = ANY($1::int[]) AND is_active = TRUE`,
-      [ids]
-    );
-    if (priceRes.rows.length !== ids.length) {
-      await client.query('ROLLBACK');
-      return res.status(400).json({ message: 'One or more services are invalid or inactive' });
+    await client.query('BEGIN');
+
+    let lines = [];
+    
+    // Support new payload format: service_items = [{ service_id, vehicle_ids: [1, 2] }]
+    // Support legacy payload: service_ids = [1, 2, 3] with single vehicle_id
+    if (Array.isArray(req.body.service_items) && req.body.service_items.length > 0) {
+      const ids = req.body.service_items.map(s => s.service_id);
+      const sRes = await client.query('SELECT id, base_price FROM services WHERE id = ANY($1::int[])', [ids]);
+      
+      req.body.service_items.forEach(si => {
+        const dbSrv = sRes.rows.find(r => r.id === si.service_id);
+        if (dbSrv) {
+          lines.push({
+            service_id: si.service_id,
+            unit_price: Number(dbSrv.base_price) || 0,
+            vehicle_ids: Array.isArray(si.vehicle_ids) && si.vehicle_ids.length > 0 ? si.vehicle_ids : [vehicle_id || null]
+          });
+        }
+      });
+    } else if (Array.isArray(service_ids) && service_ids.length > 0) {
+      const sRes = await client.query('SELECT id, base_price FROM services WHERE id = ANY($1::int[])', [service_ids]);
+      lines = service_ids.map((id) => {
+        const row = sRes.rows.find((r) => r.id === id);
+        return {
+          service_id: id,
+          unit_price: row ? Number(row.base_price) : 0,
+          vehicle_ids: [vehicle_id || null]
+        };
+      });
     }
 
-    const priceById = new Map(
-      priceRes.rows.map((r) => [r.id, Number(r.base_price) || 0])
-    );
+    // Calc subtotal with multipliers based on number of vehicles per line
+    const serviceSubTotal = lines.reduce((sum, line) => {
+       const qty = line.vehicle_ids.length || 1;
+       return sum + (line.unit_price * qty);
+    }, 0);
 
-    const lines = ids.map((serviceId) => ({
-      service_id: serviceId,
-      unit_price: priceById.get(serviceId) || 0,
-    }));
+    const tPartyItems = Array.isArray(third_party_items) ? third_party_items : [];
+    const thirdPartySubTotal = tPartyItems.reduce((sum, t) => {
+      const qty = Array.isArray(t.vehicle_ids) && t.vehicle_ids.length > 0 ? t.vehicle_ids.length : 1;
+      return sum + (Number(t.selling_price) * qty);
+    }, 0);
 
-    const subTotal = lines.reduce((sum, line) => sum + line.unit_price, 0);
+    const subTotal = serviceSubTotal + thirdPartySubTotal;
     const discountAmt = Number(discount) || 0;
     const grandTotal = Math.max(0, subTotal - discountAmt);
 
@@ -283,30 +313,36 @@ router.post('/', async (req, res) => {
     const invoice = invRes.rows[0];
 
     for (const line of lines) {
-      // quantity uses DB default 1; line grand_total left empty (null)
-      await client.query(
-        `INSERT INTO invoice_services (invoice_order_id, service_id, unit_price)
-         VALUES ($1, $2, $3)`,
-        [invoice.id, line.service_id, line.unit_price]
-      );
+      const vIds = line.vehicle_ids.length > 0 ? line.vehicle_ids : [null];
+      for (const vId of vIds) {
+        await client.query(
+          `INSERT INTO invoice_services (invoice_order_id, service_id, unit_price, vehicle_id)
+           VALUES ($1, $2, $3, $4)`,
+          [invoice.id, line.service_id, line.unit_price, vId]
+        );
+      }
     }
 
-    for (const t of thirdPartyItems) {
-      await client.query(
-        `INSERT INTO invoice_third_party_services
-         (invoice_order_id, third_party_service_id, service_name, vendor_name, labour_count, labour_charge, service_cost, selling_price)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-        [
-          invoice.id,
-          t.third_party_service_id || null,
-          t.service_name,
-          t.vendor_name || null,
-          t.labour_count !== undefined ? t.labour_count : 1,
-          t.labour_charge || 0,
-          t.service_cost || 0,
-          t.selling_price || 0,
-        ]
-      );
+    for (const t of tPartyItems) {
+      const vIds = Array.isArray(t.vehicle_ids) && t.vehicle_ids.length > 0 ? t.vehicle_ids : [vehicle_id || null];
+      for (const vId of vIds) {
+        await client.query(
+          `INSERT INTO invoice_third_party_services
+           (invoice_order_id, third_party_service_id, service_name, vendor_name, labour_count, labour_charge, service_cost, selling_price, vehicle_id)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+          [
+            invoice.id,
+            t.third_party_service_id || null,
+            t.service_name,
+            t.vendor_name || null,
+            t.labour_count !== undefined ? t.labour_count : 1,
+            t.labour_charge || 0,
+            t.service_cost || 0,
+            t.selling_price || 0,
+            vId,
+          ]
+        );
+      }
     }
 
     for (const p of paymentRows) {

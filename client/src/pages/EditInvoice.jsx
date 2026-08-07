@@ -50,13 +50,33 @@ export default function EditInvoice() {
         notes: row.special_notes || '',
         showTerms: row.include_terms !== false,
         termsAndConditions: row.terms_conditions || '',
-        services: (row.services || []).map((s) => ({
-          service_id: s.service_id,
-          service: s.service_name || s.service,
-          description: s.category || s.description || '',
-          price: Number(s.unit_price ?? s.price) || 0,
-          total: Number(s.unit_price ?? s.total) || 0,
-        })),
+        services: Object.values((row.services || []).reduce((acc, s) => {
+          if (acc[s.service_id]) {
+            if (s.vehicle_id) acc[s.service_id].vehicle_ids.push(s.vehicle_id);
+          } else {
+            acc[s.service_id] = {
+              service_id: s.service_id,
+              service: s.service_name || s.service,
+              description: s.category || s.description || '',
+              price: Number(s.unit_price ?? s.price) || 0,
+              total: Number(s.unit_price ?? s.total) || 0,
+              vehicle_ids: s.vehicle_id ? [s.vehicle_id] : [],
+            };
+          }
+          return acc;
+        }, {})),
+        thirdPartyServices: Object.values((row.thirdPartyServices || []).reduce((acc, t) => {
+          const key = t.third_party_service_id || t.service_name;
+          if (acc[key]) {
+            if (t.vehicle_id) acc[key].vehicle_ids.push(t.vehicle_id);
+          } else {
+            acc[key] = {
+              ...t,
+              vehicle_ids: t.vehicle_id ? [t.vehicle_id] : [],
+            };
+          }
+          return acc;
+        }, {})),
         payments: (row.payments || []).map((p) => ({
           ...p,
           method: mapMethodToLabel(p.payment_method || p.method),
