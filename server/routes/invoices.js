@@ -144,9 +144,10 @@ router.get('/:id', async (req, res) => {
 
     const invoice = invRes.rows[0];
 
-    const [servicesRes, thirdPartyRes, paymentsRes] = await Promise.all([
+    const [servicesRes, thirdPartyRes, paymentsRes, vehicleVisitsRes] = await Promise.all([
       db.query(
-        `SELECT isv.*, s.service_name, s.category, v.license_vin AS vehicle_plate
+        `SELECT isv.*, s.service_name, s.category, v.license_vin AS vehicle_plate,
+                v.make_model AS vehicle_name
          FROM invoice_services isv
          JOIN services s ON isv.service_id = s.id
          LEFT JOIN vehicles v ON isv.vehicle_id = v.id
@@ -155,7 +156,8 @@ router.get('/:id', async (req, res) => {
         [id]
       ),
       db.query(
-        `SELECT itp.*, v.license_vin AS vehicle_plate 
+        `SELECT itp.*, v.license_vin AS vehicle_plate,
+                v.make_model AS vehicle_name
          FROM invoice_third_party_services itp
          LEFT JOIN vehicles v ON itp.vehicle_id = v.id
          WHERE itp.invoice_order_id = $1
@@ -168,11 +170,20 @@ router.get('/:id', async (req, res) => {
          ORDER BY payment_date DESC`,
         [id]
       ),
+      db.query(
+        `SELECT iv.*, v.make_model, v.license_vin
+         FROM invoice_vehicles iv
+         JOIN vehicles v ON iv.vehicle_id = v.id
+         WHERE iv.invoice_order_id = $1
+         ORDER BY iv.id ASC`,
+        [id]
+      ),
     ]);
 
     invoice.services = servicesRes.rows;
     invoice.thirdPartyServices = thirdPartyRes.rows;
     invoice.payments = paymentsRes.rows;
+    invoice.vehicleVisits = vehicleVisitsRes.rows;
     res.json(invoice);
   } catch (err) {
     console.error(err);
@@ -183,6 +194,7 @@ router.get('/:id', async (req, res) => {
 // CREATE invoice + all service lines (+ optional payments) in one call
 // Body: client_id, vehicle_id, service_ids: number[], discount?, amount_paid?,
 //       status?, special_notes?, include_terms?, terms_conditions?, payments?,
+//       vehicle_visits?: [{ vehicle_id, visitor_name?, visitor_phone?, checkin_time?, checkout_time? }],
 //       third_party_items?: [{ third_party_service_id?, service_name, vendor_name?,
 //                              labour_count?, labour_charge?, service_cost?, selling_price }]
 router.post('/', async (req, res) => {
@@ -200,6 +212,7 @@ router.post('/', async (req, res) => {
       status,
       payments,
       third_party_items,
+      vehicle_visits,
     } = req.body;
 
     if (!client_id && !organization_id) {
@@ -221,20 +234,22 @@ router.post('/', async (req, res) => {
     await client.query('BEGIN');
 
     let lines = [];
-    
+
     // Support new payload format: service_items = [{ service_id, vehicle_ids: [1, 2] }]
     // Support legacy payload: service_ids = [1, 2, 3] with single vehicle_id
     if (Array.isArray(req.body.service_items) && req.body.service_items.length > 0) {
       const ids = req.body.service_items.map(s => s.service_id);
       const sRes = await client.query('SELECT id, base_price FROM services WHERE id = ANY($1::int[])', [ids]);
-      
+
       req.body.service_items.forEach(si => {
         const dbSrv = sRes.rows.find(r => r.id === si.service_id);
         if (dbSrv) {
           lines.push({
             service_id: si.service_id,
             unit_price: Number(dbSrv.base_price) || 0,
-            vehicle_ids: Array.isArray(si.vehicle_ids) && si.vehicle_ids.length > 0 ? si.vehicle_ids : [vehicle_id || null]
+            vehicle_ids: Array.isArray(si.vehicle_ids) && si.vehicle_ids.length > 0
+              ? si.vehicle_ids
+              : [vehicle_id || null]
           });
         }
       });
@@ -307,6 +322,25 @@ router.post('/', async (req, res) => {
     );
 
     const invoice = invRes.rows[0];
+
+    if (Array.isArray(vehicle_visits)) {
+      for (const v of vehicle_visits) {
+        if (!v || !v.vehicle_id) continue;
+        await client.query(
+          `INSERT INTO invoice_vehicles (invoice_order_id, vehicle_id, visitor_name, visitor_phone, checkin_time, checkout_time)
+           VALUES ($1, $2, $3, $4, $5, $6)
+           ON CONFLICT (invoice_order_id, vehicle_id) DO NOTHING`,
+          [
+            invoice.id,
+            v.vehicle_id,
+            v.visitor_name || null,
+            v.visitor_phone || null,
+            v.checkin_time || null,
+            v.checkout_time || null,
+          ]
+        );
+      }
+    }
 
     for (const line of lines) {
       const vIds = line.vehicle_ids.length > 0 ? line.vehicle_ids : [null];
@@ -408,13 +442,54 @@ router.put('/:id', async (req, res) => {
 
     await client.query('BEGIN');
 
-    const existing = await client.query('SELECT id FROM invoices WHERE id = $1', [id]);
+    const existing = await client.query('SELECT id, client_id, organization_id FROM invoices WHERE id = $1', [id]);
     if (existing.rows.length === 0) {
       await client.query('ROLLBACK');
       return res.status(404).json({ message: 'Invoice not found' });
     }
 
-    if (Array.isArray(service_ids)) {
+    if (Array.isArray(req.body.vehicle_visits)) {
+      await client.query('DELETE FROM invoice_vehicles WHERE invoice_order_id = $1', [id]);
+      for (const v of req.body.vehicle_visits) {
+        if (!v || !v.vehicle_id) continue;
+        await client.query(
+          `INSERT INTO invoice_vehicles (invoice_order_id, vehicle_id, visitor_name, visitor_phone, checkin_time, checkout_time)
+           VALUES ($1, $2, $3, $4, $5, $6)
+           ON CONFLICT (invoice_order_id, vehicle_id) DO NOTHING`,
+          [
+            id,
+            v.vehicle_id,
+            v.visitor_name || null,
+            v.visitor_phone || null,
+            v.checkin_time || null,
+            v.checkout_time || null,
+          ]
+        );
+      }
+    }
+
+    if (Array.isArray(req.body.service_items) && req.body.service_items.length > 0) {
+      const svcIds = req.body.service_items.map(s => s.service_id);
+      const priceRes = await client.query(
+        `SELECT id, base_price FROM services WHERE id = ANY($1::int[]) AND is_active = TRUE`,
+        [svcIds]
+      );
+      await client.query('DELETE FROM invoice_services WHERE invoice_order_id = $1', [id]);
+      for (const si of req.body.service_items) {
+        const row = priceRes.rows.find(r => r.id === si.service_id);
+        if (!row) continue;
+        const vIds = Array.isArray(si.vehicle_ids) && si.vehicle_ids.length > 0
+          ? si.vehicle_ids
+          : [vehicle_id || null];
+        for (const vId of vIds) {
+          await client.query(
+            `INSERT INTO invoice_services (invoice_order_id, service_id, unit_price, vehicle_id)
+             VALUES ($1, $2, $3, $4)`,
+            [id, row.id, Number(row.base_price) || 0, vId]
+          );
+        }
+      }
+    } else if (Array.isArray(service_ids)) {
       const ids = [...new Set(service_ids.map(Number).filter((n) => Number.isFinite(n) && n > 0))];
       if (ids.length === 0) {
         await client.query('ROLLBACK');
@@ -433,9 +508,9 @@ router.put('/:id', async (req, res) => {
       await client.query('DELETE FROM invoice_services WHERE invoice_order_id = $1', [id]);
       for (const row of priceRes.rows) {
         await client.query(
-          `INSERT INTO invoice_services (invoice_order_id, service_id, unit_price)
-           VALUES ($1, $2, $3)`,
-          [id, row.id, Number(row.base_price) || 0]
+          `INSERT INTO invoice_services (invoice_order_id, service_id, unit_price, vehicle_id)
+           VALUES ($1, $2, $3, $4)`,
+          [id, row.id, Number(row.base_price) || 0, vehicle_id || null]
         );
       }
     }
@@ -444,21 +519,27 @@ router.put('/:id', async (req, res) => {
       const items = third_party_items.filter((t) => t && t.service_name);
       await client.query('DELETE FROM invoice_third_party_services WHERE invoice_order_id = $1', [id]);
       for (const t of items) {
-        await client.query(
-          `INSERT INTO invoice_third_party_services
-           (invoice_order_id, third_party_service_id, service_name, vendor_name, labour_count, labour_charge, service_cost, selling_price)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-          [
-            id,
-            t.third_party_service_id || null,
-            t.service_name,
-            t.vendor_name || null,
-            t.labour_count !== undefined ? t.labour_count : 1,
-            t.labour_charge || 0,
-            t.service_cost || 0,
-            t.selling_price || 0,
-          ]
-        );
+        const vIds = Array.isArray(t.vehicle_ids) && t.vehicle_ids.length > 0
+          ? t.vehicle_ids
+          : [vehicle_id || null];
+        for (const vId of vIds) {
+          await client.query(
+            `INSERT INTO invoice_third_party_services
+             (invoice_order_id, third_party_service_id, service_name, vendor_name, labour_count, labour_charge, service_cost, selling_price, vehicle_id)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+            [
+              id,
+              t.third_party_service_id || null,
+              t.service_name,
+              t.vendor_name || null,
+              t.labour_count !== undefined ? t.labour_count : 1,
+              t.labour_charge || 0,
+              t.service_cost || 0,
+              t.selling_price || 0,
+              vId,
+            ]
+          );
+        }
       }
     }
 

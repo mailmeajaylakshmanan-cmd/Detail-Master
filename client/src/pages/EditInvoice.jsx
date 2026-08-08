@@ -25,18 +25,41 @@ export default function EditInvoice() {
       const row = res.data;
       const makeModel = (row.vehicle_name || '').trim();
       const parts = makeModel.split(/\s+/);
+
+      // Per-visit vehicle details (who brought it in, check-in/check-out) come
+      // from the invoice_vehicles join. This also gives us the distinct set of
+      // vehicles already attached to this invoice, for the org vehicle picker.
+      const vehicleVisits = (row.vehicleVisits || []).map(v => ({
+        vehicleId: v.vehicle_id,
+        visitorName: v.visitor_name || '',
+        visitorPhone: v.visitor_phone || '',
+        checkinTime: v.checkin_time ? v.checkin_time.slice(0, 16) : '',
+        checkoutTime: v.checkout_time ? v.checkout_time.slice(0, 16) : '',
+      }));
+      const orgVehicleOptions = (row.vehicleVisits || []).map(v => {
+        const vParts = (v.make_model || '').trim().split(/\s+/);
+        return {
+          id: v.vehicle_id,
+          make: vParts[0] || '',
+          model: vParts.slice(1).join(' ') || '',
+          plate: v.license_vin || '',
+          isActive: true,
+        };
+      });
+
       setInvoice({
         ...row,
         invoiceNo: row.invoice_number,
         invoiceNumber: row.invoice_number,
         vehicleId: row.vehicle_id,
         organizationId: row.organization_id,
+        vehicleVisits,
         customer: {
           id: row.organization_id || row.client_id,
           name: row.organization_name || row.client_name || '',
           phone: row.organization_phone || row.client_phone || '',
           address: row.organization_address || row.client_address || '',
-          vehicles: [{
+          vehicles: row.organization_id ? orgVehicleOptions : [{
             id: row.vehicle_id,
             make: parts[0] || '',
             model: parts.slice(1).join(' ') || '',

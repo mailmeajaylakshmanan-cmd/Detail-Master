@@ -15,6 +15,7 @@ export const queryKeys = {
   organizations: {
     all: ['organizations'],
     list: () => [...queryKeys.organizations.all, 'list'],
+    billing: (id, range) => [...queryKeys.organizations.all, 'billing', id, range],
   },
   thirdPartyServices: {
     all: ['thirdPartyServices'],

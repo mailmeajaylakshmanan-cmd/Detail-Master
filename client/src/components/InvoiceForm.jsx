@@ -219,6 +219,81 @@ const ThirdPartyServiceChip = memo(function ThirdPartyServiceChip({ opt, checked
   );
 });
 
+const VehicleChip = memo(function VehicleChip({ opt, checked, onToggle }) {
+  return (
+    <label className={`flex items-center gap-2 cursor-pointer px-4 py-2.5 rounded-xl text-[13px] font-bold transition-all border ${
+      checked
+        ? 'bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-600/20'
+        : 'bg-white text-gray-600 border-gray-200 hover:bg-blue-50 hover:border-blue-200'
+    }`}>
+      <input type="checkbox" checked={checked} onChange={e => onToggle(opt, e.target.checked)} className="sr-only" />
+      {opt.label}
+    </label>
+  );
+});
+
+function parseLocalDateTime(v) {
+  return v ? new Date(v) : null;
+}
+function formatLocalDateTime(d) {
+  if (!d) return '';
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+const VehicleVisitRow = memo(function VehicleVisitRow({ label, meta, onField, onCopyToAll, showCopyToAll }) {
+  return (
+    <div className="flex flex-col gap-3 bg-blue-50/50 p-4 rounded-xl border border-blue-100">
+      <div className="flex items-center justify-between">
+        <div className="text-[13px] font-bold text-gray-900">{label}</div>
+        {showCopyToAll && (
+          <button type="button" onClick={onCopyToAll} className="text-[11px] font-bold text-blue-600 hover:underline">
+            Use this visitor for all vehicles
+          </button>
+        )}
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <Field label="Visitor Name">
+          <input className={inputCls} placeholder="Who dropped this off" value={meta.visitorName || ''} onChange={e => onField('visitorName', e.target.value)} />
+        </Field>
+        <Field label="Visitor Phone">
+          <input className={inputCls} placeholder="Optional" value={meta.visitorPhone || ''} onChange={e => onField('visitorPhone', e.target.value)} />
+        </Field>
+        <Field label="Check-in Time">
+          <div className="relative">
+            <Calendar size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none z-10" />
+            <DatePicker
+              selected={parseLocalDateTime(meta.checkinTime)}
+              onChange={d => onField('checkinTime', formatLocalDateTime(d))}
+              showTimeSelect
+              dateFormat="dd/MM/yyyy h:mm aa"
+              className={`${inputCls} pl-9 w-full`}
+              placeholderText="Select date & time"
+              wrapperClassName="w-full"
+              portalId="root"
+            />
+          </div>
+        </Field>
+        <Field label="Check-out Time">
+          <div className="relative">
+            <Calendar size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none z-10" />
+            <DatePicker
+              selected={parseLocalDateTime(meta.checkoutTime)}
+              onChange={d => onField('checkoutTime', formatLocalDateTime(d))}
+              showTimeSelect
+              dateFormat="dd/MM/yyyy h:mm aa"
+              className={`${inputCls} pl-9 w-full`}
+              placeholderText="Select date & time"
+              wrapperClassName="w-full"
+              portalId="root"
+            />
+          </div>
+        </Field>
+      </div>
+    </div>
+  );
+});
+
 const SelectedServiceRow = memo(function SelectedServiceRow({ cur, onDesc, vehicleOptions, onVehiclesChange }) {
   return (
     <div className="flex flex-col sm:flex-row sm:items-center gap-4 bg-gray-50 p-4 rounded-xl border border-gray-100">
@@ -302,7 +377,8 @@ export default function InvoiceForm({ initial, onSubmit, loading, onCustomerSele
   const [form, setForm] = useState(() => {
     const base = {
       customer: { name: '', phone: '', address: '', vehicles: [] },
-      vehicleIds: [],
+      selectedVehicleIds: [],
+      vehicleVisitMeta: {},
       vehicleId: null,
       carMake: '', carModel: '', licensePlate: '',
       serviceDate: '', location: '',
@@ -312,10 +388,23 @@ export default function InvoiceForm({ initial, onSubmit, loading, onCustomerSele
       showTerms: true, termsAndConditions: ''
     };
     if (!initial) return base;
+    const visits = initial?.vehicleVisits || [];
     return {
       ...base, ...initial,
       customer: initial.customer || base.customer,
-      vehicleIds: initial?.vehicleIds || (initial?.vehicleId ? [initial.vehicleId] : []), vehicleId: initial?.vehicleId || null,
+      // Which of this org's registered vehicles this invoice covers, and the
+      // per-visit details (visitor, check-in/check-out) for each.
+      selectedVehicleIds: visits.map(v => v.vehicleId),
+      vehicleVisitMeta: visits.reduce((acc, v) => {
+        acc[v.vehicleId] = {
+          visitorName: v.visitorName || '',
+          visitorPhone: v.visitorPhone || '',
+          checkinTime: v.checkinTime || '',
+          checkoutTime: v.checkoutTime || '',
+        };
+        return acc;
+      }, {}),
+      vehicleId: initial?.vehicleId || null,
       services: initial.services || [],
       thirdPartyItems: (initial.thirdPartyServices || []).map(t => ({
         third_party_service_id: t.third_party_service_id || null,
@@ -361,6 +450,52 @@ export default function InvoiceForm({ initial, onSubmit, loading, onCustomerSele
 
   const setF = useCallback((k, v) => setForm(f => ({ ...f, [k]: v })), []);
 
+  // All vehicle ids this invoice currently covers — the org's selected
+  // registered vehicles, or the single selected vehicle for individuals.
+  const activeVehicleIds = useMemo(
+    () => clientType === 'organization'
+      ? form.selectedVehicleIds
+      : (form.vehicleId ? [form.vehicleId] : []),
+    [clientType, form.selectedVehicleIds, form.vehicleId]
+  );
+
+  const toggleVehicle = useCallback((opt, checked) => {
+    setForm(f => {
+      if (checked) {
+        return {
+          ...f,
+          selectedVehicleIds: [...f.selectedVehicleIds, opt.value],
+          vehicleVisitMeta: {
+            ...f.vehicleVisitMeta,
+            [opt.value]: f.vehicleVisitMeta[opt.value] || { visitorName: '', visitorPhone: '', checkinTime: '', checkoutTime: '' },
+          },
+        };
+      }
+      return { ...f, selectedVehicleIds: f.selectedVehicleIds.filter(id => id !== opt.value) };
+    });
+  }, []);
+
+  const updateVehicleVisitField = useCallback((vehicleId, field, val) => {
+    setForm(f => ({
+      ...f,
+      vehicleVisitMeta: {
+        ...f.vehicleVisitMeta,
+        [vehicleId]: { ...(f.vehicleVisitMeta[vehicleId] || {}), [field]: val },
+      },
+    }));
+  }, []);
+
+  const copyVisitorToAllVehicles = useCallback((sourceVehicleId) => {
+    setForm(f => {
+      const source = f.vehicleVisitMeta[sourceVehicleId] || {};
+      const nextMeta = { ...f.vehicleVisitMeta };
+      for (const vid of f.selectedVehicleIds) {
+        nextMeta[vid] = { ...(nextMeta[vid] || {}), visitorName: source.visitorName || '', visitorPhone: source.visitorPhone || '' };
+      }
+      return { ...f, vehicleVisitMeta: nextMeta };
+    });
+  }, []);
+
   const servicesSubTotal = form.services.reduce((acc, s) => acc + (Number(s.total) || 0) * (s.vehicle_ids?.length || 1), 0);
   const thirdPartySubTotal = useMemo(
     () => form.thirdPartyItems.reduce((sum, t) => sum + (Number(t.selling_price) || 0) * (t.vehicle_ids?.length || 1), 0),
@@ -385,8 +520,8 @@ export default function InvoiceForm({ initial, onSubmit, loading, onCustomerSele
 
   const toggleService = useCallback((opt, checked) => {
     if (checked) {
-      if (clientType === 'organization' && form.vehicleIds?.length > 1) {
-        setServiceModal({ isOpen: true, type: 'standard', opt, selectedVehicleIds: form.vehicleIds });
+      if (clientType === 'organization' && activeVehicleIds.length > 1) {
+        setServiceModal({ isOpen: true, type: 'standard', opt, selectedVehicleIds: activeVehicleIds });
         return;
       }
       setForm(f => {
@@ -396,7 +531,7 @@ export default function InvoiceForm({ initial, onSubmit, loading, onCustomerSele
           description: opt.description || '',
           price: opt.price || 0,
           total: opt.price || 0,
-          vehicle_ids: f.vehicleIds
+          vehicle_ids: activeVehicleIds
         }];
         return {
           ...f,
@@ -414,7 +549,7 @@ export default function InvoiceForm({ initial, onSubmit, loading, onCustomerSele
         };
       });
     }
-  }, [clientType, form.vehicleIds]);
+  }, [clientType, activeVehicleIds]);
 
   const updateServiceField = useCallback((name, field, val) => {
     // Price is not editable — only description notes on the form
@@ -446,18 +581,18 @@ export default function InvoiceForm({ initial, onSubmit, loading, onCustomerSele
 
   const toggleThirdPartyItem = useCallback((opt, checked) => {
     if (checked) {
-      if (clientType === 'organization' && form.vehicleIds?.length > 1) {
-        setServiceModal({ isOpen: true, type: 'third_party', opt, selectedVehicleIds: form.vehicleIds });
+      if (clientType === 'organization' && activeVehicleIds.length > 1) {
+        setServiceModal({ isOpen: true, type: 'third_party', opt, selectedVehicleIds: activeVehicleIds });
         return;
       }
-      addThirdPartyItem(opt.id, form.vehicleIds);
+      addThirdPartyItem(opt.id, activeVehicleIds);
     } else {
       setForm(f => ({
         ...f,
         thirdPartyItems: f.thirdPartyItems.filter(t => t.third_party_service_id !== opt.id),
       }));
     }
-  }, [clientType, form.vehicleIds, addThirdPartyItem]);
+  }, [clientType, activeVehicleIds, addThirdPartyItem]);
 
   const updateThirdPartyField = useCallback((idx, field, val) => {
     setForm(f => ({
@@ -474,6 +609,7 @@ export default function InvoiceForm({ initial, onSubmit, loading, onCustomerSele
     e.preventDefault();
     if (!form.customer?.id) return toast.error(clientType === 'individual' ? 'Please select a client.' : 'Please select an organization.');
     if (clientType === 'individual' && !form.vehicleId) return toast.error('Please select a vehicle.');
+    if (clientType === 'organization' && form.selectedVehicleIds.length === 0) return toast.error('Please select at least one vehicle.');
     if (!form.services.length && !form.thirdPartyItems.length) {
       return toast.error('Please select at least one service or third-party item.');
     }
@@ -498,6 +634,13 @@ export default function InvoiceForm({ initial, onSubmit, loading, onCustomerSele
       return toast.error('Selected services are missing ids. Refresh and try again.');
     }
 
+    // service_items carries per-service vehicle assignment; service_ids stays as a
+    // legacy fallback for any code path that hasn't moved to service_items yet.
+    const service_items = form.services.map(s => ({
+      service_id: Number(s.service_id || s.serviceId),
+      vehicle_ids: s.vehicle_ids || [],
+    }));
+
     const third_party_items = form.thirdPartyItems.map(t => ({
       third_party_service_id: t.third_party_service_id || null,
       service_name: t.service_name,
@@ -506,14 +649,33 @@ export default function InvoiceForm({ initial, onSubmit, loading, onCustomerSele
       labour_charge: Number(t.labour_charge) || 0,
       service_cost: Number(t.service_cost) || 0,
       selling_price: Number(t.selling_price) || 0,
+      vehicle_ids: t.vehicle_ids || [],
     }));
+
+    // Per-visit details for each selected vehicle (organizations only) — who
+    // brought it in and when it checked in/out. Vehicles themselves are
+    // pre-registered under the org, not created here.
+    const vehicle_visits = clientType === 'organization'
+      ? form.selectedVehicleIds.map(vid => {
+          const meta = form.vehicleVisitMeta[vid] || {};
+          return {
+            vehicle_id: vid,
+            visitor_name: meta.visitorName || null,
+            visitor_phone: meta.visitorPhone || null,
+            checkin_time: meta.checkinTime || null,
+            checkout_time: meta.checkoutTime || null,
+          };
+        })
+      : [];
 
     onSubmit({
       client_id: clientType === 'individual' ? form.customer.id : null,
       organization_id: clientType === 'organization' ? form.customer.id : null,
       vehicle_id: form.vehicleId || null,
       service_ids,
+      service_items,
       third_party_items,
+      vehicle_visits,
       discount: Number(form.discount) || 0,
       special_notes: form.notes || null,
       include_terms: !!form.showTerms,
@@ -554,12 +716,21 @@ export default function InvoiceForm({ initial, onSubmit, loading, onCustomerSele
 
   const vehicleOptions = useMemo(() => {
     const vehicles = form.customer?.vehicles || [];
-    return vehicles.map(v => ({
+    const pool = clientType === 'organization' ? vehicles.filter(v => v.isActive !== false) : vehicles;
+    // Defensive de-dupe by id — guards against a stale/duplicated cache ever
+    // rendering the same vehicle as two separate picker entries.
+    const seen = new Set();
+    const deduped = pool.filter(v => {
+      if (seen.has(v.id)) return false;
+      seen.add(v.id);
+      return true;
+    });
+    return deduped.map(v => ({
       value: v.id,
       label: `${[v.make, v.model].filter(Boolean).join(' ') || 'Vehicle'}${v.plate ? ` — ${v.plate}` : ''}`,
       vehicle: v,
     }));
-  }, [form.customer]);
+  }, [clientType, form.customer]);
 
   const selectedVehicle = vehicleOptions.find(v => v.value === form.vehicleId) || null;
 
@@ -570,7 +741,7 @@ export default function InvoiceForm({ initial, onSubmit, loading, onCustomerSele
   };
   const sc = statusConfig[derivedStatus] || statusConfig.pending;
   const isStep1Complete = !!form.customer.name;
-  const isStep2Complete = clientType === 'organization' ? true : !!form.vehicleId;
+  const isStep2Complete = clientType === 'organization' ? form.selectedVehicleIds.length > 0 : !!form.vehicleId;
   const isStep3Complete = form.services.length > 0;
 
   const handleModalConfirm = useCallback((selectedIds) => {
@@ -613,7 +784,7 @@ export default function InvoiceForm({ initial, onSubmit, loading, onCustomerSele
         onClose={() => setServiceModal(prev => ({ ...prev, isOpen: false }))}
         onConfirm={handleModalConfirm}
         serviceName={serviceModal.opt?.name || serviceModal.opt?.service || serviceModal.opt?.service_name || 'Service'}
-        vehicleOptions={vehicleOptions.filter(v => form.vehicleIds?.includes(v.value))}
+        vehicleOptions={vehicleOptions.filter(v => activeVehicleIds.includes(v.value))}
         initialSelection={serviceModal.selectedVehicleIds}
       />
       <form onSubmit={handleSubmit} className="w-full font-sans pb-12 relative z-10 flex flex-col lg:flex-row gap-8">
@@ -635,8 +806,8 @@ export default function InvoiceForm({ initial, onSubmit, loading, onCustomerSele
                 </div>
                 <h2 className="text-[15px] font-bold text-gray-900 tracking-tight">{clientType === 'individual' ? 'Client Details' : 'Organization Details'}</h2>
                 <div className="ml-auto flex items-center gap-1 bg-gray-100 p-1 rounded-lg">
-                  <button type="button" onClick={() => { setClientType('individual'); setForm(f => ({...f, customer: { name: '', phone: '', address: '', vehicles: [] }, vehicleId: null})); }} className={`px-3 py-1 text-[12px] font-bold rounded-md transition-colors ${clientType === 'individual' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}>Individual</button>
-                  <button type="button" onClick={() => { setClientType('organization'); setForm(f => ({...f, customer: { name: '', phone: '', address: '', vehicles: [] }, vehicleId: null})); }} className={`px-3 py-1 text-[12px] font-bold rounded-md transition-colors ${clientType === 'organization' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}>Organization</button>
+                  <button type="button" onClick={() => { setClientType('individual'); setForm(f => ({...f, customer: { name: '', phone: '', address: '', vehicles: [] }, vehicleId: null, selectedVehicleIds: [], vehicleVisitMeta: {}})); }} className={`px-3 py-1 text-[12px] font-bold rounded-md transition-colors ${clientType === 'individual' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}>Individual</button>
+                  <button type="button" onClick={() => { setClientType('organization'); setForm(f => ({...f, customer: { name: '', phone: '', address: '', vehicles: [] }, vehicleId: null, selectedVehicleIds: [], vehicleVisitMeta: {}})); }} className={`px-3 py-1 text-[12px] font-bold rounded-md transition-colors ${clientType === 'organization' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}>Organization</button>
                 </div>
               </div>
 
@@ -655,8 +826,9 @@ export default function InvoiceForm({ initial, onSubmit, loading, onCustomerSele
                       setForm(f => ({
                         ...f,
                         customer: { name: '', phone: '', address: '', vehicles: [] },
-                        vehicleIds: [],
                         vehicleId: null,
+                        selectedVehicleIds: [],
+                        vehicleVisitMeta: {},
                         carMake: '',
                         licensePlate: '',
                       }));
@@ -665,11 +837,24 @@ export default function InvoiceForm({ initial, onSubmit, loading, onCustomerSele
                     }
                     const m = sel.customer;
                     const vehicles = Array.isArray(m.vehicles) ? m.vehicles : [];
+                    if (clientType === 'organization') {
+                      // Load the org's registered vehicle fleet for selection —
+                      // nothing pre-checked, staff picks which ones apply now.
+                      setForm(f => ({
+                        ...f,
+                        customer: { id: m.id, name: m.name, phone: m.phone, address: m.address || '', vehicles },
+                        vehicleId: null,
+                        selectedVehicleIds: [],
+                        vehicleVisitMeta: {},
+                        carMake: '',
+                        licensePlate: '',
+                      }));
+                      onCustomerSelect?.(m);
+                      return;
+                    }
                     const first = vehicles[0];
-                    const initialVehicleIds = clientType === 'organization' ? vehicles.map(v => v.id) : (first ? [first.id] : []);
                     setForm(f => ({
                       ...f,
-                      vehicleIds: initialVehicleIds,
                       customer: {
                         id: m.id,
                         name: m.name,
@@ -716,53 +901,114 @@ export default function InvoiceForm({ initial, onSubmit, loading, onCustomerSele
                 </div>
                 <h2 className="text-[15px] font-bold text-gray-900 tracking-tight">Vehicle Identifiers</h2>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Field label="Vehicle" required>
-                  <Select
-                    isClearable
-                    isSearchable
-                    placeholder={form.customer?.id ? 'Select vehicle… (Optional for orgs)' : 'Select first…'}
-                    styles={selectStyles()}
-                    menuPortalTarget={document.body}
-                    menuPosition="fixed"
-                    options={vehicleOptions}
-                    value={selectedVehicle}
-                    isDisabled={!form.customer?.id || !!initial}
-                    onChange={sel => {
-                      if (!sel) {
-                        setForm(f => ({ ...f, vehicleIds: [],
-      vehicleId: null, carMake: '', licensePlate: '' }));
-                        return;
-                      }
-                      const v = sel.vehicle;
-                      setForm(f => ({
-                        ...f,
-                        vehicleId: v.id,
-                        carMake: `${v.make || ''} ${v.model || ''}`.trim(),
-                        licensePlate: v.plate || '',
-                      }));
-                    }}
-                  />
-                </Field>
-                <Field label="Induction Date">
-                  <div className="relative">
-                    <Calendar size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-                    <DatePicker
-                      selected={form.serviceDate ? parseISO(form.serviceDate) : null}
-                      onChange={date => setF('serviceDate', date ? format(date, 'yyyy-MM-dd') : '')}
-                      dateFormat="dd/MM/yyyy"
-                      className={`${inputCls} pl-9 w-full`}
-                      placeholderText="Select date"
-                      wrapperClassName="w-full"
-                      portalId="root"
-                    />
+
+              {clientType === 'individual' ? (
+                <>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <Field label="Vehicle" required>
+                      <Select
+                        isClearable
+                        isSearchable
+                        placeholder={form.customer?.id ? 'Select vehicle…' : 'Select first…'}
+                        styles={selectStyles()}
+                        menuPortalTarget={document.body}
+                        menuPosition="fixed"
+                        options={vehicleOptions}
+                        value={selectedVehicle}
+                        isDisabled={!form.customer?.id || !!initial}
+                        onChange={sel => {
+                          if (!sel) {
+                            setForm(f => ({ ...f, vehicleId: null, carMake: '', licensePlate: '' }));
+                            return;
+                          }
+                          const v = sel.vehicle;
+                          setForm(f => ({
+                            ...f,
+                            vehicleId: v.id,
+                            carMake: `${v.make || ''} ${v.model || ''}`.trim(),
+                            licensePlate: v.plate || '',
+                          }));
+                        }}
+                      />
+                    </Field>
+                    <Field label="Induction Date">
+                      <div className="relative">
+                        <Calendar size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                        <DatePicker
+                          selected={form.serviceDate ? parseISO(form.serviceDate) : null}
+                          onChange={date => setF('serviceDate', date ? format(date, 'yyyy-MM-dd') : '')}
+                          dateFormat="dd/MM/yyyy"
+                          className={`${inputCls} pl-9 w-full`}
+                          placeholderText="Select date"
+                          wrapperClassName="w-full"
+                          portalId="root"
+                        />
+                      </div>
+                    </Field>
                   </div>
-                </Field>
-              </div>
-              {form.customer?.id && vehicleOptions.length === 0 && (
-                <p className="text-[12px] font-medium text-rose-600">
-                  This client has no vehicles. Add a vehicle in Master Customer first.
-                </p>
+                  {form.customer?.id && vehicleOptions.length === 0 && (
+                    <p className="text-[12px] font-medium text-rose-600">
+                      This client has no vehicles. Add a vehicle in Master Customer first.
+                    </p>
+                  )}
+                </>
+              ) : (
+                <>
+                  <Field label="Induction Date">
+                    <div className="relative max-w-xs">
+                      <Calendar size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                      <DatePicker
+                        selected={form.serviceDate ? parseISO(form.serviceDate) : null}
+                        onChange={date => setF('serviceDate', date ? format(date, 'yyyy-MM-dd') : '')}
+                        dateFormat="dd/MM/yyyy"
+                        className={`${inputCls} pl-9 w-full`}
+                        placeholderText="Select date"
+                        wrapperClassName="w-full"
+                        portalId="root"
+                      />
+                    </div>
+                  </Field>
+
+                  <div className="flex flex-wrap gap-2.5">
+                    {vehicleOptions.map(opt => (
+                      <VehicleChip
+                        key={opt.value}
+                        opt={opt}
+                        checked={form.selectedVehicleIds.includes(opt.value)}
+                        onToggle={toggleVehicle}
+                      />
+                    ))}
+                  </div>
+
+                  {form.customer?.id && vehicleOptions.length === 0 && (
+                    <p className="text-[12px] font-medium text-rose-600">
+                      This organization has no vehicles registered. Add one via Master Organization first.
+                    </p>
+                  )}
+                  {form.customer?.id && vehicleOptions.length > 0 && form.selectedVehicleIds.length === 0 && (
+                    <p className="text-[12px] font-medium text-rose-600">
+                      Select at least one vehicle for this visit.
+                    </p>
+                  )}
+
+                  {form.selectedVehicleIds.length > 0 && (
+                    <div className="flex flex-col gap-3">
+                      {form.selectedVehicleIds.map(vid => {
+                        const opt = vehicleOptions.find(v => v.value === vid);
+                        return (
+                          <VehicleVisitRow
+                            key={vid}
+                            label={opt?.label || 'Vehicle'}
+                            meta={form.vehicleVisitMeta[vid] || {}}
+                            onField={(field, val) => updateVehicleVisitField(vid, field, val)}
+                            onCopyToAll={() => copyVisitorToAllVehicles(vid)}
+                            showCopyToAll={form.selectedVehicleIds.length > 1}
+                          />
+                        );
+                      })}
+                    </div>
+                  )}
+                </>
               )}
             </div>
 
@@ -796,7 +1042,7 @@ export default function InvoiceForm({ initial, onSubmit, loading, onCustomerSele
                         key={cur.service_id || cur.service}
                         cur={cur}
                         onDesc={e => updateServiceField(cur.service, 'description', e.target.value)}
-                        vehicleOptions={clientType === 'organization' && form.vehicleIds?.length > 1 ? vehicleOptions.filter(v => form.vehicleIds.includes(v.value)) : null}
+                        vehicleOptions={clientType === 'organization' && activeVehicleIds.length > 1 ? vehicleOptions.filter(v => activeVehicleIds.includes(v.value)) : null}
                         onVehiclesChange={() => setServiceModal({ isOpen: true, type: 'edit_standard', opt: cur, selectedVehicleIds: cur.vehicle_ids })}
                       />
                     ))}
@@ -837,7 +1083,7 @@ export default function InvoiceForm({ initial, onSubmit, loading, onCustomerSele
                         key={idx}
                         item={item}
                         onField={(field, val) => updateThirdPartyField(idx, field, val)}
-                        vehicleOptions={clientType === 'organization' && form.vehicleIds?.length > 1 ? vehicleOptions.filter(v => form.vehicleIds.includes(v.value)) : null}
+                        vehicleOptions={clientType === 'organization' && activeVehicleIds.length > 1 ? vehicleOptions.filter(v => activeVehicleIds.includes(v.value)) : null}
                         onVehiclesChange={() => setServiceModal({ isOpen: true, type: 'edit_third_party', opt: { ...item, idx }, selectedVehicleIds: item.vehicle_ids })}
                         onRemove={() => removeThirdPartyItem(idx)}
                       />
