@@ -9,12 +9,41 @@ import api from '../api/axios';
 import { format, parseISO } from 'date-fns';
 import toast from 'react-hot-toast';
 
+// ── WhatsApp helpers ──
+function toE164(phone) {
+  const digits = String(phone || '').replace(/\D/g, '');
+  return digits.startsWith('91') ? digits : `91${digits}`;
+}
+
+function waLink(phone, message) {
+  return `https://wa.me/${toE164(phone)}?text=${encodeURIComponent(message)}`;
+}
+
+// Opens a blank tab synchronously (on click) so popup blockers don't kill it,
+// then redirects it once the mutation succeeds and we know the final message text.
+function openWhatsAppLazy() {
+  return window.open('', '_blank');
+}
+
+function formatDate(d) {
+  return d ? format(parseISO(d), 'MMM d, yyyy') : 'TBD';
+}
+
 export default function WebsiteBookings() {
   const [activeTab, setActiveTab] = useState('pending');
   const [searchQuery, setSearchQuery] = useState('');
+
   const [reschedulingId, setReschedulingId] = useState(null);
   const [rescheduleValue, setRescheduleValue] = useState('');
+
+  const [confirmingId, setConfirmingId] = useState(null);
+  const [confirmTime, setConfirmTime] = useState('');
+
+  const [cancellingId, setCancellingId] = useState(null);
+  const [cancelReason, setCancelReason] = useState('');
+
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   const { data: bookings = [], isLoading } = useQuery({
     queryKey: ['web_bookings'],
@@ -25,27 +54,21 @@ export default function WebsiteBookings() {
   });
 
   const updateStatusMutation = useMutation({
-    mutationFn: async ({ id, status }) => {
-      const res = await api.put(`/web_bookings/${id}`, { status });
+    mutationFn: async ({ id, status, allocated_time, cancel_reason }) => {
+      const res = await api.put(`/web_bookings/${id}`, { status, allocated_time, cancel_reason });
       return res.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries(['web_bookings']);
-      toast.success('Booking status updated!');
     },
-    onError: (err) => {
+    onError: () => {
       toast.error('Failed to update booking status.');
     }
   });
 
-  const navigate = useNavigate();
-
   const convertBookingMutation = useMutation({
     mutationFn: async (id) => {
-      const res = await api.post(`/web_bookings/${id}/convert`, {
-        // You could open a modal here to collect amount_paid, payment_method, discount, etc.
-        // For now, doing a direct conversion with no initial payment.
-      });
+      const res = await api.post(`/web_bookings/${id}/convert`, {});
       return res.data;
     },
     onSuccess: (data) => {
@@ -67,64 +90,107 @@ export default function WebsiteBookings() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries(['web_bookings']);
-      toast.success('Booking rescheduled — customer notified by email');
-      setReschedulingId(null);
     },
     onError: () => toast.error('Failed to reschedule booking')
   });
 
+  // ── Reschedule ──
   const startReschedule = (booking) => {
     setReschedulingId(booking.booking_id);
     setRescheduleValue(booking.preferred_date ? booking.preferred_date.slice(0, 10) : '');
   };
 
-  const confirmReschedule = (id) => {
+  const confirmReschedule = (booking) => {
     if (!rescheduleValue) return;
-    rescheduleMutation.mutate({ id, preferred_date: rescheduleValue });
+    const waWindow = openWhatsAppLazy();
+    rescheduleMutation.mutate(
+      { id: booking.booking_id, preferred_date: rescheduleValue },
+      {
+        onSuccess: () => {
+          toast.success('Booking rescheduled — customer notified by email');
+          const msg = `Hi ${booking.full_name}, your Detailing Masters booking for ${booking.service_name || 'General Detailing'} has been rescheduled to ${formatDate(rescheduleValue)}. We'll confirm the time slot separately.`;
+          if (waWindow) waWindow.location.href = waLink(booking.phone, msg);
+        },
+        onError: () => { if (waWindow) waWindow.close(); }
+      }
+    );
+    setReschedulingId(null);
+  };
+
+  // ── Confirm ──
+  const startConfirm = (booking) => {
+    setConfirmingId(booking.booking_id);
+    setConfirmTime('');
+  };
+
+  const submitConfirm = (booking) => {
+    if (!confirmTime) { toast.error('Pick an allocated time'); return; }
+    const waWindow = openWhatsAppLazy();
+    updateStatusMutation.mutate(
+      { id: booking.booking_id, status: 'confirmed', allocated_time: confirmTime },
+      {
+        onSuccess: () => {
+          toast.success('Booking confirmed — customer notified by email');
+          const msg = `Hi ${booking.full_name}, your Detailing Masters booking for ${booking.service_name || 'General Detailing'} is confirmed for ${formatDate(booking.preferred_date)} at ${confirmTime}. See you then!`;
+          if (waWindow) waWindow.location.href = waLink(booking.phone, msg);
+        },
+        onError: () => { if (waWindow) waWindow.close(); }
+      }
+    );
+    setConfirmingId(null);
+  };
+
+  // ── Cancel ──
+  const startCancel = (booking) => {
+    setCancellingId(booking.booking_id);
+    setCancelReason('');
+  };
+
+  const submitCancel = (booking) => {
+    const waWindow = openWhatsAppLazy();
+    updateStatusMutation.mutate(
+      { id: booking.booking_id, status: 'cancelled', cancel_reason: cancelReason },
+      {
+        onSuccess: () => {
+          toast.success('Booking cancelled — customer notified by email');
+          const msg = `Hi ${booking.full_name}, your Detailing Masters booking for ${booking.service_name || 'General Detailing'} has been cancelled.${cancelReason ? ` Reason: ${cancelReason}` : ''} Please contact us if you'd like to rebook.`;
+          if (waWindow) waWindow.location.href = waLink(booking.phone, msg);
+        },
+        onError: () => { if (waWindow) waWindow.close(); }
+      }
+    );
+    setCancellingId(null);
+  };
+
+  // ── Simple status changes (no WhatsApp needed: Revert / Reopen) ──
+  const plainStatusChange = (booking, status) => {
+    updateStatusMutation.mutate(
+      { id: booking.booking_id, status },
+      { onSuccess: () => toast.success('Booking status updated!') }
+    );
   };
 
   const filteredBookings = bookings.filter(booking => {
     const matchesTab = booking.status === activeTab;
     const searchLower = searchQuery.toLowerCase();
-    const matchesSearch = 
+    const matchesSearch =
       (booking.full_name || '').toLowerCase().includes(searchLower) ||
       (booking.vehicle_brand || '').toLowerCase().includes(searchLower) ||
       (booking.vehicle_model || '').toLowerCase().includes(searchLower);
     return matchesTab && matchesSearch;
   });
 
-  const getStatusColor = (status) => {
-    switch(status) {
-      case 'Pending': return 'bg-[#FCDF4C]/20 text-[#D8A700] border-[#FCDF4C]/30';
-      case 'Confirmed': return 'bg-blue-50 text-blue-600 border-blue-200';
-      case 'Completed': return 'bg-emerald-50 text-emerald-600 border-emerald-200';
-      case 'Cancelled': return 'bg-rose-50 text-rose-600 border-rose-200';
-      default: return 'bg-gray-50 text-gray-600 border-gray-200';
-    }
-  };
-
-  const getStatusIcon = (status) => {
-    switch(status) {
-      case 'Pending': return <Clock4 size={14} className="mr-1" />;
-      case 'Confirmed': return <CheckSquare size={14} className="mr-1" />;
-      case 'Completed': return <CheckCircle2 size={14} className="mr-1" />;
-      case 'Cancelled': return <XCircle size={14} className="mr-1" />;
-      default: return null;
-    }
-  };
-
   return (
     <div className="relative animate-fade-in -m-6 p-6 min-h-[calc(100vh-140px)]">
-      
-      {/* ── Background Blueprint Layer (Transparent to show global background) ── */}
+
+      {/* ── Background Blueprint Layer ── */}
       <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
         <div className="absolute inset-0 opacity-[0.05]" style={{
           backgroundImage: 'linear-gradient(rgba(0,0,0,0.8) 1px, transparent 1px), linear-gradient(90deg, rgba(0,0,0,0.8) 1px, transparent 1px)',
           backgroundSize: '40px 40px'
         }}></div>
-        {/* Fake Blueprint Graphic */}
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[400px] border border-black/50 rounded-[100px] flex items-center justify-center opacity-[0.03]">
-           <Car size={300} className="text-black stroke-[0.5]" />
+          <Car size={300} className="text-black stroke-[0.5]" />
         </div>
       </div>
 
@@ -147,39 +213,35 @@ export default function WebsiteBookings() {
 
         {/* ── Controls row ── */}
         <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
-          {/* Tabs */}
           <div className="flex items-center bg-white/90 backdrop-blur-xl rounded-2xl p-1.5 border border-gray-100 shadow-xl shadow-gray-200/50">
             {[
-              { id: 'pending', label: 'Pending' }, 
-              { id: 'confirmed', label: 'Confirmed' }, 
-              { id: 'converted', label: 'Completed' }, 
+              { id: 'pending', label: 'Pending' },
+              { id: 'confirmed', label: 'Confirmed' },
+              { id: 'converted', label: 'Completed' },
               { id: 'cancelled', label: 'Cancelled' }
             ].map(tab => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`px-6 py-2.5 rounded-xl text-[13px] font-black uppercase tracking-widest transition-all ${
-                  activeTab === tab.id 
-                    ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30 ring-2 ring-blue-600 ring-offset-1' 
+                className={`px-6 py-2.5 rounded-xl text-[13px] font-black uppercase tracking-widest transition-all ${activeTab === tab.id
+                    ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30 ring-2 ring-blue-600 ring-offset-1'
                     : 'text-gray-500 hover:bg-gray-100 hover:text-gray-900'
-                }`}
+                  }`}
               >
                 {tab.label}
-                <span className={`ml-2 px-2 py-0.5 rounded-full text-[10px] font-black ${
-                  activeTab === tab.id ? 'bg-white/20 text-white' : 'bg-gray-200 text-gray-600'
-                }`}>
+                <span className={`ml-2 px-2 py-0.5 rounded-full text-[10px] font-black ${activeTab === tab.id ? 'bg-white/20 text-white' : 'bg-gray-200 text-gray-600'
+                  }`}>
                   {bookings.filter(b => b.status === tab.id).length}
                 </span>
               </button>
             ))}
           </div>
 
-          {/* Search */}
           <div className="relative w-full sm:w-auto flex items-center group">
             <Search className="absolute left-4 text-blue-500 z-10 transition-transform group-focus-within:scale-110" size={20} />
-            <input 
-              type="text" 
-              placeholder="Search by name, car..." 
+            <input
+              type="text"
+              placeholder="Search by name, car..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full sm:w-80 pl-11 pr-4 py-3.5 bg-white backdrop-blur-xl border-2 border-gray-200 rounded-2xl text-[15px] font-black text-gray-900 shadow-xl shadow-gray-200/40 focus:outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all placeholder-gray-400 placeholder:font-bold"
@@ -246,7 +308,7 @@ export default function WebsiteBookings() {
                               onChange={(e) => setRescheduleValue(e.target.value)}
                               className="text-[12px] font-bold text-gray-700 bg-white px-2 py-1 rounded-lg border border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                             />
-                            <button onClick={() => confirmReschedule(booking.booking_id)} className="w-7 h-7 flex items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 border border-emerald-200 hover:bg-emerald-100">
+                            <button onClick={() => confirmReschedule(booking)} className="w-7 h-7 flex items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 border border-emerald-200 hover:bg-emerald-100">
                               <Check size={14} />
                             </button>
                             <button onClick={() => setReschedulingId(null)} className="w-7 h-7 flex items-center justify-center rounded-lg bg-gray-100 text-gray-500 border border-gray-200 hover:bg-gray-200">
@@ -256,7 +318,10 @@ export default function WebsiteBookings() {
                         ) : (
                           <span className="flex items-center gap-1.5 text-[12px] font-bold text-gray-700 bg-gray-50 px-3 py-1 rounded-lg border border-gray-200 group/date">
                             <Calendar size={14} className="text-gray-400" />
-                            {booking.preferred_date ? format(parseISO(booking.preferred_date), 'MMM d, yyyy') : 'No Date'}
+                            {formatDate(booking.preferred_date) === 'TBD' ? 'No Date' : formatDate(booking.preferred_date)}
+                            {booking.allocated_time && (
+                              <span className="ml-1 text-blue-600">· {booking.allocated_time}</span>
+                            )}
                             <button onClick={() => startReschedule(booking)} title="Reschedule" className="ml-1 text-gray-400 hover:text-blue-600">
                               <PenSquare size={13} />
                             </button>
@@ -269,38 +334,38 @@ export default function WebsiteBookings() {
                         </p>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center justify-center gap-2 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
+                        <div className="flex items-center justify-center gap-2 transition-opacity">
                           {activeTab === 'pending' && (
                             <>
-                              <button onClick={() => updateStatusMutation.mutate({ id: booking.booking_id, status: 'confirmed' })} className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-black rounded-lg transition-all shadow-sm">
+                              <button onClick={() => startConfirm(booking)} className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-black rounded-lg transition-all shadow-sm">
                                 Confirm
                               </button>
-                              <button onClick={() => updateStatusMutation.mutate({ id: booking.booking_id, status: 'cancelled' })} className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 text-[11px] font-black rounded-lg transition-all shadow-sm">
+                              <button onClick={() => startCancel(booking)} className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 text-[11px] font-black rounded-lg transition-all shadow-sm">
                                 Cancel
                               </button>
                             </>
                           )}
                           {activeTab === 'confirmed' && (
                             <>
-                              <button 
+                              <button
                                 onClick={() => {
                                   if (window.confirm('Are you sure you want to convert this booking into an invoice?')) {
                                     convertBookingMutation.mutate(booking.booking_id);
                                   }
-                                }} 
+                                }}
                                 disabled={convertBookingMutation.isPending}
                                 className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-black rounded-lg transition-all shadow-sm flex items-center gap-1 disabled:opacity-50"
                               >
                                 {convertBookingMutation.isPending && convertBookingMutation.variables === booking.booking_id ? <Globe className="animate-spin" size={12} /> : null}
                                 Convert to Invoice
                               </button>
-                              <button onClick={() => updateStatusMutation.mutate({ id: booking.booking_id, status: 'pending' })} className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-600 border border-gray-200 text-[11px] font-black rounded-lg transition-all shadow-sm">
+                              <button onClick={() => plainStatusChange(booking, 'pending')} className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-600 border border-gray-200 text-[11px] font-black rounded-lg transition-all shadow-sm">
                                 Revert
                               </button>
                             </>
                           )}
                           {(activeTab === 'converted' || activeTab === 'cancelled') && (
-                            <button onClick={() => updateStatusMutation.mutate({ id: booking.booking_id, status: 'pending' })} className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-600 border border-gray-200 text-[11px] font-black rounded-lg transition-all shadow-sm">
+                            <button onClick={() => plainStatusChange(booking, 'pending')} className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-600 border border-gray-200 text-[11px] font-black rounded-lg transition-all shadow-sm">
                               Reopen
                             </button>
                           )}
@@ -314,6 +379,56 @@ export default function WebsiteBookings() {
           </div>
         )}
       </div>
+
+      {/* Confirm Modal */}
+      {confirmingId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl animate-in zoom-in-95">
+            <h3 className="text-lg font-black text-gray-900 mb-2">Confirm Booking</h3>
+            <p className="text-[13px] text-gray-500 mb-4">Please set an allocated time for this booking to notify the customer.</p>
+            <input
+              type="time"
+              value={confirmTime}
+              onChange={(e) => setConfirmTime(e.target.value)}
+              className="w-full text-sm font-bold text-gray-700 bg-gray-50 px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 mb-6"
+            />
+            <div className="flex gap-3">
+              <button onClick={() => setConfirmingId(null)} className="flex-1 py-2.5 rounded-xl text-sm font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 transition-colors">
+                Cancel
+              </button>
+              <button onClick={() => submitConfirm(bookings.find(b => b.booking_id === confirmingId))} className="flex-1 py-2.5 rounded-xl text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 transition-colors">
+                Confirm
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Cancel Modal */}
+      {cancellingId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl animate-in zoom-in-95">
+            <h3 className="text-lg font-black text-rose-600 mb-2">Cancel Booking</h3>
+            <p className="text-[13px] text-gray-500 mb-4">Are you sure you want to cancel? You can optionally provide a reason.</p>
+            <input
+              type="text"
+              placeholder="Reason for cancellation (optional)"
+              value={cancelReason}
+              onChange={(e) => setCancelReason(e.target.value)}
+              className="w-full text-sm font-bold text-gray-700 bg-gray-50 px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 mb-6"
+            />
+            <div className="flex gap-3">
+              <button onClick={() => setCancellingId(null)} className="flex-1 py-2.5 rounded-xl text-sm font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 transition-colors">
+                Back
+              </button>
+              <button onClick={() => submitCancel(bookings.find(b => b.booking_id === cancellingId))} className="flex-1 py-2.5 rounded-xl text-sm font-bold text-white bg-rose-600 hover:bg-rose-700 transition-colors">
+                Cancel Booking
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
