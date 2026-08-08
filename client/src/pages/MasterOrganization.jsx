@@ -24,7 +24,7 @@ export default function MasterOrganization() {
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [address, setAddress] = useState('');
-  const [formVehicles, setFormVehicles] = useState([{ make: '', model: '', plate: '' }]);
+  const [formVehicles, setFormVehicles] = useState([]);
   const [editId, setEditId] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -51,17 +51,29 @@ export default function MasterOrganization() {
     e.preventDefault();
     if (!orgName) return toast.error('Organization Name is required');
 
-    const validVehicles = formVehicles.filter(v => v.make || v.model || v.plate);
-
     setIsSaving(true);
     try {
+      let orgId = editId;
       if (editId) {
-        await api.put('/organizations/' + editId, { org_name: orgName, contact_person: contactPerson, phone, email, address, vehicles: validVehicles });
-        toast.success('Organization updated');
+        await api.put('/organizations/' + editId, { org_name: orgName, contact_person: contactPerson, phone, email, address });
       } else {
-        await api.post('/organizations', { org_name: orgName, contact_person: contactPerson, phone, email, address, vehicles: validVehicles });
-        toast.success('Organization added');
+        const res = await api.post('/organizations', { org_name: orgName, contact_person: contactPerson, phone, email, address });
+        orgId = res.data.id;
       }
+
+      // Vehicles: add new rows, update edited existing rows. Removal is handled
+      // immediately (deactivate) when the user clicks remove, not deferred here.
+      for (const v of formVehicles) {
+        if (!v.make && !v.model && !v.plate) continue;
+        const make_model = `${v.make || ''} ${v.model || ''}`.trim();
+        if (v.id) {
+          await api.put('/vehicles/' + v.id, { organization_id: orgId, make_model, license_vin: v.plate, is_active: true });
+        } else {
+          await api.post('/vehicles', { organization_id: orgId, make_model, license_vin: v.plate, is_active: true });
+        }
+      }
+
+      toast.success(editId ? 'Organization updated' : 'Organization added');
       handleCancelEdit();
       queryClient.invalidateQueries({ queryKey: queryKeys.organizations.all });
     } catch (err) {
@@ -71,6 +83,20 @@ export default function MasterOrganization() {
     }
   }
 
+  async function handleRemoveVehicle(idx) {
+    const v = formVehicles[idx];
+    if (v.id) {
+      try {
+        await api.put('/vehicles/' + v.id, { organization_id: editId, make_model: `${v.make || ''} ${v.model || ''}`.trim(), license_vin: v.plate, is_active: false });
+        queryClient.invalidateQueries({ queryKey: queryKeys.organizations.all });
+      } catch (err) {
+        toast.error(err.response?.data?.message || 'Error removing vehicle');
+        return;
+      }
+    }
+    setFormVehicles(fv => fv.filter((_, i) => i !== idx));
+  }
+
   function handleAdd() {
     setEditId(null);
     setOrgName('');
@@ -78,7 +104,7 @@ export default function MasterOrganization() {
     setPhone('');
     setEmail('');
     setAddress('');
-    setFormVehicles([{ make: '', model: '', plate: '' }]);
+    setFormVehicles([]);
     setIsModalOpen(true);
   }
 
@@ -89,7 +115,7 @@ export default function MasterOrganization() {
     setPhone(organization.phone || '');
     setEmail(organization.email || '');
     setAddress(organization.address || '');
-    setFormVehicles(organization.vehicles && organization.vehicles.length > 0 ? organization.vehicles : [{ make: '', model: '', plate: '' }]);
+    setFormVehicles((organization.vehicles || []).filter(v => v.isActive !== false));
     setIsModalOpen(true);
   }
 
@@ -155,6 +181,7 @@ export default function MasterOrganization() {
         email={email} setEmail={setEmail}
         address={address} setAddress={setAddress}
         formVehicles={formVehicles} setFormVehicles={setFormVehicles}
+        onRemoveVehicle={handleRemoveVehicle}
         onSubmit={handleSubmit}
         onCancel={handleCancelEdit}
         isSaving={isSaving}

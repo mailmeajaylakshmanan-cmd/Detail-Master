@@ -14,9 +14,10 @@ router.get('/', protect, async (req, res) => {
             json_build_object(
               'id', v.id,
               'make_model', v.make_model,
-              'license_vin', v.license_vin
+              'license_vin', v.license_vin,
+              'is_active', v.is_active
             )
-            ORDER BY v.id
+            ORDER BY v.id DESC
           ) FILTER (WHERE v.id IS NOT NULL),
           '[]'
         ) AS vehicles_json
@@ -33,13 +34,16 @@ router.get('/', protect, async (req, res) => {
       const { vehicles_json, ...rest } = org;
       return {
         ...rest,
+        // Managed sub-list — add/edit/deactivate via /api/vehicles, never bulk
+        // replaced from here (that was the old destructive pattern).
         vehicles: vehiclesJson.map(v => {
           const parts = v.make_model ? v.make_model.split(' ') : [''];
           return {
             id: v.id,
             make: parts[0] || '',
             model: parts.slice(1).join(' ') || '',
-            plate: v.license_vin || ''
+            plate: v.license_vin || '',
+            isActive: v.is_active !== false,
           };
         })
       };
@@ -72,60 +76,36 @@ router.get('/:id', protect, async (req, res) => {
 
 // Create a new organization
 router.post('/', protect, async (req, res) => {
-  const client = await db.pool.connect();
   try {
-    const { org_name, contact_person, phone, email, address, is_active, vehicles } = req.body;
-    
+    const { org_name, contact_person, phone, email, address, is_active } = req.body;
+
     if (!org_name) {
       return res.status(400).json({ error: 'org_name is required' });
     }
 
-    await client.query('BEGIN');
-    const result = await client.query(
-      `INSERT INTO organizations 
+    const result = await db.query(
+      `INSERT INTO organizations
        (org_name, contact_person, phone, email, address, is_active, created_at)
        VALUES ($1, $2, $3, $4, $5, $6, CURRENT_TIMESTAMP)
        RETURNING *`,
       [org_name, contact_person, phone, email, address, is_active !== undefined ? is_active : true]
     );
-    
-    const newOrg = result.rows[0];
 
-    if (vehicles && vehicles.length > 0) {
-      newOrg.vehicles = [];
-      for (const v of vehicles) {
-        if (v.make || v.model || v.plate) {
-          const make_model = `${v.make || ''} ${v.model || ''}`.trim();
-          const vRows = await client.query(
-            'INSERT INTO vehicles (organization_id, make_model, license_vin) VALUES ($1, $2, $3) RETURNING *',
-            [newOrg.id, make_model, v.plate]
-          );
-          newOrg.vehicles.push(vRows.rows[0]);
-        }
-      }
-    }
-
-    await client.query('COMMIT');
-    res.status(201).json(newOrg);
+    res.status(201).json({ ...result.rows[0], vehicles: [] });
   } catch (err) {
-    await client.query('ROLLBACK');
     console.error('Error creating organization:', err);
     res.status(500).json({ error: 'Failed to create organization' });
-  } finally {
-    client.release();
   }
 });
 
 // Update an organization
 router.put('/:id', protect, async (req, res) => {
-  const client = await db.pool.connect();
   try {
     const { id } = req.params;
-    const { org_name, contact_person, phone, email, address, is_active, vehicles } = req.body;
+    const { org_name, contact_person, phone, email, address, is_active } = req.body;
 
-    await client.query('BEGIN');
-    const result = await client.query(
-      `UPDATE organizations 
+    const result = await db.query(
+      `UPDATE organizations
        SET org_name = COALESCE($1, org_name),
            contact_person = COALESCE($2, contact_person),
            phone = COALESCE($3, phone),
@@ -138,36 +118,78 @@ router.put('/:id', protect, async (req, res) => {
     );
 
     if (result.rows.length === 0) {
-      await client.query('ROLLBACK');
       return res.status(404).json({ error: 'Organization not found' });
     }
-    
-    const updatedOrg = result.rows[0];
 
-    // Handle vehicles (delete existing and re-insert)
-    if (vehicles !== undefined) {
-      await client.query('DELETE FROM vehicles WHERE organization_id = $1', [id]);
-      updatedOrg.vehicles = [];
-      for (const v of vehicles) {
-        if (v.make || v.model || v.plate) {
-          const make_model = `${v.make || ''} ${v.model || ''}`.trim();
-          const vRows = await client.query(
-            'INSERT INTO vehicles (organization_id, make_model, license_vin) VALUES ($1, $2, $3) RETURNING *',
-            [id, make_model, v.plate]
-          );
-          updatedOrg.vehicles.push(vRows.rows[0]);
-        }
-      }
-    }
-
-    await client.query('COMMIT');
-    res.json(updatedOrg);
+    res.json(result.rows[0]);
   } catch (err) {
-    await client.query('ROLLBACK');
     console.error('Error updating organization:', err);
     res.status(500).json({ error: 'Failed to update organization' });
-  } finally {
-    client.release();
+  }
+});
+
+// Billing audit trail for one organization — invoices in a date range plus
+// revenue/profit summary. Read-only report over existing invoice data, no new
+// tables. Internal services count as 100% profit (no cost tracked for them
+// yet); third-party items are selling_price minus service_cost/labour_charge.
+router.get('/:id/invoices', protect, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { from, to } = req.query;
+
+    const { rows } = await db.query(
+      `WITH svc AS (
+         SELECT invoice_order_id, COALESCE(SUM(unit_price), 0) AS revenue
+         FROM invoice_services GROUP BY invoice_order_id
+       ),
+       tp AS (
+         SELECT invoice_order_id,
+                COALESCE(SUM(selling_price), 0) AS revenue,
+                COALESCE(SUM(service_cost + labour_charge), 0) AS cost
+         FROM invoice_third_party_services GROUP BY invoice_order_id
+       ),
+       veh AS (
+         SELECT iv.invoice_order_id,
+                json_agg(json_build_object(
+                  'vehicleId', iv.vehicle_id,
+                  'makeModel', v.make_model,
+                  'licenseVin', v.license_vin,
+                  'visitorName', iv.visitor_name,
+                  'checkinTime', iv.checkin_time,
+                  'checkoutTime', iv.checkout_time
+                ) ORDER BY iv.id) AS vehicles
+         FROM invoice_vehicles iv
+         JOIN vehicles v ON iv.vehicle_id = v.id
+         GROUP BY iv.invoice_order_id
+       )
+       SELECT
+         i.id, i.invoice_number, i.status, i.created_at,
+         i.grand_total, i.amount_paid, i.balance_due, i.discount,
+         (COALESCE(svc.revenue, 0) + COALESCE(tp.revenue, 0) - i.discount) AS revenue,
+         (COALESCE(svc.revenue, 0) + COALESCE(tp.revenue, 0) - COALESCE(tp.cost, 0) - i.discount) AS profit,
+         COALESCE(veh.vehicles, '[]') AS vehicles
+       FROM invoices i
+       LEFT JOIN svc ON svc.invoice_order_id = i.id
+       LEFT JOIN tp ON tp.invoice_order_id = i.id
+       LEFT JOIN veh ON veh.invoice_order_id = i.id
+       WHERE i.organization_id = $1
+         AND ($2::timestamp IS NULL OR i.created_at >= $2::timestamp)
+         AND ($3::timestamp IS NULL OR i.created_at < $3::timestamp)
+       ORDER BY i.created_at DESC`,
+      [id, from || null, to || null]
+    );
+
+    const summary = rows.reduce((acc, r) => ({
+      invoiceCount: acc.invoiceCount + 1,
+      totalRevenue: acc.totalRevenue + Number(r.revenue),
+      totalProfit: acc.totalProfit + Number(r.profit),
+      totalOutstanding: acc.totalOutstanding + Number(r.balance_due),
+    }), { invoiceCount: 0, totalRevenue: 0, totalProfit: 0, totalOutstanding: 0 });
+
+    res.json({ invoices: rows, summary });
+  } catch (err) {
+    console.error('Error fetching organization billing:', err);
+    res.status(500).json({ error: 'Failed to fetch organization billing' });
   }
 });
 

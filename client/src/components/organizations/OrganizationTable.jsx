@@ -1,7 +1,8 @@
 import { useMemo, useState, useRef, useEffect } from 'react';
-import { ArrowUpDown, ArrowUp, ArrowDown, MoreVertical, Edit3, Search } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { ArrowUpDown, ArrowUp, ArrowDown, MoreVertical, Edit3, Search, Receipt } from 'lucide-react';
 import { formatDate } from '../../utils/dateFormatter.js';
-import Pagination from '../customers/Pagination.jsx'; 
+import Pagination from '../customers/Pagination.jsx';
 
 const PAGE_SIZE = 8;
 
@@ -132,9 +133,9 @@ export default function OrganizationTable({ rows, onEdit }) {
                   </td>
                   <td className="px-5 py-4 min-w-[140px]">
                     <div className="flex flex-col gap-2">
-                      {row.vehicles && row.vehicles.length > 0 ? (
-                        row.vehicles.map((v, i) => (
-                          <div key={i} className="flex flex-col">
+                      {row.vehicles && row.vehicles.filter(v => v.isActive !== false).length > 0 ? (
+                        row.vehicles.filter(v => v.isActive !== false).slice(0, 3).map((v, i) => (
+                          <div key={v.id || i} className="flex flex-col">
                             <div className="text-[12px] font-bold text-[#1E293B] leading-tight">
                               {v.make} {v.model}
                             </div>
@@ -168,6 +169,13 @@ export default function OrganizationTable({ rows, onEdit }) {
                         >
                           <Edit3 size={14} /> Edit
                         </button>
+                        <Link
+                          to={`/master-organization/${row.id}/billing`}
+                          onClick={(e) => { e.stopPropagation(); setOpenMenuId(null); }}
+                          className="w-full flex items-center gap-2 px-4 py-2.5 text-[12px] font-semibold text-gray-700 hover:bg-gray-50 transition-colors"
+                        >
+                          <Receipt size={14} /> View Billing
+                        </Link>
                       </div>
                     )}
                   </td>
