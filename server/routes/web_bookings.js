@@ -71,21 +71,28 @@ router.post('/', async (req, res) => {
     ];
 
     const { rows } = await db.query(insertQuery, values);
+    const booking = rows[0];
 
-    sendScheduleEmail(rows[0], 'created').catch(err => console.error('sendScheduleEmail (create) failed:', err));
+    if (booking.service_id) {
+      const sRes = await db.query('SELECT service_name FROM services WHERE id = $1', [booking.service_id]);
+      if (sRes.rows.length > 0) booking.service_name = sRes.rows[0].service_name;
+    }
 
-    res.status(201).json(rows[0]);
+    sendScheduleEmail(booking, 'created').catch(err => console.error('sendScheduleEmail (create) failed:', err));
+
+    res.status(201).json(booking);
   } catch (err) {
     console.error('Error creating web booking:', err);
     res.status(500).json({ message: 'Server error' });
   }
 });
 
-// UPDATE a web booking (status, reschedule, or invoice_order_id)
+
+// UPDATE a web booking (status, reschedule, allocated_time, cancel_reason, or invoice_order_id)
 router.put('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { status, invoice_order_id, preferred_date } = req.body;
+    const { status, invoice_order_id, preferred_date, allocated_time, cancel_reason } = req.body;
 
     const { rows: current } = await db.query('SELECT * FROM web_bookings WHERE booking_id = $1', [id]);
     if (current.length === 0) return res.status(404).json({ message: 'Booking not found' });
@@ -101,20 +108,30 @@ router.put('/:id', async (req, res) => {
         status = COALESCE($1, status),
         invoice_order_id = COALESCE($2, invoice_order_id),
         preferred_date = COALESCE($3, preferred_date),
-        previous_preferred_date = CASE WHEN $4 THEN preferred_date ELSE previous_preferred_date END
-      WHERE booking_id = $5
+        allocated_time = COALESCE($4, allocated_time),
+        cancel_reason = COALESCE($5, cancel_reason),
+        previous_preferred_date = CASE WHEN $6 THEN preferred_date ELSE previous_preferred_date END
+      WHERE booking_id = $7
       RETURNING *
     `;
 
-    const { rows } = await db.query(updateQuery, [status, invoice_order_id, preferred_date, isReschedule, id]);
+    const { rows } = await db.query(updateQuery, [
+      status, invoice_order_id, preferred_date, allocated_time, cancel_reason, isReschedule, id
+    ]);
+    const updatedBooking = rows[0];
 
-    if (isReschedule) {
-      sendScheduleEmail(rows[0], 'rescheduled').catch(err => console.error('sendScheduleEmail (reschedule) failed:', err));
-    } else if (isStatusChange) {
-      sendScheduleEmail(rows[0], rows[0].status).catch(err => console.error('sendScheduleEmail (status) failed:', err));
+    if (updatedBooking.service_id) {
+      const sRes = await db.query('SELECT service_name FROM services WHERE id = $1', [updatedBooking.service_id]);
+      if (sRes.rows.length > 0) updatedBooking.service_name = sRes.rows[0].service_name;
     }
 
-    res.json(rows[0]);
+    if (isReschedule) {
+      sendScheduleEmail(updatedBooking, 'rescheduled').catch(err => console.error('sendScheduleEmail (reschedule) failed:', err));
+    } else if (isStatusChange) {
+      sendScheduleEmail(updatedBooking, updatedBooking.status).catch(err => console.error('sendScheduleEmail (status) failed:', err));
+    }
+
+    res.json(updatedBooking);
   } catch (err) {
     console.error('Error updating web booking:', err);
     res.status(500).json({ message: 'Server error' });
@@ -197,7 +214,7 @@ router.post('/:id/convert', async (req, res) => {
     // 4. Create Invoice
     const invoiceNumber = buildInvoiceNumber();
     const discountAmt = Number(discount) || 0;
-    
+
     // Status is 'open' initially, will be recalculated if fully paid
     const invRes = await client.query(
       `INSERT INTO invoices (
@@ -244,11 +261,16 @@ router.post('/:id/convert', async (req, res) => {
       'UPDATE web_bookings SET status = $1, invoice_order_id = $2 WHERE booking_id = $3 RETURNING *',
       ['converted', invoiceId, id]
     );
+    const convertedBooking = updatedBookingRows[0];
+    if (convertedBooking.service_id) {
+      const sRes = await client.query('SELECT service_name FROM services WHERE id = $1', [convertedBooking.service_id]);
+      if (sRes.rows.length > 0) convertedBooking.service_name = sRes.rows[0].service_name;
+    }
 
     // Commit Transaction
     await client.query('COMMIT');
 
-    sendScheduleEmail(updatedBookingRows[0], 'converted').catch(err => console.error('sendScheduleEmail (converted) failed:', err));
+    sendScheduleEmail(convertedBooking, 'converted').catch(err => console.error('sendScheduleEmail (converted) failed:', err));
 
     res.json({ message: 'Booking converted successfully', invoice_id: invoiceId });
   } catch (err) {
