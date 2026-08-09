@@ -1,4 +1,7 @@
-# We let Nixpacks auto-detect Puppeteer and install the required dependencies automatically
+[phases.setup]
+nixPkgs = ["chromium", "unzip"]
+aptPkgs = ["ca-certificates"]
 
 [variables]
-PUPPETEER_CACHE_DIR = "/app/.cache/puppeteer"
+PUPPETEER_SKIP_CHROMIUM_DOWNLOAD = "true"
+PUPPETEER_EXECUTABLE_PATH = "chromium"
