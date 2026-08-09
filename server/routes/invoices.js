@@ -2,6 +2,23 @@ const express = require('express');
 const router = express.Router();
 const db = require('../db');
 const { recalculateInvoiceTotals } = require('../utils/finance');
+const puppeteer = require('puppeteer');
+
+async function getBrowser() {
+  if (process.env.NODE_ENV === 'production') {
+    const chromium = require('@sparticuz/chromium');
+    const puppeteerCore = require('puppeteer-core');
+    return puppeteerCore.launch({
+      args: chromium.args,
+      defaultViewport: chromium.defaultViewport,
+      executablePath: await chromium.executablePath(),
+      headless: chromium.headless,
+      ignoreHTTPSErrors: true,
+    });
+  } else {
+    return puppeteer.launch({ headless: true });
+  }
+}
 
 function mapPaymentMethod(method) {
   const m = String(method || 'cash').toLowerCase().replace(/\s+/g, '_');
@@ -576,6 +593,76 @@ router.put('/:id', async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   } finally {
     client.release();
+  }
+});
+
+// PDF Generation Endpoint
+router.get('/:id/pdf', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const browser = await getBrowser();
+    const page = await browser.newPage();
+    
+    // We assume the client is running on localhost:5173 during dev
+    const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
+    
+    // Inject the authentication token so puppeteer isn't redirected to /login
+    const token = req.header('Authorization')?.replace('Bearer ', '');
+    if (token) {
+      await page.evaluateOnNewDocument((authToken) => {
+        localStorage.setItem('token', authToken);
+        localStorage.setItem('isAuthenticated', 'true');
+      }, token);
+    }
+    
+    // Navigate to the invoice view page
+    await page.goto(`${clientUrl}/invoices/${id}`, { waitUntil: 'networkidle0' });
+    
+    // Wait for the invoice to render
+    await page.waitForSelector('#invoice-print');
+
+    // Force a single-page PDF that only contains the invoice
+    const { height, width } = await page.evaluate(() => {
+      const invoice = document.getElementById('invoice-print');
+      if (invoice) {
+        // Clear everything else from the DOM
+        document.body.innerHTML = '';
+        document.body.appendChild(invoice);
+        
+        // Remove all margins/paddings from body/html
+        document.body.style.margin = '0';
+        document.body.style.padding = '0';
+        document.body.style.background = '#fff';
+        document.documentElement.style.margin = '0';
+        document.documentElement.style.padding = '0';
+        document.documentElement.style.background = '#fff';
+        
+        // Remove print:hidden elements inside the invoice just in case
+        document.querySelectorAll('.print\\:hidden').forEach(e => e.remove());
+      }
+      
+      // Return dimensions to set the exact PDF size dynamically
+      return {
+        height: document.body.scrollHeight || 1123,
+        width: document.body.scrollWidth || 800
+      };
+    });
+
+    const pdfBuffer = await page.pdf({ 
+      width: Math.max(width, 800) + 'px',
+      height: (height + 1) + 'px', // Add 1px to prevent any rounding spillover
+      printBackground: true,
+      margin: { top: '0', bottom: '0', left: '0', right: '0' }
+    });
+    
+    await browser.close();
+    
+    // Send as base64 to match frontend expectation
+    // Convert Uint8Array to Buffer first, because Uint8Array.toString('base64') does not exist
+    res.json({ base64: Buffer.from(pdfBuffer).toString('base64') });
+  } catch (err) {
+    console.error('Invoice PDF Generation Error:', err);
+    res.status(500).json({ message: 'Error generating PDF' });
   }
 });
 
