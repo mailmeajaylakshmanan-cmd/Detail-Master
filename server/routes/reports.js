@@ -5,19 +5,10 @@ const puppeteer = require('puppeteer');
 
 // Simple helper to launch puppeteer
 async function getBrowser() {
-  if (process.env.NODE_ENV === 'production') {
-    const chromium = require('@sparticuz/chromium');
-    const puppeteerCore = require('puppeteer-core');
-    return puppeteerCore.launch({
-      args: chromium.args,
-      defaultViewport: chromium.defaultViewport,
-      executablePath: await chromium.executablePath(),
-      headless: chromium.headless,
-      ignoreHTTPSErrors: true,
-    });
-  } else {
-    return puppeteer.launch({ headless: true });
-  }
+  return puppeteer.launch({ 
+    headless: true, 
+    args: ['--no-sandbox', '--disable-setuid-sandbox'] 
+  });
 }
 
 router.get('/services-pdf', async (req, res) => {

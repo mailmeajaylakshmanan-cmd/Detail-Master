@@ -5,27 +5,15 @@ const { recalculateInvoiceTotals } = require('../utils/finance');
 const puppeteer = require('puppeteer');
 
 async function getBrowser() {
-  if (process.env.NODE_ENV === 'production') {
-    const chromium = require('@sparticuz/chromium');
-    const puppeteerCore = require('puppeteer-core');
-    return puppeteerCore.launch({
-      args: chromium.args,
-      defaultViewport: chromium.defaultViewport,
-      executablePath: await chromium.executablePath(),
-      headless: chromium.headless,
-      ignoreHTTPSErrors: true,
-    });
-  } else {
-    return puppeteer.launch({ headless: true });
-  }
+  return puppeteer.launch({ 
+    headless: true, 
+    args: ['--no-sandbox', '--disable-setuid-sandbox'] 
+  });
 }
 
 function mapPaymentMethod(method) {
   const m = String(method || 'cash').toLowerCase().replace(/\s+/g, '_');
-  if (m === 'bank_transfer' || m === 'bank-transfer') return 'bank_transfer';
-  if (m === 'upi') return 'upi';
-  if (m === 'card') return 'card';
-  if (m === 'cash') return 'cash';
+  if (['cash', 'upi', 'bank_transfer', 'card'].includes(m)) return m;
   return 'other';
 }
 
