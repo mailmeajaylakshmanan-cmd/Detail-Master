@@ -7,7 +7,8 @@ const puppeteer = require('puppeteer');
 async function getBrowser() {
   return puppeteer.launch({ 
     headless: true, 
-    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'] 
+    ignoreHTTPSErrors: true,
+    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--ignore-certificate-errors'] 
   });
 }
 
@@ -591,8 +592,20 @@ router.get('/:id/pdf', async (req, res) => {
     const browser = await getBrowser();
     const page = await browser.newPage();
     
-    // We assume the client is running on localhost:5173 during dev
-    const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
+    // Dynamically match the frontend's origin URL
+    const origin = req.get('Origin');
+    const referer = req.get('Referer');
+    let clientUrl = process.env.CLIENT_URL ? process.env.CLIENT_URL.split(',')[0] : 'http://localhost:5173';
+    
+    if (origin) {
+      clientUrl = origin;
+    } else if (referer) {
+      const url = new URL(referer);
+      clientUrl = `${url.protocol}//${url.host}`;
+    }
+    
+    console.log(`[PDF] Generating for Invoice ID: ${id}`);
+    console.log(`[PDF] Using Client URL: ${clientUrl}`);
     
     // Inject the authentication token so puppeteer isn't redirected to /login
     const token = req.header('Authorization')?.replace('Bearer ', '');
@@ -607,7 +620,13 @@ router.get('/:id/pdf', async (req, res) => {
     await page.goto(`${clientUrl}/invoices/${id}`, { waitUntil: 'domcontentloaded' });
     
     // Wait for the invoice to render
-    await page.waitForSelector('#invoice-print');
+    try {
+      await page.waitForSelector('#invoice-print', { timeout: 15000 });
+    } catch (err) {
+      const html = await page.content();
+      console.error("[PDF] Timeout waiting for #invoice-print. Page HTML snippet:", html.substring(0, 1500));
+      throw err;
+    }
 
     // Force a single-page PDF that only contains the invoice
     const { height, width } = await page.evaluate(() => {
