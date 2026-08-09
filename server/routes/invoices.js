@@ -604,7 +604,7 @@ router.get('/:id/pdf', async (req, res) => {
     }
     
     // Navigate to the invoice view page
-    await page.goto(`${clientUrl}/invoices/${id}`, { waitUntil: 'networkidle0' });
+    await page.goto(`${clientUrl}/invoices/${id}`, { waitUntil: 'domcontentloaded' });
     
     // Wait for the invoice to render
     await page.waitForSelector('#invoice-print');

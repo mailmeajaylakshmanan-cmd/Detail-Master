@@ -1,7 +1,4 @@
-# Puppeteer needs unzip to extract Chrome during npm install.
-# Keep this minimal so Railway apt install succeeds on Ubuntu 24.04+.
-[phases.setup]
-aptPkgs = ["unzip", "ca-certificates"]
+# We let Nixpacks auto-detect Puppeteer and install the required dependencies automatically
 
 [variables]
 PUPPETEER_CACHE_DIR = "/app/.cache/puppeteer"
