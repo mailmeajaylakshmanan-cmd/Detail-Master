@@ -549,6 +549,23 @@ router.put('/:id', async (req, res) => {
       }
     }
 
+    const mappedStatus = status ? mapStatus(status) : null;
+    
+    // Auto-revert package wash if cancelled
+    if (mappedStatus === 'cancelled') {
+      const usageRes = await client.query('SELECT * FROM assigned_offer_usages WHERE invoice_order_id = $1', [id]);
+      if (usageRes.rows.length > 0) {
+        for (const usage of usageRes.rows) {
+          if (usage.usage_type === 'free') {
+            await client.query('UPDATE assigned_offers SET free_washes_used = GREATEST(0, free_washes_used - 1) WHERE id = $1', [usage.assigned_offer_id]);
+          } else {
+            await client.query('UPDATE assigned_offers SET completed_washes = GREATEST(0, completed_washes - 1) WHERE id = $1', [usage.assigned_offer_id]);
+          }
+          await client.query('DELETE FROM assigned_offer_usages WHERE id = $1', [usage.id]);
+        }
+      }
+    }
+
     await client.query(
       `UPDATE invoices SET
          discount = COALESCE($1, discount),
@@ -565,7 +582,7 @@ router.put('/:id', async (req, res) => {
         special_notes !== undefined ? special_notes : null,
         include_terms !== undefined ? !!include_terms : null,
         terms_conditions !== undefined ? terms_conditions : null,
-        status ? mapStatus(status) : null,
+        mappedStatus,
         vehicle_id || null,
         req.body.organization_id || null,
         id,

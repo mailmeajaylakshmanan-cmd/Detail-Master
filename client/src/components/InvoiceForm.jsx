@@ -652,7 +652,7 @@ export default function InvoiceForm({ initial, onSubmit, loading, onCustomerSele
       vehicle_ids: t.vehicle_ids || [],
     }));
 
-    // Per-visit details for each selected vehicle (organizations only) — who
+    // Per-visit details for each selected vehicle — who
     // brought it in and when it checked in/out. Vehicles themselves are
     // pre-registered under the org, not created here.
     const vehicle_visits = clientType === 'organization'
@@ -666,7 +666,13 @@ export default function InvoiceForm({ initial, onSubmit, loading, onCustomerSele
             checkout_time: meta.checkoutTime || null,
           };
         })
-      : [];
+      : (form.vehicleId ? [{
+          vehicle_id: form.vehicleId,
+          visitor_name: (form.vehicleVisitMeta[form.vehicleId] || {}).visitorName || null,
+          visitor_phone: (form.vehicleVisitMeta[form.vehicleId] || {}).visitorPhone || null,
+          checkin_time: (form.vehicleVisitMeta[form.vehicleId] || {}).checkinTime || null,
+          checkout_time: (form.vehicleVisitMeta[form.vehicleId] || {}).checkoutTime || null,
+        }] : []);
 
     onSubmit({
       client_id: clientType === 'individual' ? form.customer.id : null,
@@ -950,6 +956,16 @@ export default function InvoiceForm({ initial, onSubmit, loading, onCustomerSele
                     <p className="text-[12px] font-medium text-rose-600">
                       This client has no vehicles. Add a vehicle in Master Customer first.
                     </p>
+                  )}
+                  {form.vehicleId && (
+                    <div className="flex flex-col gap-3 mt-4">
+                      <VehicleVisitRow
+                        label={selectedVehicle?.label || 'Vehicle'}
+                        meta={form.vehicleVisitMeta[form.vehicleId] || {}}
+                        onField={(field, val) => updateVehicleVisitField(form.vehicleId, field, val)}
+                        showCopyToAll={false}
+                      />
+                    </div>
                   )}
                 </>
               ) : (

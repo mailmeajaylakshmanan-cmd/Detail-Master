@@ -159,7 +159,7 @@ export default function InvoiceList() {
                     <span className="font-bold text-orange-500 text-sm">{inv.invoiceNo || '—'}</span>
                   </td>
                   <td className="px-5 py-3.5">
-                    <p className="font-semibold text-slate-800 text-sm leading-tight">{inv.customer?.name || '—'}</p>
+                    <p className="font-semibold text-slate-800 text-sm leading-tight">{inv.organization_name || inv.client_name || inv.customer?.name || '—'}</p>
                     <p className="text-xs text-slate-400 mt-0.5">{vehicleLine(inv)}</p>
                   </td>
                   <td className="px-5 py-3.5 text-sm text-slate-600">{formatDate(inv.date)}</td>
@@ -211,7 +211,7 @@ export default function InvoiceList() {
                 </span>
               </div>
               <div>
-                <p className="font-semibold text-slate-800 text-[15px] leading-tight">{inv.customer?.name || '—'}</p>
+                <p className="font-semibold text-slate-800 text-[15px] leading-tight">{inv.organization_name || inv.client_name || inv.customer?.name || '—'}</p>
                 <p className="text-xs text-slate-400 mt-0.5">{vehicleLine(inv)}</p>
                 <p className="text-xs text-slate-400 mt-0.5">{formatDate(inv.date)}</p>
               </div>
