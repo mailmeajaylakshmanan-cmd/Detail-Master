@@ -4,16 +4,45 @@ const db = require('../db');
 
 const { recalculateJobOrderTotals } = require('../utils/finance');
 
-// GET all job orders (enriched)
+// GET all job orders (enriched), optional pagination + search
+// ?page=&limit=&search= → { jobOrders, pagination }   (no page) → array
 router.get('/', async (req, res) => {
   try {
-    const { rows } = await db.query(`
+    const hasPagination = req.query.page !== undefined || req.query.limit !== undefined;
+    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+    const limit = Math.min(200, Math.max(1, parseInt(req.query.limit, 10) || 50));
+    const offset = (page - 1) * limit;
+    const search = (req.query.search || '').trim();
+
+    const params = [];
+    let whereSql = '';
+    if (search) {
+      params.push(`%${search}%`);
+      whereSql = `WHERE (jo.job_number ILIKE $${params.length} OR c.full_name ILIKE $${params.length} OR v.license_vin ILIKE $${params.length})`;
+    }
+
+    const listSql = `
       SELECT jo.*, c.full_name as client_name, v.make_model as vehicle_name
       FROM job_orders jo
       JOIN clients c ON jo.client_id = c.id
       JOIN vehicles v ON jo.vehicle_id = v.id
+      ${whereSql}
       ORDER BY jo.created_at DESC
-    `);
+    `;
+
+    if (hasPagination) {
+      const [countRes, listRes] = await Promise.all([
+        db.query(`SELECT COUNT(*)::int AS total FROM job_orders jo JOIN clients c ON jo.client_id = c.id JOIN vehicles v ON jo.vehicle_id = v.id ${whereSql}`, params),
+        db.query(`${listSql} LIMIT $${params.length + 1} OFFSET $${params.length + 2}`, [...params, limit, offset]),
+      ]);
+      const total = countRes.rows[0]?.total || 0;
+      return res.json({
+        jobOrders: listRes.rows,
+        pagination: { page, limit, total, totalPages: Math.max(1, Math.ceil(total / limit)) },
+      });
+    }
+
+    const { rows } = await db.query(listSql, params);
     res.json(rows);
   } catch (err) {
     console.error(err);

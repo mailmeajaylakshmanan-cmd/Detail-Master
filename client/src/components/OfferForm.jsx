@@ -8,6 +8,8 @@ import toast from 'react-hot-toast';
 import { useClients } from '../hooks/useQueries.js';
 import { useDebouncedValue } from '../hooks/useDebouncedValue.js';
 
+const EMPTY_ARRAY = [];
+
 /* ─── shared select styles ────────────────────────────────────── */
 const selectStyles = () => ({
   control: (b, s) => ({
@@ -68,7 +70,8 @@ function Field({ label, required, children, invisibleLabel }) {
 }
 
 export default function OfferForm({ initial, onSubmit, loading, onCustomerSelect }) {
-  const { data: customers = [] } = useClients();
+  const { data: clientData } = useClients();
+  const customers = clientData?.clients || EMPTY_ARRAY;
   const [form, setForm] = useState(() => {
     const base = {
       customer: { name: '', phone: '', address: '' },

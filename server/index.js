@@ -3,6 +3,7 @@ const cors = require('cors');
 const compression = require('compression');
 require('dotenv').config();
 const cookieParser = require('cookie-parser');
+const { ensureIndexes } = require('./db/indexes');
 
 const app = express();
 
@@ -39,6 +40,8 @@ app.use('/api/third_party_services', require('./routes/third_party_services'));
 app.use('/api/offerMaster', require('./routes/master_offers'));
 app.use('/api/offers', require('./routes/assigned_offers'));
 app.use('/api/reports', require('./routes/reports'));
+app.use('/api/service-time', require('./routes/service_time'));
+app.use('/api/dashboard', require('./routes/dashboard'));
 
 // Health check
 app.get('/api/health', (req, res) => res.json({ status: 'ok', app: 'DETAILING MASTERS Billing' }));
@@ -52,7 +55,12 @@ app.use((err, req, res, next) => {
 
 if (require.main === module) {
   const PORT = process.env.PORT || 4000;
-  app.listen(PORT, '0.0.0.0', () => console.log(`Server running on port ${PORT}`));
+  // Apply idempotent performance indexes before serving traffic.
+  ensureIndexes()
+    .catch((err) => console.error('[indexes] bootstrap failed', err))
+    .finally(() => {
+      app.listen(PORT, '0.0.0.0', () => console.log(`Server running on port ${PORT}`));
+    });
 }
 
 module.exports = app;

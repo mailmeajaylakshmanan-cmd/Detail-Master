@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
-import { useClients, useInvoices } from '../hooks/useQueries.js';
+import { useClientByPhone, useInvoices } from '../hooks/useQueries.js';
 import { formatDate } from '../utils/dateFormatter.js';
 import CustomerProfileHeader from '../components/customers/CustomerProfileHeader.jsx';
 import StatsGrid from '../components/customers/StatsGrid.jsx';
@@ -19,7 +19,7 @@ export default function CustomerProfile() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  const { data: customers = [], isLoading: loadingCustomers } = useClients();
+  const { data: selectedCustomer, isLoading: loadingCustomers } = useClientByPhone(routePhone);
   const { data: invoiceData, isLoading: loadingInvoices } = useInvoices({ page: 1, limit: 100 });
   const invoices = invoiceData?.invoices || [];
 
@@ -32,10 +32,6 @@ export default function CustomerProfile() {
   const [address, setAddress] = useState('');
   const [formVehicles, setFormVehicles] = useState([{ make: '', model: '', plate: '' }]);
   const [editId, setEditId] = useState(null);
-
-  const selectedCustomer = useMemo(() => {
-    return customers.find(c => c.phone === routePhone);
-  }, [routePhone, customers]);
 
   const { data: assignedOffers = [], isLoading: loadingOffers } = useQuery({
     queryKey: ['customerOffers', selectedCustomer?.id],
@@ -269,13 +265,14 @@ export default function CustomerProfile() {
       <CustomerFormModal
         isOpen={isModalOpen}
         editId={editId}
-        customers={customers}
+        customers={[]}
         name={name} setName={setName}
         phone={phone} setPhone={setPhone}
         address={address} setAddress={setAddress}
         formVehicles={formVehicles} setFormVehicles={setFormVehicles}
         onSubmit={handleSubmit}
         onCancel={handleCancelEdit}
+        onQuickSelect={() => {}}
         isSaving={isSaving}
       />
     </div>

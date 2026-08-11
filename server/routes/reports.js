@@ -1,16 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../db');
-const puppeteer = require('puppeteer');
-
-// Simple helper to launch puppeteer
-async function getBrowser() {
-  return puppeteer.launch({ 
-    headless: true, 
-    ignoreHTTPSErrors: true,
-    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--ignore-certificate-errors'] 
-  });
-}
+const { getBrowser } = require('../utils/pdf');
 
 router.get('/services-pdf', async (req, res) => {
   try {
