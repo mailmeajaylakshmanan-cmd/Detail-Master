@@ -154,7 +154,7 @@ router.get('/services-pdf', async (req, res) => {
       <html>
       <head>
         <meta charset="utf-8">
-        <title>Completed Services Report</title>
+        <title>Services Report</title>
         <style>
           * { box-sizing: border-box; }
           body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; padding: 36px; margin: 0; color: #111827; }
@@ -171,14 +171,14 @@ router.get('/services-pdf', async (req, res) => {
       </head>
       <body>
         <div class="header">
-          <div style="display: flex; align-items: center; gap: 16px;">
-            ${logoBase64 ? `<img src="${logoBase64}" alt="Detailing Masters" style="height: 44px; width: auto; object-fit: contain;" />` : ''}
-            <div>
-              <h1>Completed Services Report</h1>
-              <p>${timeframe.charAt(0).toUpperCase() + timeframe.slice(1)} · Generated ${new Date().toLocaleDateString('en-GB')}</p>
-            </div>
+          <div>
+            <h1>Services Report</h1>
+            <p>${timeframe.charAt(0).toUpperCase() + timeframe.slice(1)} · Generated ${new Date().toLocaleDateString('en-GB')}</p>
           </div>
-          <div class="badge">Detailing Masters</div>
+          <div style="display: flex; align-items: center; gap: 16px;">
+            <div class="badge">Detailing Masters</div>
+            ${logoBase64 ? `<img src="${logoBase64}" alt="Detailing Masters" style="height: 44px; width: auto; object-fit: contain;" />` : ''}
+          </div>
         </div>
 
         ${summaryCards}
