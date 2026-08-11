@@ -552,26 +552,10 @@ export default function InvoiceView() {
         </div>
 
         {/* FOOTER */}
-        <div style={{ position: 'relative', width: '100%', marginTop: 40, overflow: 'hidden', minHeight: '120px' }}>
-           <div style={{ margin: '0 40px', borderTop: '1.5px solid #111', paddingTop: '15px', paddingBottom: '50px', textAlign: 'center', fontSize: 13, color: '#111', zIndex: 10, position: 'relative' }}>
+        <div style={{ position: 'relative', width: '100%', marginTop: 40, overflow: 'hidden' }}>
+           <div style={{ margin: '0 40px', borderTop: '1.5px solid #111', paddingTop: '15px', paddingBottom: '30px', textAlign: 'center', fontSize: 13, color: '#111', zIndex: 10, position: 'relative' }}>
               <strong>Detailing Masters</strong>, 123 High Street, Opp. KTM Bike Showroom, Bengaluru, India.<br/>
               Ph: +91 (23 367 7873 | E-mail: infi@detailingmasters.com
-           </div>
-           
-           {/* Bottom Shapes matching reference */}
-           <div style={{ position: 'absolute', bottom: 0, left: 0, width: '100%', height: '30px', zIndex: 1 }}>
-              {/* Bottom Left Shapes */}
-              <div style={{ position: 'absolute', bottom: 0, left: 0, width: '150px', height: '100%' }}>
-                 <div style={{ position: 'absolute', inset: 0, backgroundColor: '#FBD904', clipPath: 'polygon(0 0, 20px 0, 50px 100%, 0 100%)' }}></div>
-                 <div style={{ position: 'absolute', inset: 0, backgroundColor: '#111', clipPath: 'polygon(25px 0, 100px 0, 130px 100%, 55px 100%)' }}></div>
-              </div>
-              
-              {/* Bottom Right Shapes */}
-              <div style={{ position: 'absolute', bottom: 0, right: 0, width: '175px', height: '100%' }}>
-                 <div style={{ position: 'absolute', inset: 0, backgroundColor: '#111', clipPath: 'polygon(50px 0, 60px 0, 90px 100%, 80px 100%)' }}></div>
-                 <div style={{ position: 'absolute', inset: 0, backgroundColor: '#FBD904', clipPath: 'polygon(65px 0, 80px 0, 110px 100%, 95px 100%)' }}></div>
-                 <div style={{ position: 'absolute', inset: 0, backgroundColor: '#111', clipPath: 'polygon(85px 0, 100% 0, 100% 100%, 115px 100%)' }}></div>
-              </div>
            </div>
         </div>
       </div>
