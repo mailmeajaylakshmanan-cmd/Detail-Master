@@ -388,9 +388,6 @@ export default function InvoiceForm({ initial, onSubmit, loading, onCustomerSele
   const { data: serviceOptions = [] } = useServices();
   const { data: thirdPartyOptions = [] } = useThirdPartyServices();
   
-  // Only fetch assigned offers if customer is an individual client
-  const { data: assignedOffers = [] } = useAssignedOffers(clientType === 'individual' ? form.customer?.id : null);
-
   const [clientType, setClientType] = useState(initial?.organizationId || initial?.organization_id ? 'organization' : 'individual');
   const [serviceModal, setServiceModal] = useState({ isOpen: false, type: null, opt: null, selectedVehicleIds: [] });
 
@@ -469,6 +466,9 @@ export default function InvoiceForm({ initial, onSubmit, loading, onCustomerSele
   });
 
   const setF = useCallback((k, v) => setForm(f => ({ ...f, [k]: v })), []);
+
+  // Only fetch assigned offers if customer is an individual client
+  const { data: assignedOffers = [] } = useAssignedOffers(clientType === 'individual' ? form.customer?.id : null);
 
   // All vehicle ids this invoice currently covers — the org's selected
   // registered vehicles, or the single selected vehicle for individuals.
