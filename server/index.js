@@ -38,6 +38,7 @@ app.use('/api/organizations', require('./routes/organizations'));
 app.use('/api/third_party_services', require('./routes/third_party_services'));
 app.use('/api/offerMaster', require('./routes/master_offers'));
 app.use('/api/offers', require('./routes/assigned_offers'));
+app.use('/api/reports', require('./routes/reports'));
 
 // Health check
 app.get('/api/health', (req, res) => res.json({ status: 'ok', app: 'DETAILING MASTERS Billing' }));

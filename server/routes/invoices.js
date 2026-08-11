@@ -2,13 +2,19 @@ const express = require('express');
 const router = express.Router();
 const db = require('../db');
 const { recalculateInvoiceTotals } = require('../utils/finance');
+const puppeteer = require('puppeteer');
+
+async function getBrowser() {
+  return puppeteer.launch({ 
+    headless: true, 
+    ignoreHTTPSErrors: true,
+    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--ignore-certificate-errors'] 
+  });
+}
 
 function mapPaymentMethod(method) {
   const m = String(method || 'cash').toLowerCase().replace(/\s+/g, '_');
-  if (m === 'bank_transfer' || m === 'bank-transfer') return 'bank_transfer';
-  if (m === 'upi') return 'upi';
-  if (m === 'card') return 'card';
-  if (m === 'cash') return 'cash';
+  if (['cash', 'upi', 'bank_transfer', 'card'].includes(m)) return m;
   return 'other';
 }
 
@@ -543,6 +549,23 @@ router.put('/:id', async (req, res) => {
       }
     }
 
+    const mappedStatus = status ? mapStatus(status) : null;
+    
+    // Auto-revert package wash if cancelled
+    if (mappedStatus === 'cancelled') {
+      const usageRes = await client.query('SELECT * FROM assigned_offer_usages WHERE invoice_order_id = $1', [id]);
+      if (usageRes.rows.length > 0) {
+        for (const usage of usageRes.rows) {
+          if (usage.usage_type === 'free') {
+            await client.query('UPDATE assigned_offers SET free_washes_used = GREATEST(0, free_washes_used - 1) WHERE id = $1', [usage.assigned_offer_id]);
+          } else {
+            await client.query('UPDATE assigned_offers SET completed_washes = GREATEST(0, completed_washes - 1) WHERE id = $1', [usage.assigned_offer_id]);
+          }
+          await client.query('DELETE FROM assigned_offer_usages WHERE id = $1', [usage.id]);
+        }
+      }
+    }
+
     await client.query(
       `UPDATE invoices SET
          discount = COALESCE($1, discount),
@@ -559,7 +582,7 @@ router.put('/:id', async (req, res) => {
         special_notes !== undefined ? special_notes : null,
         include_terms !== undefined ? !!include_terms : null,
         terms_conditions !== undefined ? terms_conditions : null,
-        status ? mapStatus(status) : null,
+        mappedStatus,
         vehicle_id || null,
         req.body.organization_id || null,
         id,
@@ -576,6 +599,94 @@ router.put('/:id', async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   } finally {
     client.release();
+  }
+});
+
+// PDF Generation Endpoint
+router.get('/:id/pdf', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const browser = await getBrowser();
+    const page = await browser.newPage();
+    
+    // Dynamically match the frontend's origin URL
+    const origin = req.get('Origin');
+    const referer = req.get('Referer');
+    let clientUrl = process.env.CLIENT_URL ? process.env.CLIENT_URL.split(',')[0] : 'http://localhost:5173';
+    
+    if (origin) {
+      clientUrl = origin;
+    } else if (referer) {
+      const url = new URL(referer);
+      clientUrl = `${url.protocol}//${url.host}`;
+    }
+    
+    console.log(`[PDF] Generating for Invoice ID: ${id}`);
+    console.log(`[PDF] Using Client URL: ${clientUrl}`);
+    
+    // Inject the authentication token so puppeteer isn't redirected to /login
+    const token = req.header('Authorization')?.replace('Bearer ', '');
+    if (token) {
+      await page.evaluateOnNewDocument((authToken) => {
+        localStorage.setItem('token', authToken);
+        localStorage.setItem('isAuthenticated', 'true');
+      }, token);
+    }
+    
+    // Navigate to the invoice view page
+    await page.goto(`${clientUrl}/invoices/${id}`, { waitUntil: 'domcontentloaded' });
+    
+    // Wait for the invoice to render
+    try {
+      await page.waitForSelector('#invoice-print', { timeout: 15000 });
+    } catch (err) {
+      const html = await page.content();
+      console.error("[PDF] Timeout waiting for #invoice-print. Page HTML snippet:", html.substring(0, 1500));
+      throw err;
+    }
+
+    // Force a single-page PDF that only contains the invoice
+    const { height, width } = await page.evaluate(() => {
+      const invoice = document.getElementById('invoice-print');
+      if (invoice) {
+        // Clear everything else from the DOM
+        document.body.innerHTML = '';
+        document.body.appendChild(invoice);
+        
+        // Remove all margins/paddings from body/html
+        document.body.style.margin = '0';
+        document.body.style.padding = '0';
+        document.body.style.background = '#fff';
+        document.documentElement.style.margin = '0';
+        document.documentElement.style.padding = '0';
+        document.documentElement.style.background = '#fff';
+        
+        // Remove print:hidden elements inside the invoice just in case
+        document.querySelectorAll('.print\\:hidden').forEach(e => e.remove());
+      }
+      
+      // Return dimensions to set the exact PDF size dynamically
+      return {
+        height: document.body.scrollHeight || 1123,
+        width: document.body.scrollWidth || 800
+      };
+    });
+
+    const pdfBuffer = await page.pdf({ 
+      width: Math.max(width, 800) + 'px',
+      height: (height + 1) + 'px', // Add 1px to prevent any rounding spillover
+      printBackground: true,
+      margin: { top: '0', bottom: '0', left: '0', right: '0' }
+    });
+    
+    await browser.close();
+    
+    // Send as base64 to match frontend expectation
+    // Convert Uint8Array to Buffer first, because Uint8Array.toString('base64') does not exist
+    res.json({ base64: Buffer.from(pdfBuffer).toString('base64') });
+  } catch (err) {
+    console.error('Invoice PDF Generation Error:', err);
+    res.status(500).json({ message: 'Error generating PDF' });
   }
 });
 

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Outlet, NavLink, useNavigate, useLocation, Link } from 'react-router-dom';
 import {
-  LayoutDashboard, FileText, Users, Briefcase, Plus, Bell, Search, LogOut, Activity, Gift, ChevronDown, Database, Globe, Menu, X, Sparkles, Shield
+  LayoutDashboard, FileText, Users, Briefcase, Plus, Bell, Search, LogOut, Activity, Gift, ChevronDown, Database, Globe, Menu, X, Sparkles, Shield, Car
 } from 'lucide-react';
 import brandLogo from '../assets/brand_logo.png';
 import api from '../api/axios.js';
@@ -83,10 +83,10 @@ function SidebarNav({ navItems, openGroups, setOpenGroups, onNavigate }) {
                     [item.label]: !(prev[item.label] ?? isActiveGroup),
                   }))
                 }
-                className={`flex items-center justify-between w-full px-3 py-2.5 rounded-xl text-[13px] font-bold transition-colors ${
+                className={`flex items-center justify-between w-full px-3 py-2.5 rounded-xl text-[13px] font-extrabold transition-colors ${
                   isActiveGroup
                     ? 'bg-blue-50 text-blue-700'
-                    : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                    : 'text-gray-800 hover:bg-white/50 hover:text-gray-900'
                 }`}
               >
                 <span className="flex items-center gap-3">
@@ -104,10 +104,10 @@ function SidebarNav({ navItems, openGroups, setOpenGroups, onNavigate }) {
                       to={sub.to || '#'}
                       onClick={onNavigate}
                       className={({ isActive }) => `
-                        flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] font-semibold transition-colors
+                        flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] font-bold transition-colors
                         ${isActive
                           ? 'bg-blue-600 text-white shadow-sm shadow-blue-500/20'
-                          : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'}
+                          : 'text-gray-800 hover:text-gray-900 hover:bg-white/50'}
                       `}
                     >
                       <sub.icon size={15} />
@@ -127,10 +127,10 @@ function SidebarNav({ navItems, openGroups, setOpenGroups, onNavigate }) {
             end={item.end}
             onClick={onNavigate}
             className={({ isActive }) => `
-              flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-bold transition-colors
+              flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-extrabold transition-colors
               ${isActive
                 ? 'bg-blue-600 text-white shadow-sm shadow-blue-500/20'
-                : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'}
+                : 'text-gray-800 hover:bg-white/50 hover:text-gray-900'}
             `}
           >
             <item.icon size={17} />
@@ -202,7 +202,22 @@ export default function Layout() {
   };
 
   return (
-    <div className="min-h-screen font-sans text-gray-900 flex bg-transparent">
+    <div className="min-h-screen font-sans text-gray-900 flex overflow-hidden" style={{ background: 'linear-gradient(135deg, #fdfbf7 0%, #fdf8eb 50%, #f9eed2 100%)' }}>
+      
+      {/* ── Background Aesthetic (Pinterest style gradient & Glassium Car) ── */}
+      <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
+        {/* Soft yellow glow */}
+        <div className="absolute top-[-10%] right-[-5%] w-[800px] h-[800px] bg-[#fcdf4c] rounded-full blur-[140px] opacity-15"></div>
+        <div className="absolute bottom-[-20%] left-[-10%] w-[600px] h-[600px] bg-[#fcdf4c] rounded-full blur-[120px] opacity-10"></div>
+        
+        {/* Giant Logo Watermark */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center justify-center opacity-10">
+           <img src={brandLogo} alt="" className="w-[315px] h-[315px] md:w-[440px] md:h-[440px] object-contain drop-shadow-2xl" />
+        </div>
+        
+        {/* Diagonal stripes pattern (like Pinterest image left-side) */}
+        <div className="absolute bottom-10 left-10 w-64 h-64 opacity-5" style={{ backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 10px, #000 10px, #000 12px)' }}></div>
+      </div>
 
       {/* Mobile backdrop */}
       {isMobileMenuOpen && (
@@ -216,8 +231,8 @@ export default function Layout() {
       <aside
         className={`
           fixed top-0 left-0 z-[70] h-full w-[260px]
-          bg-white/70 backdrop-blur-2xl border-r border-white/50
-          flex flex-col shadow-xl lg:shadow-none
+          bg-transparent border-r border-gray-200/50
+          flex flex-col lg:shadow-none
           transform transition-transform duration-300 ease-in-out
           ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}
           ${isDesktopSidebarOpen ? 'lg:translate-x-0' : 'lg:-translate-x-full'}
@@ -227,7 +242,7 @@ export default function Layout() {
           <Link to="/" className="flex items-center gap-2.5 min-w-0 flex-1" onClick={() => setIsMobileMenuOpen(false)}>
             <img src={brandLogo} alt="" className="h-10 w-10 object-contain shrink-0" />
             <span className="text-[13px] font-black tracking-tight leading-tight uppercase whitespace-nowrap drop-shadow-sm">
-              <span className="text-[#FBD904]">DETAILING</span> <span className="text-gray-600">MASTERS</span>
+              <span className="text-[#FBD904]">DETAILING</span> <span className="text-gray-900">MASTERS</span>
             </span>
           </Link>
           <button
@@ -257,7 +272,7 @@ export default function Layout() {
           <button
             type="button"
             onClick={handleLogout}
-            className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-white/60 bg-white/40 text-gray-600 text-[13px] font-bold hover:bg-rose-50 hover:text-rose-600 hover:border-rose-200 transition-colors"
+            className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-white/60 bg-white/40 text-gray-900 text-[13px] font-extrabold hover:bg-rose-50 hover:text-rose-600 hover:border-rose-200 transition-colors"
           >
             <LogOut size={16} /> Sign Out
           </button>
@@ -267,8 +282,8 @@ export default function Layout() {
       {/* Main column */}
       <div className={`flex-1 flex flex-col min-w-0 transition-all duration-300 ${isDesktopSidebarOpen ? 'lg:pl-[260px]' : 'lg:pl-0'} bg-transparent`}>
         <header
-          className={`sticky top-0 z-50 transition-all duration-200 bg-white/45 backdrop-blur-xl border-b border-white/40 ${
-            scrolled ? 'shadow-md' : ''
+          className={`sticky top-0 z-50 transition-all duration-200 bg-transparent ${
+            scrolled ? 'bg-white/40 backdrop-blur-xl border-b border-white/50 shadow-sm' : 'border-b border-transparent'
           }`}
         >
           <div className="px-4 sm:px-6 h-[64px] flex items-center justify-between gap-3">
@@ -294,27 +309,27 @@ export default function Layout() {
               <div className="lg:hidden flex items-center gap-2 min-w-0">
                 <img src={brandLogo} alt="" className="h-8 w-8 object-contain shrink-0" />
                 <span className="text-[12px] font-black tracking-tight leading-tight uppercase truncate">
-                  <span className="text-[#FBD904]">DETAILING</span> <span className="text-gray-600">MASTERS</span>
+                  <span className="text-[#FBD904]">DETAILING</span> <span className="text-gray-900">MASTERS</span>
                 </span>
               </div>
-              <p className="hidden lg:block text-sm font-semibold text-gray-600/80 truncate ml-1">
-                Billing & Operations
+              <p className="hidden lg:block text-sm font-bold text-gray-900 truncate ml-1">
+                Dashboard
               </p>
             </div>
 
             <div className="flex items-center gap-2 sm:gap-3">
               <div className="relative hidden md:block">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={15} />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-800" size={15} />
                 <input
                   type="text"
                   placeholder="Search…"
-                  className="pl-9 pr-4 py-2 bg-white/50 backdrop-blur-md border border-white/50 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 w-[180px] lg:w-[220px] text-gray-900 placeholder-gray-400"
+                  className="pl-9 pr-4 py-2 bg-white/50 backdrop-blur-md border border-white/50 rounded-full text-sm font-bold focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 w-[180px] lg:w-[220px] text-gray-900 placeholder-gray-600"
                 />
               </div>
 
               <button
                 type="button"
-                className="w-10 h-10 rounded-full flex items-center justify-center bg-white/50 backdrop-blur-md border border-white/50 text-gray-500 hover:bg-white/80 relative"
+                className="w-10 h-10 rounded-full flex items-center justify-center bg-white/50 backdrop-blur-md border border-white/50 text-gray-800 hover:bg-white/80 relative"
               >
                 <Bell size={17} />
                 <span className="absolute top-2 right-2.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white" />
@@ -335,7 +350,7 @@ export default function Layout() {
         </main>
 
         <footer className="mt-auto border-t border-white/40 bg-white/40 backdrop-blur-xl">
-          <div className="px-4 sm:px-6 py-4 flex flex-col sm:flex-row items-center justify-between text-[11px] sm:text-xs font-bold text-gray-500 gap-2">
+          <div className="px-4 sm:px-6 py-4 flex flex-col sm:flex-row items-center justify-between text-[11px] sm:text-xs font-bold text-gray-800 gap-2">
             <p>© {new Date().getFullYear()} Detailing Masters. All rights reserved.</p>
             <span className="flex items-center gap-1.5">
               <Activity size={12} className="text-green-500" /> All systems operational
