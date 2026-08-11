@@ -54,6 +54,7 @@ const ManageAssignedOffers = lazy(() => import('./pages/ManageAssignedOffers.jsx
 const WebsiteBookings = lazy(() => import('./pages/WebsiteBookings.jsx'));
 const MenuAssignment = lazy(() => import('./pages/MenuAssignment.jsx'));
 const UserMenuAssignment = lazy(() => import('./pages/UserMenuAssignment.jsx'));
+const ServiceTimeManagement = lazy(() => import('./pages/ServiceTimeManagement.jsx'));
 
 function PrivateRoute({ children }) {
   const isAuthenticated = localStorage.getItem('isAuthenticated') === 'true';
@@ -105,6 +106,7 @@ export default function App() {
         <Route path="website-bookings" element={<LazyPage><WebsiteBookings /></LazyPage>} />
         <Route path="menu-assignment" element={<LazyPage><MenuAssignment /></LazyPage>} />
         <Route path="user-menu-assignment" element={<LazyPage><UserMenuAssignment /></LazyPage>} />
+        <Route path="service-time" element={<LazyPage><ServiceTimeManagement /></LazyPage>} />
       </Route>
     </Routes>
     </ErrorBoundary>

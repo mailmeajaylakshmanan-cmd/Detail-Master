@@ -16,17 +16,24 @@ import CustomerFormModal from '../components/customers/CustomerFormModal.jsx';
 export default function MasterCustomer() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { data: customers = [], isLoading: loadingCustomers } = useClients();
+  const [search, setSearch] = useState('');
+  const debouncedSearch = useDebouncedValue(search, 250);
+  const [activeFilter, setActiveFilter] = useState('All');
+  const [selectedPhone, setSelectedPhone] = useState(null);
+  const [limit, setLimit] = useState(50);
+
+  const { data: customerData, isLoading: loadingCustomers, isFetching: fetchingCustomers } = useClients({
+    page: 1,
+    limit,
+    search: debouncedSearch,
+  });
+  const customers = customerData?.clients || [];
+  const totalCustomers = customerData?.pagination?.total ?? customers.length;
   const { data: invoiceData, isLoading: loadingInvoices } = useInvoices({ page: 1, limit: 100 });
   const invoices = invoiceData?.invoices || [];
 
   const offers = [];
   const loadingOffers = false;
-  const [search, setSearch] = useState('');
-  const debouncedSearch = useDebouncedValue(search, 250);
-  const [activeFilter, setActiveFilter] = useState('All');
-  const [selectedPhone, setSelectedPhone] = useState(null);
-
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
@@ -36,23 +43,42 @@ export default function MasterCustomer() {
   const [isSaving, setIsSaving] = useState(false);
 
   const filteredCustomers = useMemo(() => {
-    let filtered = customers;
-    if (debouncedSearch) {
-      filtered = filtered.filter(c =>
-        (c.name || '').toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-        (c.phone || '').includes(debouncedSearch)
-      );
-    }
     if (activeFilter === 'VIP') {
-      filtered = filtered.filter(c => (c.phone || '').includes('VIP'));
+      return customers.filter(c => (c.phone || '').includes('VIP'));
     }
-    return filtered;
-  }, [customers, debouncedSearch, activeFilter]);
+    return customers;
+  }, [customers, activeFilter]);
 
   const enrichedRows = useMemo(() => {
+    // Pre-group invoices for O(1) lookups
+    const invoicesByClient = new Map();
+    const invoicesByPhone = new Map();
+
+    for (const inv of invoices) {
+      if (inv.clientId || inv.client_id) {
+        const id = String(inv.clientId || inv.client_id);
+        if (!invoicesByClient.has(id)) invoicesByClient.set(id, []);
+        invoicesByClient.get(id).push(inv);
+      }
+      if (inv.customer?.phone) {
+        const phone = String(inv.customer.phone);
+        if (!invoicesByPhone.has(phone)) invoicesByPhone.set(phone, []);
+        invoicesByPhone.get(phone).push(inv);
+      }
+    }
+
     return filteredCustomers.map((c, index) => {
-      const history = invoices.filter(inv => inv.customer?.phone === c.phone || inv.clientId === c.id || inv.client_id === c.id);
+      const byId = invoicesByClient.get(String(c.id)) || [];
+      const byPhone = invoicesByPhone.get(String(c.phone)) || [];
+      
+      // Merge unique invoices for this client
+      const uniqueInvoices = new Map();
+      for (const inv of byId) uniqueInvoices.set(inv.id, inv);
+      for (const inv of byPhone) uniqueInvoices.set(inv.id, inv);
+      
+      const history = Array.from(uniqueInvoices.values());
       const rowSpend = history.reduce((s, inv) => s + (inv.total || 0), 0);
+      
       return {
         id: c.id,
         customId: `#DM-${8000 + ((c.id || index) % 2000)}`,
@@ -78,13 +104,33 @@ export default function MasterCustomer() {
     setIsSaving(true);
     try {
       if (editId) {
-        await api.put('/clients/' + editId, { full_name: name, phone, address, vehicles: validVehicles });
+        const res = await api.put('/clients/' + editId, { full_name: name, phone, address, vehicles: validVehicles });
+        
+        // Optimistically update React Query Cache to avoid UI wait
+        queryClient.setQueryData(queryKeys.clients.all, (oldData) => {
+          if (!oldData) return oldData;
+          const patch = c => (c.id === editId ? { ...c, ...res.data, name: res.data.full_name } : c);
+          if (Array.isArray(oldData)) return oldData.map(patch);
+          if (oldData?.clients) return { ...oldData, clients: oldData.clients.map(patch) };
+          return oldData;
+        });
         toast.success('Customer updated');
       } else {
-        await api.post('/clients', { full_name: name, phone, address, vehicles: validVehicles });
+        const res = await api.post('/clients', { full_name: name, phone, address, vehicles: validVehicles });
+        
+        // Optimistically update React Query Cache to avoid UI wait
+        queryClient.setQueryData(queryKeys.clients.all, (oldData) => {
+          if (!oldData) return oldData;
+          const newRow = { ...res.data, name: res.data.full_name };
+          if (Array.isArray(oldData)) return [newRow, ...oldData];
+          if (oldData?.clients) return { ...oldData, clients: [newRow, ...oldData.clients] };
+          return oldData;
+        });
         toast.success('Customer added');
       }
       handleCancelEdit();
+      
+      // Invalidate in background to ensure data consistency without blocking UI update
       queryClient.invalidateQueries({ queryKey: queryKeys.clients.all });
     } catch (err) {
       toast.error(err.response?.data?.message || 'Error saving customer');
@@ -132,19 +178,17 @@ export default function MasterCustomer() {
   }
 
   const isLoading = loadingCustomers || loadingInvoices || loadingOffers;
+  const canLoadMore = customers.length < totalCustomers;
 
   return (
     <div className="w-full h-[calc(100vh-100px)] flex flex-col bg-transparent animate-fade-in">
 
       {/* ── Full Width: Customer List ── */}
       <div className="w-full flex flex-col h-full gap-4">
-        {/* ── Top KPIs ── */}
-
-
         {/* ── Toolbar ── */}
         <div className="bg-white rounded-[20px] shadow-sm border border-gray-100 px-2 py-2 flex flex-wrap items-center justify-between gap-4 shrink-0">
           <div className="flex gap-1 ml-2">
-            {['All Customers', 'VIP', 'Pending', 'New'].map(f => {
+            {['All Customers', 'VIP'].map(f => {
               const filterValue = f === 'All Customers' ? 'All' : f;
               return (
                 <button
@@ -168,7 +212,7 @@ export default function MasterCustomer() {
                 type="text"
                 placeholder="Search customers..."
                 value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                onChange={(e) => { setSearch(e.target.value); setLimit(50); }}
                 className="input pl-9 pr-4 py-2.5 text-[12px] font-medium w-[220px] border-gray-200 bg-gray-50 rounded-[12px]"
               />
             </div>
@@ -195,6 +239,19 @@ export default function MasterCustomer() {
             onSelect={(phone) => navigate(`/master-customer/${phone}`)}
             onEdit={handleEdit}
           />
+        )}
+
+        {!isLoading && canLoadMore && (
+          <div className="flex justify-center pb-2 shrink-0">
+            <button
+              type="button"
+              disabled={fetchingCustomers}
+              onClick={() => setLimit(l => l + 50)}
+              className="text-[12px] font-bold px-5 py-2 rounded-xl bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors disabled:opacity-50"
+            >
+              {fetchingCustomers ? 'Loading…' : `Load more (${customers.length} / ${totalCustomers})`}
+            </button>
+          </div>
         )}
       </div>
 

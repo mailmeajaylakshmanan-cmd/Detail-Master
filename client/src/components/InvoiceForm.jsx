@@ -12,6 +12,8 @@ import { useClients, useServices, useOrganizations, useThirdPartyServices } from
 
 function fmt(n) { return Number(n || 0).toLocaleString('en-IN'); }
 
+const EMPTY_ARRAY = [];
+
 const selectStyles = () => ({
   control: (b) => ({
     ...b,
@@ -366,7 +368,8 @@ const ThirdPartyServiceRow = memo(function ThirdPartyServiceRow({ item, onField,
 
 export default function InvoiceForm({ initial, onSubmit, loading, onCustomerSelect }) {
   const today = new Date().toISOString().slice(0, 10);
-  const { data: customers = [] } = useClients();
+  const { data: clientData } = useClients();
+  const customers = clientData?.clients || EMPTY_ARRAY;
   const { data: organizations = [] } = useOrganizations();
   const { data: serviceOptions = [] } = useServices();
   const { data: thirdPartyOptions = [] } = useThirdPartyServices();

@@ -2,15 +2,8 @@ const express = require('express');
 const router = express.Router();
 const db = require('../db');
 const { recalculateInvoiceTotals } = require('../utils/finance');
-const puppeteer = require('puppeteer');
-
-async function getBrowser() {
-  return puppeteer.launch({ 
-    headless: true, 
-    ignoreHTTPSErrors: true,
-    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--ignore-certificate-errors'] 
-  });
-}
+const { buildBulkInsert } = require('../utils/db');
+const { getBrowser } = require('../utils/pdf');
 
 function mapPaymentMethod(method) {
   const m = String(method || 'cash').toLowerCase().replace(/\s+/g, '_');
@@ -329,58 +322,72 @@ router.post('/', async (req, res) => {
 
     const invoice = invRes.rows[0];
 
+    // ── Batch inserts (one round-trip each instead of one per line) ──
+
     if (Array.isArray(vehicle_visits)) {
-      for (const v of vehicle_visits) {
-        if (!v || !v.vehicle_id) continue;
-        await client.query(
-          `INSERT INTO invoice_vehicles (invoice_order_id, vehicle_id, visitor_name, visitor_phone, checkin_time, checkout_time)
-           VALUES ($1, $2, $3, $4, $5, $6)
-           ON CONFLICT (invoice_order_id, vehicle_id) DO NOTHING`,
-          [
-            invoice.id,
-            v.vehicle_id,
-            v.visitor_name || null,
-            v.visitor_phone || null,
-            v.checkin_time || null,
-            v.checkout_time || null,
-          ]
+      const visitRows = vehicle_visits
+        .filter(v => v && v.vehicle_id)
+        .map(v => [
+          invoice.id,
+          v.vehicle_id,
+          v.visitor_name || null,
+          v.visitor_phone || null,
+          v.checkin_time || null,
+          v.checkout_time || null,
+        ]);
+      if (visitRows.length > 0) {
+        const q = buildBulkInsert(
+          'invoice_vehicles',
+          ['invoice_order_id', 'vehicle_id', 'visitor_name', 'visitor_phone', 'checkin_time', 'checkout_time'],
+          visitRows
         );
+        await client.query(q.text, q.params);
       }
     }
 
+    const serviceRows = [];
     for (const line of lines) {
       const vIds = line.vehicle_ids.length > 0 ? line.vehicle_ids : [null];
       for (const vId of vIds) {
-        await client.query(
-          `INSERT INTO invoice_services (invoice_order_id, service_id, unit_price, vehicle_id)
-           VALUES ($1, $2, $3, $4)`,
-          [invoice.id, line.service_id, line.unit_price, vId]
-        );
+        serviceRows.push([invoice.id, line.service_id, line.unit_price, vId]);
       }
     }
+    if (serviceRows.length > 0) {
+      const q = buildBulkInsert(
+        'invoice_services',
+        ['invoice_order_id', 'service_id', 'unit_price', 'vehicle_id'],
+        serviceRows
+      );
+      await client.query(q.text, q.params);
+    }
 
+    const tPartyRows = [];
     for (const t of tPartyItems) {
       const vIds = Array.isArray(t.vehicle_ids) && t.vehicle_ids.length > 0 ? t.vehicle_ids : [vehicle_id || null];
       for (const vId of vIds) {
-        await client.query(
-          `INSERT INTO invoice_third_party_services
-           (invoice_order_id, third_party_service_id, service_name, vendor_name, labour_count, labour_charge, service_cost, selling_price, vehicle_id)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
-          [
-            invoice.id,
-            t.third_party_service_id || null,
-            t.service_name,
-            t.vendor_name || null,
-            t.labour_count !== undefined ? t.labour_count : 1,
-            t.labour_charge || 0,
-            t.service_cost || 0,
-            t.selling_price || 0,
-            vId,
-          ]
-        );
+        tPartyRows.push([
+          invoice.id,
+          t.third_party_service_id || null,
+          t.service_name,
+          t.vendor_name || null,
+          t.labour_count !== undefined ? t.labour_count : 1,
+          t.labour_charge || 0,
+          t.service_cost || 0,
+          t.selling_price || 0,
+          vId,
+        ]);
       }
     }
+    if (tPartyRows.length > 0) {
+      const q = buildBulkInsert(
+        'invoice_third_party_services',
+        ['invoice_order_id', 'third_party_service_id', 'service_name', 'vendor_name', 'labour_count', 'labour_charge', 'service_cost', 'selling_price', 'vehicle_id'],
+        tPartyRows
+      );
+      await client.query(q.text, q.params);
+    }
 
+    const paymentRowsToInsert = [];
     for (const p of paymentRows) {
       const method = mapPaymentMethod(p.method || p.payment_method);
       const ref =
@@ -388,18 +395,22 @@ router.post('/', async (req, res) => {
           ? null
           : (p.reference_no || null);
 
-      await client.query(
-        `INSERT INTO payments (invoice_order_id, amount, payment_method, payment_date, reference_no, notes)
-         VALUES ($1, $2, $3, $4, $5, $6)`,
-        [
-          invoice.id,
-          Number(p.amount),
-          method,
-          p.date || p.payment_date || new Date(),
-          ref,
-          p.notes || null,
-        ]
+      paymentRowsToInsert.push([
+        invoice.id,
+        Number(p.amount),
+        method,
+        p.date || p.payment_date || new Date(),
+        ref,
+        p.notes || null,
+      ]);
+    }
+    if (paymentRowsToInsert.length > 0) {
+      const q = buildBulkInsert(
+        'payments',
+        ['invoice_order_id', 'amount', 'payment_method', 'payment_date', 'reference_no', 'notes'],
+        paymentRowsToInsert
       );
+      await client.query(q.text, q.params);
     }
 
     // Recompute from lines + payments so totals stay consistent
@@ -456,21 +467,23 @@ router.put('/:id', async (req, res) => {
 
     if (Array.isArray(req.body.vehicle_visits)) {
       await client.query('DELETE FROM invoice_vehicles WHERE invoice_order_id = $1', [id]);
-      for (const v of req.body.vehicle_visits) {
-        if (!v || !v.vehicle_id) continue;
-        await client.query(
-          `INSERT INTO invoice_vehicles (invoice_order_id, vehicle_id, visitor_name, visitor_phone, checkin_time, checkout_time)
-           VALUES ($1, $2, $3, $4, $5, $6)
-           ON CONFLICT (invoice_order_id, vehicle_id) DO NOTHING`,
-          [
-            id,
-            v.vehicle_id,
-            v.visitor_name || null,
-            v.visitor_phone || null,
-            v.checkin_time || null,
-            v.checkout_time || null,
-          ]
+      const visitRows = req.body.vehicle_visits
+        .filter(v => v && v.vehicle_id)
+        .map(v => [
+          id,
+          v.vehicle_id,
+          v.visitor_name || null,
+          v.visitor_phone || null,
+          v.checkin_time || null,
+          v.checkout_time || null,
+        ]);
+      if (visitRows.length > 0) {
+        const q = buildBulkInsert(
+          'invoice_vehicles',
+          ['invoice_order_id', 'vehicle_id', 'visitor_name', 'visitor_phone', 'checkin_time', 'checkout_time'],
+          visitRows
         );
+        await client.query(q.text, q.params);
       }
     }
 
@@ -481,19 +494,25 @@ router.put('/:id', async (req, res) => {
         [svcIds]
       );
       await client.query('DELETE FROM invoice_services WHERE invoice_order_id = $1', [id]);
+      const priceById = new Map(priceRes.rows.map(r => [r.id, r]));
+      const serviceRows = [];
       for (const si of req.body.service_items) {
-        const row = priceRes.rows.find(r => r.id === si.service_id);
+        const row = priceById.get(si.service_id);
         if (!row) continue;
         const vIds = Array.isArray(si.vehicle_ids) && si.vehicle_ids.length > 0
           ? si.vehicle_ids
           : [vehicle_id || null];
         for (const vId of vIds) {
-          await client.query(
-            `INSERT INTO invoice_services (invoice_order_id, service_id, unit_price, vehicle_id)
-             VALUES ($1, $2, $3, $4)`,
-            [id, row.id, Number(row.base_price) || 0, vId]
-          );
+          serviceRows.push([id, row.id, Number(row.base_price) || 0, vId]);
         }
+      }
+      if (serviceRows.length > 0) {
+        const q = buildBulkInsert(
+          'invoice_services',
+          ['invoice_order_id', 'service_id', 'unit_price', 'vehicle_id'],
+          serviceRows
+        );
+        await client.query(q.text, q.params);
       }
     } else if (Array.isArray(service_ids)) {
       const ids = [...new Set(service_ids.map(Number).filter((n) => Number.isFinite(n) && n > 0))];
@@ -512,40 +531,49 @@ router.put('/:id', async (req, res) => {
       }
 
       await client.query('DELETE FROM invoice_services WHERE invoice_order_id = $1', [id]);
-      for (const row of priceRes.rows) {
-        await client.query(
-          `INSERT INTO invoice_services (invoice_order_id, service_id, unit_price, vehicle_id)
-           VALUES ($1, $2, $3, $4)`,
-          [id, row.id, Number(row.base_price) || 0, vehicle_id || null]
-        );
-      }
+      const serviceRows = priceRes.rows.map(r => [
+        id,
+        r.id,
+        Number(r.base_price) || 0,
+        vehicle_id || null,
+      ]);
+      const q = buildBulkInsert(
+        'invoice_services',
+        ['invoice_order_id', 'service_id', 'unit_price', 'vehicle_id'],
+        serviceRows
+      );
+      await client.query(q.text, q.params);
     }
 
     if (Array.isArray(third_party_items)) {
       const items = third_party_items.filter((t) => t && t.service_name);
       await client.query('DELETE FROM invoice_third_party_services WHERE invoice_order_id = $1', [id]);
+      const tPartyRows = [];
       for (const t of items) {
         const vIds = Array.isArray(t.vehicle_ids) && t.vehicle_ids.length > 0
           ? t.vehicle_ids
           : [vehicle_id || null];
         for (const vId of vIds) {
-          await client.query(
-            `INSERT INTO invoice_third_party_services
-             (invoice_order_id, third_party_service_id, service_name, vendor_name, labour_count, labour_charge, service_cost, selling_price, vehicle_id)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
-            [
-              id,
-              t.third_party_service_id || null,
-              t.service_name,
-              t.vendor_name || null,
-              t.labour_count !== undefined ? t.labour_count : 1,
-              t.labour_charge || 0,
-              t.service_cost || 0,
-              t.selling_price || 0,
-              vId,
-            ]
-          );
+          tPartyRows.push([
+            id,
+            t.third_party_service_id || null,
+            t.service_name,
+            t.vendor_name || null,
+            t.labour_count !== undefined ? t.labour_count : 1,
+            t.labour_charge || 0,
+            t.service_cost || 0,
+            t.selling_price || 0,
+            vId,
+          ]);
         }
+      }
+      if (tPartyRows.length > 0) {
+        const q = buildBulkInsert(
+          'invoice_third_party_services',
+          ['invoice_order_id', 'third_party_service_id', 'service_name', 'vendor_name', 'labour_count', 'labour_charge', 'service_cost', 'selling_price', 'vehicle_id'],
+          tPartyRows
+        );
+        await client.query(q.text, q.params);
       }
     }
 

@@ -15,17 +15,10 @@ export default function Dashboard() {
   const [isExporting, setIsExporting] = useState(false);
 
   const { data, isLoading } = useQuery({
-    queryKey: queryKeys.invoices.list({ page: 1, limit: 50, dashboard: true }),
+    queryKey: queryKeys.dashboard.stats(),
     queryFn: async () => {
-      const res = await api.get('/invoices', { params: { page: 1, limit: 50 } });
-      const rows = Array.isArray(res.data?.invoices) ? res.data.invoices : [];
-      return {
-        revenue: rows.reduce((s, i) => s + Number(i.grand_total || 0) - Number(i.balance_due || 0), 0),
-        pending: rows.reduce((s, i) => s + Number(i.balance_due || 0), 0),
-        totalJobs: res.data?.pagination?.total ?? rows.length,
-        todaysBookings: [],
-        recentActivity: [],
-      };
+      const res = await api.get('/dashboard/stats');
+      return res.data;
     },
   });
 
@@ -104,10 +97,10 @@ export default function Dashboard() {
 
         {/* ── Top Stat Grid ── */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
-          <StatCard title="Total Jobs" value={data?.totalJobs || '0'} subtext="12% YoY" type="dark" />
-          <StatCard title="In Queue" value="4" subtext="15% YoY" type="yellow" />
-          <StatCard title="Completed" value={data?.totalJobs || '0'} subtext="5% YoY" type="light" />
-          <StatCard title="Total Customers" value="248" subtext="91 Employe" type="light" />
+          <StatCard title="Total Jobs" value={data?.totalInvoices || '0'} subtext={`${data?.openInvoices || 0} open`} type="dark" />
+          <StatCard title="Today's Visits" value={data?.todayInvoices || '0'} subtext="today" type="yellow" />
+          <StatCard title="Completed" value={data?.completedJobs || '0'} subtext="all time" type="light" />
+          <StatCard title="Total Customers" value={data?.totalCustomers || '0'} subtext={`${data?.totalOrganizations || 0} orgs`} type="light" />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

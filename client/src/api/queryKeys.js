@@ -1,7 +1,13 @@
 export const queryKeys = {
   clients: {
     all: ['clients'],
-    list: () => [...queryKeys.clients.all, 'list'],
+    list: (filters = {}) => [...queryKeys.clients.all, 'list', filters],
+    options: () => [...queryKeys.clients.all, 'options'],
+    lookup: (phone) => [...queryKeys.clients.all, 'lookup', phone],
+  },
+  dashboard: {
+    all: ['dashboard'],
+    stats: () => [...queryKeys.dashboard.all, 'stats'],
   },
   services: {
     all: ['services'],
