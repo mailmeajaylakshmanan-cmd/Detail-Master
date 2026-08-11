@@ -552,7 +552,7 @@ export default function InvoiceView() {
         </div>
 
         {/* FOOTER */}
-        <div style={{ position: 'relative', width: '100%', marginTop: 'auto', overflow: 'hidden', minHeight: '120px' }}>
+        <div style={{ position: 'relative', width: '100%', marginTop: 40, overflow: 'hidden', minHeight: '120px' }}>
            <div style={{ margin: '0 40px', borderTop: '1.5px solid #111', paddingTop: '15px', paddingBottom: '50px', textAlign: 'center', fontSize: 13, color: '#111', zIndex: 10, position: 'relative' }}>
               <strong>Detailing Masters</strong>, 123 High Street, Opp. KTM Bike Showroom, Bengaluru, India.<br/>
               Ph: +91 (23 367 7873 | E-mail: infi@detailingmasters.com
@@ -745,8 +745,7 @@ const bar = {
 
 const doc = {
   wrap: {
-    width: '210mm',
-    minHeight: '297mm',
+    width: '800px',
     margin: '0 auto',
     background: '#EBEBED',
     boxShadow: '0 12px 40px rgba(0,0,0,0.06)',
