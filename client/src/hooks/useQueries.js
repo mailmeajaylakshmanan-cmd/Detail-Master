@@ -149,3 +149,16 @@ export function useOpenInvoicesForClient(clientId) {
     },
   });
 }
+
+export function useAssignedOffers(clientId) {
+  return useQuery({
+    queryKey: queryKeys.assignedOffers.byClient(clientId),
+    enabled: !!clientId,
+    queryFn: async () => {
+      const res = await api.get('/offers', { params: { client_id: clientId } });
+      const rows = Array.isArray(res.data) ? res.data : [];
+      // Return only active packages that have washes left
+      return rows.filter(o => o.status === 'active' && o.completedWashes < o.totalWashes);
+    },
+  });
+}

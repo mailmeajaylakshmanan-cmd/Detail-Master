@@ -8,7 +8,7 @@ import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import { format, parseISO } from 'date-fns';
 import Select from 'react-select';
-import { useClients, useServices, useOrganizations, useThirdPartyServices } from '../hooks/useQueries.js';
+import { useClients, useServices, useOrganizations, useThirdPartyServices, useAssignedOffers } from '../hooks/useQueries.js';
 
 function fmt(n) { return Number(n || 0).toLocaleString('en-IN'); }
 
@@ -296,19 +296,33 @@ const VehicleVisitRow = memo(function VehicleVisitRow({ label, meta, onField, on
   );
 });
 
-const SelectedServiceRow = memo(function SelectedServiceRow({ cur, onDesc, vehicleOptions, onVehiclesChange }) {
+const SelectedServiceRow = memo(function SelectedServiceRow({ cur, onDesc, vehicleOptions, onVehiclesChange, assignedOffers, onRedeemPackage }) {
   return (
     <div className="flex flex-col sm:flex-row sm:items-center gap-4 bg-gray-50 p-4 rounded-xl border border-gray-100">
       <div className="sm:w-2/5 font-bold text-[14px] text-gray-900 flex items-center gap-2">
         <CheckCircle2 size={14} className="text-emerald-500" /> {cur.service}
       </div>
-      <div className="flex-1">
+      <div className="flex-1 flex flex-col gap-2">
         <input
           className={`${inputCls} bg-white shadow-sm border-gray-200`}
           placeholder="Detail instructions / description"
           value={cur.description || ''}
           onChange={onDesc}
         />
+        {assignedOffers && assignedOffers.length > 0 && (
+          <select 
+            className={`${inputCls} bg-white shadow-sm border-gray-200 text-xs py-1.5`}
+            value={cur.assigned_offer_id || ''}
+            onChange={e => onRedeemPackage(e.target.value)}
+          >
+            <option value="">-- Don't redeem from package --</option>
+            {assignedOffers.map(offer => (
+              <option key={offer.id} value={offer.id}>
+                Redeem from: {offer.packageName} ({offer.totalWashes - offer.completedWashes} left)
+              </option>
+            ))}
+          </select>
+        )}
       </div>
       <div className="sm:w-36 flex flex-col gap-2">
         <MoneyInput value={cur.price || ''} onChange={() => {}} disabled />
@@ -373,6 +387,9 @@ export default function InvoiceForm({ initial, onSubmit, loading, onCustomerSele
   const { data: organizations = [] } = useOrganizations();
   const { data: serviceOptions = [] } = useServices();
   const { data: thirdPartyOptions = [] } = useThirdPartyServices();
+  
+  // Only fetch assigned offers if customer is an individual client
+  const { data: assignedOffers = [] } = useAssignedOffers(clientType === 'individual' ? form.customer?.id : null);
 
   const [clientType, setClientType] = useState(initial?.organizationId || initial?.organization_id ? 'organization' : 'individual');
   const [serviceModal, setServiceModal] = useState({ isOpen: false, type: null, opt: null, selectedVehicleIds: [] });
@@ -555,16 +572,25 @@ export default function InvoiceForm({ initial, onSubmit, loading, onCustomerSele
   }, [clientType, activeVehicleIds]);
 
   const updateServiceField = useCallback((name, field, val) => {
-    // Price is not editable — only description notes on the form
+    // Price is not editable directly
     if (field === 'price') return;
     setForm(f => {
       const newServices = f.services.map(s => {
         if (s.service !== name) return s;
+        if (field === 'assigned_offer_id') {
+          const originalPrice = serviceOptions.find(opt => opt.name === s.service)?.price || 0;
+          const newPrice = val ? 0 : originalPrice;
+          return { ...s, assigned_offer_id: val, price: newPrice, total: newPrice };
+        }
         return { ...s, [field]: val };
       });
-      return { ...f, services: newServices };
+      return { 
+        ...f, 
+        services: newServices,
+        subTotal: newServices.reduce((acc, s) => acc + (Number(s.total) || 0) * (s.vehicle_ids?.length || 1), 0)
+      };
     });
-  }, []);
+  }, [serviceOptions]);
 
   const addThirdPartyItem = useCallback((catalogId, vehicle_ids) => {
     const opt = thirdPartyOptions.find(t => t.id === Number(catalogId));
@@ -642,6 +668,7 @@ export default function InvoiceForm({ initial, onSubmit, loading, onCustomerSele
     const service_items = form.services.map(s => ({
       service_id: Number(s.service_id || s.serviceId),
       vehicle_ids: s.vehicle_ids || [],
+      assigned_offer_id: s.assigned_offer_id || null,
     }));
 
     const third_party_items = form.thirdPartyItems.map(t => ({
@@ -1063,6 +1090,8 @@ export default function InvoiceForm({ initial, onSubmit, loading, onCustomerSele
                         onDesc={e => updateServiceField(cur.service, 'description', e.target.value)}
                         vehicleOptions={clientType === 'organization' && activeVehicleIds.length > 1 ? vehicleOptions.filter(v => activeVehicleIds.includes(v.value)) : null}
                         onVehiclesChange={() => setServiceModal({ isOpen: true, type: 'edit_standard', opt: cur, selectedVehicleIds: cur.vehicle_ids })}
+                        assignedOffers={assignedOffers}
+                        onRedeemPackage={id => updateServiceField(cur.service, 'assigned_offer_id', id)}
                       />
                     ))}
                   </div>

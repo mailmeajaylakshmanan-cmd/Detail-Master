@@ -27,6 +27,10 @@ export const queryKeys = {
     all: ['thirdPartyServices'],
     list: () => [...queryKeys.thirdPartyServices.all, 'list'],
   },
+  assignedOffers: {
+    all: ['assignedOffers'],
+    byClient: (clientId) => [...queryKeys.assignedOffers.all, 'client', clientId],
+  },
 };
 
 export function mapClient(c) {

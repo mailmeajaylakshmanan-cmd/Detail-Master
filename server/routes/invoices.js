@@ -143,7 +143,7 @@ router.get('/:id', async (req, res) => {
 
     const invoice = invRes.rows[0];
 
-    const [servicesRes, thirdPartyRes, paymentsRes, vehicleVisitsRes] = await Promise.all([
+    const [servicesRes, thirdPartyRes, paymentsRes, vehicleVisitsRes, usagesRes] = await Promise.all([
       db.query(
         `SELECT isv.*, s.service_name, s.category, v.license_vin AS vehicle_plate,
                 v.make_model AS vehicle_name
@@ -177,9 +177,22 @@ router.get('/:id', async (req, res) => {
          ORDER BY iv.id ASC`,
         [id]
       ),
+      db.query(
+        `SELECT * FROM assigned_offer_usages
+         WHERE invoice_order_id = $1`,
+        [id]
+      ),
     ]);
 
-    invoice.services = servicesRes.rows;
+    const usages = usagesRes.rows;
+    invoice.services = servicesRes.rows.map(s => {
+      if (Number(s.unit_price) === 0 && usages.length > 0) {
+        // Blindly assign an offer usage to a service that is free
+        const usage = usages.shift();
+        return { ...s, assigned_offer_id: usage.assigned_offer_id };
+      }
+      return s;
+    });
     invoice.thirdPartyServices = thirdPartyRes.rows;
     invoice.payments = paymentsRes.rows;
     invoice.vehicleVisits = vehicleVisitsRes.rows;
@@ -245,7 +258,8 @@ router.post('/', async (req, res) => {
         if (dbSrv) {
           lines.push({
             service_id: si.service_id,
-            unit_price: Number(dbSrv.base_price) || 0,
+            unit_price: si.assigned_offer_id ? 0 : (Number(dbSrv.base_price) || 0),
+            assigned_offer_id: si.assigned_offer_id || null,
             vehicle_ids: Array.isArray(si.vehicle_ids) && si.vehicle_ids.length > 0
               ? si.vehicle_ids
               : [vehicle_id || null]
@@ -346,12 +360,18 @@ router.post('/', async (req, res) => {
     }
 
     const serviceRows = [];
+    const usageUsagesToInsert = [];
+    
     for (const line of lines) {
       const vIds = line.vehicle_ids.length > 0 ? line.vehicle_ids : [null];
       for (const vId of vIds) {
         serviceRows.push([invoice.id, line.service_id, line.unit_price, vId]);
+        if (line.assigned_offer_id) {
+          usageUsagesToInsert.push({ offer_id: line.assigned_offer_id, invoice_id: invoice.id });
+        }
       }
     }
+    
     if (serviceRows.length > 0) {
       const q = buildBulkInsert(
         'invoice_services',
@@ -359,6 +379,21 @@ router.post('/', async (req, res) => {
         serviceRows
       );
       await client.query(q.text, q.params);
+    }
+    
+    // Insert usages after invoice_services
+    if (usageUsagesToInsert.length > 0) {
+      for (const usage of usageUsagesToInsert) {
+        await client.query(
+          `INSERT INTO assigned_offer_usages (assigned_offer_id, invoice_order_id, usage_type)
+           VALUES ($1, $2, $3)`,
+          [usage.offer_id, usage.invoice_id, 'regular']
+        );
+        await client.query(
+          `UPDATE assigned_offers SET completed_washes = completed_washes + 1 WHERE id = $1`,
+          [usage.offer_id]
+        );
+      }
     }
 
     const tPartyRows = [];
@@ -493,9 +528,22 @@ router.put('/:id', async (req, res) => {
         `SELECT id, base_price FROM services WHERE id = ANY($1::int[]) AND is_active = TRUE`,
         [svcIds]
       );
+      
+      // Revert any existing usages
+      const usageRes = await client.query('SELECT * FROM assigned_offer_usages WHERE invoice_order_id = $1', [id]);
+      for (const usage of usageRes.rows) {
+        if (usage.usage_type === 'free') {
+          await client.query('UPDATE assigned_offers SET free_washes_used = GREATEST(0, free_washes_used - 1) WHERE id = $1', [usage.assigned_offer_id]);
+        } else {
+          await client.query('UPDATE assigned_offers SET completed_washes = GREATEST(0, completed_washes - 1) WHERE id = $1', [usage.assigned_offer_id]);
+        }
+      }
+      await client.query('DELETE FROM assigned_offer_usages WHERE invoice_order_id = $1', [id]);
+      
       await client.query('DELETE FROM invoice_services WHERE invoice_order_id = $1', [id]);
       const priceById = new Map(priceRes.rows.map(r => [r.id, r]));
       const serviceRows = [];
+      const usageUsagesToInsert = [];
       for (const si of req.body.service_items) {
         const row = priceById.get(si.service_id);
         if (!row) continue;
@@ -503,7 +551,12 @@ router.put('/:id', async (req, res) => {
           ? si.vehicle_ids
           : [vehicle_id || null];
         for (const vId of vIds) {
-          serviceRows.push([id, row.id, Number(row.base_price) || 0, vId]);
+          const unitPrice = si.assigned_offer_id ? 0 : (Number(row.base_price) || 0);
+          serviceRows.push([id, row.id, unitPrice, vId]);
+          
+          if (si.assigned_offer_id) {
+            usageUsagesToInsert.push({ offer_id: si.assigned_offer_id, invoice_id: id });
+          }
         }
       }
       if (serviceRows.length > 0) {
@@ -513,6 +566,21 @@ router.put('/:id', async (req, res) => {
           serviceRows
         );
         await client.query(q.text, q.params);
+      }
+      
+      // Insert usages after invoice_services
+      if (usageUsagesToInsert.length > 0) {
+        for (const usage of usageUsagesToInsert) {
+          await client.query(
+            `INSERT INTO assigned_offer_usages (assigned_offer_id, invoice_order_id, usage_type)
+             VALUES ($1, $2, $3)`,
+            [usage.offer_id, usage.invoice_id, 'regular']
+          );
+          await client.query(
+            `UPDATE assigned_offers SET completed_washes = completed_washes + 1 WHERE id = $1`,
+            [usage.offer_id]
+          );
+        }
       }
     } else if (Array.isArray(service_ids)) {
       const ids = [...new Set(service_ids.map(Number).filter((n) => Number.isFinite(n) && n > 0))];

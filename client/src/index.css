@@ -12,22 +12,21 @@
 
   body {
     @apply text-gray-900 antialiased;
-    background-color: #f4f7f9;
-    background-image: url('https://images.unsplash.com/photo-1601362840469-51e4d8d58785?q=80&w=2000&auto=format&fit=crop');
-    background-size: cover;
+    background-color: #1a1a1a;
+    background-image: repeating-linear-gradient(45deg, #111 25%, transparent 25%, transparent 75%, #111 75%, #111), repeating-linear-gradient(45deg, #111 25%, #1a1a1a 25%, #1a1a1a 75%, #111 75%, #111);
+    background-position: 0 0, 10px 10px;
+    background-size: 20px 20px;
     background-attachment: fixed;
-    background-position: center;
-    background-repeat: no-repeat;
   }
 
-  /* Soft glass overlay so UI stays readable on every page */
+  /* Soft glass overlay to darken the carbon pattern and make it subtle */
   body::before {
     content: '';
     position: fixed;
     inset: 0;
-    background: rgba(244, 247, 249, 0.55);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
+    background: rgba(20, 20, 20, 0.85);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
     z-index: -1;
     pointer-events: none;
   }

@@ -8,7 +8,7 @@ import {
 import { parseSafeDate } from '../utils/dateFormatter.js';
 import api from '../api/axios.js';
 import toast from 'react-hot-toast';
-import brandLogo from '../assets/brand_logo.png';
+import brandLogo from '../assets/brand-logo-for-invoice.png';
 import goldenCar from '../assets/new-invoice-add.png';
 
 function fmt(n) {
@@ -268,7 +268,7 @@ export default function InvoiceView() {
 
   return (
     <div>
-      <div style={{ position: 'fixed', inset: 0, backgroundColor: '#EBEBED', zIndex: -10 }}></div>
+      <div style={{ position: 'fixed', inset: 0, backgroundColor: '#FFFFFF', zIndex: -10 }}></div>
       <div className="print:hidden" style={bar.wrap}>
         <div style={bar.left}>
           <Link to="/invoices" style={bar.back}>
@@ -345,77 +345,81 @@ export default function InvoiceView() {
 
       <div id="invoice-print" style={doc.wrap}>
         {/* HEADER */}
-        <div style={{ position: 'relative', height: '145px', backgroundColor: '#EBEBED', width: '100%', overflow: 'hidden' }}>
+        <div style={{ position: 'relative', height: '115px', backgroundColor: '#EBEBED', width: '100%', WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>
+          {/* Layer 1: Top Left Yellow Square */}
+          <div style={{ position: 'absolute', top: 0, left: 0, width: '100px', height: '100px', background: '#FFD700', zIndex: 1 }}></div>
+
+          {/* Layer 2: Right Black Polygon */}
+          <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: '#000000', clipPath: 'polygon(65% 0, 100% 0, 100% 75%, 57.5% 75%)', zIndex: 2 }}></div>
           
-          {/* Top Left Yellow Triangle */}
-          <div style={{ position: 'absolute', top: 0, left: 0, width: '60px', height: '60px', background: '#EDCB19', clipPath: 'polygon(0 0, 100% 0, 0 100%)', zIndex: 1 }}></div>
+          {/* Layer 3: Right Yellow Bar */}
+          <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: '#FFD700', clipPath: 'polygon(57.5% 75%, 100% 75%, 100% 85%, 56.5% 85%)', zIndex: 3 }}></div>
 
-          {/* Main Left Black Polygon */}
-          <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: '#2A2A2A', clipPath: 'polygon(0 0, 58% 0, 44% 100%, 0 100%)', zIndex: 2 }}></div>
+          {/* Layer 4: Black Splinter */}
+          <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: '#000000', clipPath: 'polygon(50% 0, 65% 0, 49% 100%, 35% 100%)', zIndex: 4 }}></div>
 
-          {/* Yellow Diagonal Stripe */}
-          <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: '#EDCB19', clipPath: 'polygon(60% 0, 63% 0, 49% 100%, 46% 100%)', zIndex: 2 }}></div>
+          {/* Layer 5: Yellow Stripe */}
+          <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: '#FFD700', clipPath: 'polygon(50% 0, 61% 0, 49% 100%, 35% 100%)', zIndex: 5 }}></div>
 
-          {/* Right Black Polygon */}
-          <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '85px', background: '#2A2A2A', clipPath: 'polygon(69% 0, 100% 0, 100% 100%, 60.5% 100%)', zIndex: 1 }}></div>
-          
-          {/* Right Yellow Stripe */}
-          <div style={{ position: 'absolute', top: '85px', left: 0, width: '100%', height: '12px', background: '#EDCB19', clipPath: 'polygon(60.1% 0, 100% 0, 100% 100%, 58.7% 100%)', zIndex: 1 }}></div>
+          {/* Layer 6: Main Left Black Polygon */}
+          <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: '#2B2A2A', clipPath: 'polygon(4% 0, 60% 0, 45% 100%, 0 100%, 0 25%)', zIndex: 6 }}></div>
 
-          <div style={{ position: 'relative', zIndex: 10, display: 'flex', justifyContent: 'space-between', padding: '7px 40px 7px 15px', height: '100%' }}>
+          <div style={{ position: 'relative', zIndex: 10, display: 'flex', justifyContent: 'space-between', padding: '2px 40px 2px 45px', height: '100%' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
               {/* Logo with pure white shield background */}
-              <div style={{ position: 'relative', filter: 'drop-shadow(0 2px 5px rgba(0,0,0,0.3))' }}>
+              <div style={{ position: 'relative', filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.5))', zIndex: 20 }}>
                 <svg width="0" height="0" style={{ position: 'absolute' }}>
                   <clipPath id="shield-clip" clipPathUnits="objectBoundingBox">
                     <path d="M 0 0.02 Q 0.5 -0.02 1 0.02 L 1 0.65 C 1 0.88 0.7 1 0.5 1 C 0.3 1 0 0.88 0 0.65 Z" />
                   </clipPath>
                 </svg>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#fff', clipPath: 'url(#shield-clip)', width: 95, height: 115 }}>
-                  <img src={brandLogo} alt="Logo" style={{ height: '100%', width: '100%', objectFit: 'fill' }} />
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'transparent', clipPath: 'url(#shield-clip)', width: 88, height: 108, WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>
+                  <img src={brandLogo} alt="Logo" style={{ height: '100%', width: '100%', objectFit: 'fill', filter: 'drop-shadow(0 0 1px #fff) drop-shadow(0 0 2px rgba(255,255,255,0.9))' }} />
                 </div>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1 }}>
                 <span style={{ 
-                    fontFamily: "Georgia, serif", 
-                    fontSize: 24, 
+                    fontFamily: "'Cinzel', 'Trajan Pro', 'Georgia', serif", 
+                    fontSize: 28, 
                     margin: 0, 
-                    letterSpacing: '4px', 
+                    letterSpacing: '3px', 
                     fontWeight: 600,
-                    background: 'linear-gradient(to bottom, #F4E5B2 0%, #B8860B 100%)',
+                    background: 'linear-gradient(to right, #BF953F, #FCF6BA, #B38728, #FBF5B7, #AA771C)',
                     WebkitBackgroundClip: 'text',
                     WebkitTextFillColor: 'transparent',
-                    filter: 'drop-shadow(1px 1px 1px rgba(0,0,0,0.5))'
+                    WebkitPrintColorAdjust: 'exact',
+                    printColorAdjust: 'exact',
                 }}>DETAILING</span>
                 <span style={{ 
-                    fontFamily: "Georgia, serif", 
-                    fontSize: 36, 
+                    fontFamily: "'Cinzel', 'Trajan Pro', 'Georgia', serif", 
+                    fontSize: 28, 
                     margin: 0, 
-                    letterSpacing: '2px', 
-                    fontWeight: 700,
-                    background: 'linear-gradient(to bottom, #F4E5B2 0%, #B8860B 100%)',
+                    letterSpacing: '3px', 
+                    fontWeight: 600,
+                    background: 'linear-gradient(to right, #BF953F, #FCF6BA, #B38728, #FBF5B7, #AA771C)',
                     WebkitBackgroundClip: 'text',
                     WebkitTextFillColor: 'transparent',
-                    filter: 'drop-shadow(1px 1px 2px rgba(0,0,0,0.6))'
+                    WebkitPrintColorAdjust: 'exact',
+                    printColorAdjust: 'exact',
                 }}>MASTERS</span>
               </div>
             </div>
 
-            {/* Empty Space Center Image */}
-            <div style={{ flex: 1, display: 'flex', alignItems: 'flex-start', justifyContent: 'flex-start', position: 'relative' }}>
-               <img src={goldenCar} alt="Golden Car" style={{ height: '90px', objectFit: 'contain', filter: 'drop-shadow(0 0 12px rgba(237, 203, 25, 0.4)) drop-shadow(0 4px 10px rgba(0,0,0,0.6))', position: 'absolute', right: '-100px', top: '20px' }} />
+            {/* Center Accent Logo */}
+            <div style={{ flex: 1, position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+               <img src={goldenCar} alt="Car Accent" style={{ height: '80px', objectFit: 'contain', filter: 'drop-shadow(2px 2px 4px rgba(0,0,0,0.4))', position: 'relative', left: '20%', top: '10px' }} />
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'flex-start', paddingRight: '15px', paddingTop: '10px' }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', paddingRight: '15px', paddingTop: '20px' }}>
               <h1 style={{ 
-                  fontFamily: "Georgia, serif",
-                  fontSize: 32, 
-                  fontWeight: 700, 
+                  fontFamily: "'Montserrat', 'Open Sans', sans-serif",
+                  fontSize: 36, 
+                  fontWeight: 500, 
                   margin: 0, 
                   letterSpacing: '0.05em',
-                  background: 'linear-gradient(to bottom, #FFFFFF 0%, #E8E8E8 100%)',
-                  WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent',
+                  color: '#FFFFFF',
+                  WebkitPrintColorAdjust: 'exact',
+                  printColorAdjust: 'exact',
                   filter: 'drop-shadow(1px 1px 2px rgba(0,0,0,0.6))'
               }}>INVOICE</h1>
             </div>
@@ -423,8 +427,8 @@ export default function InvoiceView() {
         </div>
 
         {/* Global Watermark */}
-        <div style={{ position: 'absolute', top: '145px', bottom: 0, left: 0, right: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.08, pointerEvents: 'none', zIndex: 50 }}>
-           <img src={brandLogo} style={{ width: '450px' }} />
+        <div style={{ position: 'absolute', top: '115px', bottom: 0, left: 0, right: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none', zIndex: 50 }}>
+           <img src={brandLogo} style={{ width: '450px', opacity: 0.04, filter: 'grayscale(100%)' }} />
         </div>
 
         {/* INFO SECTIONS */}
@@ -450,17 +454,17 @@ export default function InvoiceView() {
 
         {/* SERVICES TABLE */}
         <div style={{ padding: '20px 40px 0 40px', flex: 1 }}>
-           <h3 style={{ fontSize: 15, fontWeight: 700, margin: '0 0 8px 0', color: '#0A0A0A', textTransform: 'uppercase' }}>SERVICES RENDERED</h3>
+           <h3 style={{ fontSize: 15, fontWeight: 700, margin: '0 0 8px 0', color: '#0A0A0A', textTransform: 'uppercase' }}>SERVICES</h3>
            <div style={{ height: 2, backgroundColor: '#0A0A0A', marginBottom: 16 }}></div>
            
            <div style={{ position: 'relative' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, border: '1px solid #e2e8f0', position: 'relative', zIndex: 1 }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, position: 'relative', zIndex: 1, backgroundColor: 'transparent' }}>
                  <thead>
                     <tr style={{ backgroundColor: '#0A0A0A', color: '#fff' }}>
-                       <th style={{ padding: '12px 12px', textAlign: 'left', fontWeight: 600, border: '1px solid #333', width: '50%' }}>Service</th>
-                       <th style={{ padding: '12px 12px', textAlign: 'center', fontWeight: 600, border: '1px solid #333', width: '15%' }}>Quantity</th>
-                       <th style={{ padding: '12px 12px', textAlign: 'center', fontWeight: 600, border: '1px solid #333', width: '17.5%' }}>Unit Price (₹)</th>
-                       <th style={{ padding: '12px 12px', textAlign: 'center', fontWeight: 600, border: '1px solid #333', width: '17.5%' }}>Amount (₹)</th>
+                       <th style={{ padding: '12px 12px', textAlign: 'left', fontWeight: 600, border: '1px solid #000', width: '50%' }}>Service</th>
+                       <th style={{ padding: '12px 12px', textAlign: 'center', fontWeight: 600, border: '1px solid #000', width: '15%' }}>Quantity</th>
+                       <th style={{ padding: '12px 12px', textAlign: 'center', fontWeight: 600, border: '1px solid #000', width: '17.5%' }}>Unit Price (₹)</th>
+                       <th style={{ padding: '12px 12px', textAlign: 'center', fontWeight: 600, border: '1px solid #000', width: '17.5%' }}>Amount (₹)</th>
                     </tr>
                  </thead>
                  <tbody>
@@ -468,14 +472,15 @@ export default function InvoiceView() {
                        <>
                        {invoice.services?.map((s, idx) => {
                           const IconComponent = ICONS[idx % ICONS.length];
+                          const globalIdx = idx;
                           return (
-                          <tr key={`s-${idx}`} style={{ backgroundColor: 'transparent' }}>
-                             <td style={{ padding: '10px 12px', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: 12 }}>
-                                <div style={{ backgroundColor: '#EDCB19', borderRadius: 4, width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                                   <IconComponent size={14} color="#0A0A0A" />
+                          <tr key={`s-${idx}`} style={{ backgroundColor: globalIdx % 2 === 0 ? '#FFFFFF' : '#f8fafc' }}>
+                             <td style={{ padding: '10px 12px', border: '1px solid #000', display: 'flex', alignItems: 'center', gap: 12 }}>
+                                <div style={{ backgroundColor: '#FBD904', borderRadius: 4, width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                   <IconComponent size={14} color="#000" />
                                 </div>
                                 <div>
-                                   <div style={{ fontWeight: 500, color: '#111' }}>{s.service}</div>
+                                   <div style={{ fontWeight: 500, color: '#000' }}>{s.service}</div>
                                    {(s.description || s.vehicle_plate) && (
                                       <div style={{ fontSize: 11, color: '#666' }}>
                                          {s.vehicle_plate && <span style={{ fontWeight: 600, color: '#444' }}>[{s.vehicle_plate}] </span>}
@@ -484,21 +489,22 @@ export default function InvoiceView() {
                                    )}
                                 </div>
                              </td>
-                             <td style={{ padding: '10px 12px', border: '1px solid #e2e8f0', textAlign: 'center', color: '#111' }}>{s.quantity || 1}</td>
-                             <td style={{ padding: '10px 12px', border: '1px solid #e2e8f0', textAlign: 'center', color: '#111' }}>₹{fmt(s.price)}</td>
-                             <td style={{ padding: '10px 12px', border: '1px solid #e2e8f0', textAlign: 'center', color: '#111', fontWeight: 600 }}>₹{fmt(s.total)}</td>
+                             <td style={{ padding: '10px 12px', border: '1px solid #000', textAlign: 'center', color: '#000' }}>{s.quantity || 1}</td>
+                             <td style={{ padding: '10px 12px', border: '1px solid #000', textAlign: 'center', color: '#000' }}>₹{fmt(s.price)}</td>
+                             <td style={{ padding: '10px 12px', border: '1px solid #000', textAlign: 'center', color: '#000', fontWeight: 600 }}>₹{fmt(s.total)}</td>
                           </tr>
                        )})}
                        {invoice.thirdPartyServices?.map((t, idx) => {
-                          const IconComponent = ICONS[((invoice.services?.length || 0) + idx) % ICONS.length];
+                          const globalIdx = (invoice.services?.length || 0) + idx;
+                          const IconComponent = ICONS[globalIdx % ICONS.length];
                           return (
-                          <tr key={`tp-${idx}`} style={{ backgroundColor: 'transparent' }}>
-                             <td style={{ padding: '10px 12px', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: 12 }}>
-                                <div style={{ backgroundColor: '#EDCB19', borderRadius: 4, width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                                   <IconComponent size={14} color="#0A0A0A" />
+                          <tr key={`tp-${idx}`} style={{ backgroundColor: globalIdx % 2 === 0 ? '#FFFFFF' : '#f8fafc' }}>
+                             <td style={{ padding: '10px 12px', border: '1px solid #000', display: 'flex', alignItems: 'center', gap: 12 }}>
+                                <div style={{ backgroundColor: '#FBD904', borderRadius: 4, width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                   <IconComponent size={14} color="#000" />
                                 </div>
                                 <div>
-                                   <div style={{ fontWeight: 500, color: '#111' }}>{t.service_name}</div>
+                                   <div style={{ fontWeight: 500, color: '#000' }}>{t.service_name}</div>
                                    {(t.vendor_name || t.vehicle_plate) && (
                                       <div style={{ fontSize: 11, color: '#666' }}>
                                          {t.vehicle_plate && <span style={{ fontWeight: 600, color: '#444' }}>[{t.vehicle_plate}] </span>}
@@ -507,24 +513,23 @@ export default function InvoiceView() {
                                    )}
                                 </div>
                              </td>
-                             <td style={{ padding: '10px 12px', border: '1px solid #e2e8f0', textAlign: 'center', color: '#111' }}>{t.quantity || 1}</td>
-                             <td style={{ padding: '10px 12px', border: '1px solid #e2e8f0', textAlign: 'center', color: '#111' }}>₹{fmt(t.selling_price)}</td>
-                             <td style={{ padding: '10px 12px', border: '1px solid #e2e8f0', textAlign: 'center', color: '#111', fontWeight: 600 }}>₹{fmt(t.total)}</td>
+                             <td style={{ padding: '10px 12px', border: '1px solid #000', textAlign: 'center', color: '#000' }}>{t.quantity || 1}</td>
+                             <td style={{ padding: '10px 12px', border: '1px solid #000', textAlign: 'center', color: '#000' }}>₹{fmt(t.selling_price)}</td>
+                             <td style={{ padding: '10px 12px', border: '1px solid #000', textAlign: 'center', color: '#000', fontWeight: 600 }}>₹{fmt(t.total)}</td>
                           </tr>
                        )})}
                        </>
                     ) : (
-                       <tr style={{ backgroundColor: 'transparent' }}>
-                          <td colSpan="4" style={{ padding: '12px', textAlign: 'center', color: '#666', border: '1px solid #e2e8f0' }}>No services added</td>
+                       <tr style={{ backgroundColor: '#FFFFFF' }}>
+                          <td colSpan="4" style={{ padding: '12px', textAlign: 'center', color: '#666', border: '1px solid #000' }}>No services added</td>
                        </tr>
                     )}
                     <tr>
-                       <td style={{ border: 'none', backgroundColor: 'transparent', borderRight: '1px solid #e2e8f0' }}></td>
-                       <td colSpan="2" style={{ backgroundColor: '#EDCB19', color: '#0A0A0A', padding: '16px', fontWeight: 800, fontSize: 15, textAlign: 'right', border: '1px solid #e2e8f0', borderLeft: 'none', textTransform: 'uppercase' }}>
-                          TOTAL AMOUNT DUE:
-                       </td>
-                       <td style={{ backgroundColor: '#EDCB19', color: '#0A0A0A', padding: '16px', fontWeight: 800, fontSize: 16, textAlign: 'center', border: '1px solid #e2e8f0' }}>
-                          ₹{fmt(invoice.total || 45000)}
+                       <td style={{ border: 'none', backgroundColor: 'transparent' }}></td>
+                       <td colSpan="3" style={{ border: 'none', padding: 0, backgroundColor: 'transparent' }}>
+                          <div style={{ backgroundColor: '#FBD904', color: '#000', padding: '12px 16px', fontWeight: 800, fontSize: 16, textAlign: 'center', width: '100%' }}>
+                             TOTAL AMOUNT DUE: ₹{fmt(invoice.total || 45000)}
+                          </div>
                        </td>
                     </tr>
                  </tbody>
@@ -548,20 +553,25 @@ export default function InvoiceView() {
 
         {/* FOOTER */}
         <div style={{ position: 'relative', width: '100%', marginTop: 'auto', overflow: 'hidden', minHeight: '120px' }}>
-           <div style={{ margin: '0 40px', borderTop: '1px solid #ccc', paddingTop: '15px', paddingBottom: '50px', textAlign: 'center', fontSize: 12, color: '#333', zIndex: 10, position: 'relative' }}>
+           <div style={{ margin: '0 40px', borderTop: '1.5px solid #111', paddingTop: '15px', paddingBottom: '50px', textAlign: 'center', fontSize: 13, color: '#111', zIndex: 10, position: 'relative' }}>
               <strong>Detailing Masters</strong>, 123 High Street, Opp. KTM Bike Showroom, Bengaluru, India.<br/>
               Ph: +91 (23 367 7873 | E-mail: infi@detailingmasters.com
            </div>
            
            {/* Bottom Shapes matching reference */}
-           <div style={{ position: 'absolute', bottom: 0, left: 0, width: '100%', height: '40px', zIndex: 1 }}>
-              {/* Bottom Left */}
-              <div style={{ position: 'absolute', bottom: 0, left: 0, width: '180px', height: '30px', backgroundColor: '#EDCB19', clipPath: 'polygon(0 100%, 100% 100%, 0 0)' }}></div>
-              <div style={{ position: 'absolute', bottom: 0, left: '25px', width: '220px', height: '40px', backgroundColor: '#111', clipPath: 'polygon(12% 100%, 100% 100%, 88% 0, 0% 0)' }}></div>
+           <div style={{ position: 'absolute', bottom: 0, left: 0, width: '100%', height: '30px', zIndex: 1 }}>
+              {/* Bottom Left Shapes */}
+              <div style={{ position: 'absolute', bottom: 0, left: 0, width: '150px', height: '100%' }}>
+                 <div style={{ position: 'absolute', inset: 0, backgroundColor: '#FBD904', clipPath: 'polygon(0 0, 20px 0, 50px 100%, 0 100%)' }}></div>
+                 <div style={{ position: 'absolute', inset: 0, backgroundColor: '#111', clipPath: 'polygon(25px 0, 100px 0, 130px 100%, 55px 100%)' }}></div>
+              </div>
               
-              {/* Bottom Right */}
-              <div style={{ position: 'absolute', bottom: 0, right: '40px', width: '220px', height: '40px', backgroundColor: '#111', clipPath: 'polygon(12% 100%, 100% 100%, 88% 0, 0% 0)' }}></div>
-              <div style={{ position: 'absolute', bottom: 0, right: 0, width: '140px', height: '30px', backgroundColor: '#EDCB19', clipPath: 'polygon(0 100%, 100% 100%, 100% 0)' }}></div>
+              {/* Bottom Right Shapes */}
+              <div style={{ position: 'absolute', bottom: 0, right: 0, width: '175px', height: '100%' }}>
+                 <div style={{ position: 'absolute', inset: 0, backgroundColor: '#111', clipPath: 'polygon(50px 0, 60px 0, 90px 100%, 80px 100%)' }}></div>
+                 <div style={{ position: 'absolute', inset: 0, backgroundColor: '#FBD904', clipPath: 'polygon(65px 0, 80px 0, 110px 100%, 95px 100%)' }}></div>
+                 <div style={{ position: 'absolute', inset: 0, backgroundColor: '#111', clipPath: 'polygon(85px 0, 100% 0, 100% 100%, 115px 100%)' }}></div>
+              </div>
            </div>
         </div>
       </div>
@@ -735,8 +745,8 @@ const bar = {
 
 const doc = {
   wrap: {
-    maxWidth: 820,
-    minHeight: 'auto',
+    width: '210mm',
+    minHeight: '297mm',
     margin: '0 auto',
     background: '#EBEBED',
     boxShadow: '0 12px 40px rgba(0,0,0,0.06)',
