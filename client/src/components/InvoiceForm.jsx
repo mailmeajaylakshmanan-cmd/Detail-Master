@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useMemo, memo } from 'react';
 import toast from 'react-hot-toast';
+import api from '../api/axios.js';
 import {
   User, Phone, MapPin, Plus, Trash2, Sparkles,
   CheckCircle2, AlertCircle, Calendar, IndianRupee, Hash, Receipt, Settings, Truck, X
@@ -143,6 +144,38 @@ const PaymentRow = memo(function PaymentRow({
           disabled={locked}
         />
       )}
+    </div>
+  );
+});
+
+const ScheduleConflictModal = memo(function ScheduleConflictModal({ isOpen, conflicts, onCancel, onProceed }) {
+  if (!isOpen) return null;
+  return (
+    <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-gray-900/40 backdrop-blur-sm">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden flex flex-col">
+        <div className="flex items-center gap-3 p-4 border-b border-amber-100 bg-amber-50/50">
+          <AlertCircle size={20} className="text-amber-500 shrink-0" />
+          <h3 className="font-bold text-gray-900 text-lg">Scheduling Conflict</h3>
+        </div>
+        <div className="p-4 max-h-[50vh] overflow-y-auto flex flex-col gap-2">
+          {conflicts.map((c, i) => (
+            <div key={i} className="p-3 bg-amber-50/50 border border-amber-100 rounded-xl text-[13px]">
+              <span className="font-bold text-gray-900">{c.service_name}</span> is already scheduled{' '}
+              <span className="font-bold">
+                {new Date(c.checkin_time).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: 'numeric', minute: '2-digit' })}
+                {' – '}
+                {new Date(c.checkout_time).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: 'numeric', minute: '2-digit' })}
+              </span>{' '}
+              for <span className="font-bold">{c.make_model}{c.license_vin ? ` (${c.license_vin})` : ''}</span> — {c.customer_name}.
+            </div>
+          ))}
+          <p className="text-[12px] text-gray-500 mt-1">This is just a heads-up — you can still proceed if this is intentional (e.g. a second team is available).</p>
+        </div>
+        <div className="p-4 border-t border-gray-100 flex justify-end gap-3 bg-white">
+          <button type="button" onClick={onCancel} className="px-5 py-2.5 text-[13px] font-bold text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-xl transition-colors">Go Back</button>
+          <button type="button" onClick={onProceed} className="px-6 py-2.5 text-[13px] font-bold text-white bg-amber-500 hover:bg-amber-600 rounded-xl transition-colors shadow-sm">Proceed Anyway</button>
+        </div>
+      </div>
     </div>
   );
 });
@@ -390,6 +423,8 @@ export default function InvoiceForm({ initial, onSubmit, loading, onCustomerSele
   
   const [clientType, setClientType] = useState(initial?.organizationId || initial?.organization_id ? 'organization' : 'individual');
   const [serviceModal, setServiceModal] = useState({ isOpen: false, type: null, opt: null, selectedVehicleIds: [] });
+  const [conflictModal, setConflictModal] = useState({ isOpen: false, conflicts: [] });
+  const [checkingConflicts, setCheckingConflicts] = useState(false);
 
   const [form, setForm] = useState(() => {
     const base = {
@@ -634,7 +669,38 @@ export default function InvoiceForm({ initial, onSubmit, loading, onCustomerSele
     setForm(f => ({ ...f, thirdPartyItems: f.thirdPartyItems.filter((_, i) => i !== idx) }));
   }, []);
 
-  function handleSubmit(e) {
+  const pendingPayloadRef = React.useRef(null);
+
+  async function findScheduleConflicts(vehicleVisits, serviceItems, thirdPartyItems) {
+    const allConflicts = [];
+    for (const visit of vehicleVisits) {
+      if (!visit.checkin_time || !visit.checkout_time) continue;
+      const serviceIds = serviceItems
+        .filter(s => (s.vehicle_ids || []).includes(visit.vehicle_id))
+        .map(s => s.service_id);
+      const thirdPartyIds = thirdPartyItems
+        .filter(t => (t.vehicle_ids || []).includes(visit.vehicle_id))
+        .map(t => t.third_party_service_id)
+        .filter(Boolean);
+      if (!serviceIds.length && !thirdPartyIds.length) continue;
+      try {
+        const res = await api.post('/invoices/check-conflicts', {
+          vehicle_id: visit.vehicle_id,
+          checkin_time: visit.checkin_time,
+          checkout_time: visit.checkout_time,
+          service_ids: serviceIds,
+          third_party_service_ids: thirdPartyIds,
+          exclude_invoice_id: initial?.id || null,
+        });
+        if (res.data?.conflicts?.length) allConflicts.push(...res.data.conflicts);
+      } catch (err) {
+        // Don't block submission if the conflict check itself fails
+      }
+    }
+    return allConflicts;
+  }
+
+  async function handleSubmit(e) {
     e.preventDefault();
     if (!form.customer?.id) return toast.error(clientType === 'individual' ? 'Please select a client.' : 'Please select an organization.');
     if (clientType === 'individual' && !form.vehicleId) return toast.error('Please select a vehicle.');
@@ -704,7 +770,7 @@ export default function InvoiceForm({ initial, onSubmit, loading, onCustomerSele
           checkout_time: (form.vehicleVisitMeta[form.vehicleId] || {}).checkoutTime || null,
         }] : []);
 
-    onSubmit({
+    const payload = {
       client_id: clientType === 'individual' ? form.customer.id : null,
       organization_id: clientType === 'organization' ? form.customer.id : null,
       vehicle_id: form.vehicleId || null,
@@ -718,7 +784,27 @@ export default function InvoiceForm({ initial, onSubmit, loading, onCustomerSele
       terms_conditions: form.termsAndConditions || null,
       status: derivedStatus === 'paid' ? 'completed' : derivedStatus === 'partial' ? 'open' : 'draft',
       payments: newPayments,
-    });
+    };
+
+    setCheckingConflicts(true);
+    const conflicts = await findScheduleConflicts(vehicle_visits, service_items, third_party_items);
+    setCheckingConflicts(false);
+
+    if (conflicts.length > 0) {
+      pendingPayloadRef.current = payload;
+      setConflictModal({ isOpen: true, conflicts });
+      return;
+    }
+
+    onSubmit(payload);
+  }
+
+  function handleProceedDespiteConflict() {
+    setConflictModal({ isOpen: false, conflicts: [] });
+    if (pendingPayloadRef.current) {
+      onSubmit(pendingPayloadRef.current);
+      pendingPayloadRef.current = null;
+    }
   }
 
   const selectedCustomer = form.customer?.id
@@ -822,6 +908,12 @@ export default function InvoiceForm({ initial, onSubmit, loading, onCustomerSele
         serviceName={serviceModal.opt?.name || serviceModal.opt?.service || serviceModal.opt?.service_name || 'Service'}
         vehicleOptions={vehicleOptions.filter(v => activeVehicleIds.includes(v.value))}
         initialSelection={serviceModal.selectedVehicleIds}
+      />
+      <ScheduleConflictModal
+        isOpen={conflictModal.isOpen}
+        conflicts={conflictModal.conflicts}
+        onCancel={() => { setConflictModal({ isOpen: false, conflicts: [] }); pendingPayloadRef.current = null; }}
+        onProceed={handleProceedDespiteConflict}
       />
       <form onSubmit={handleSubmit} className="w-full font-sans pb-12 relative z-10 flex flex-col lg:flex-row gap-8">
         <div className="w-full lg:flex-1 flex flex-col gap-8 shrink-0">
@@ -1278,15 +1370,15 @@ export default function InvoiceForm({ initial, onSubmit, loading, onCustomerSele
 
               <button
                 type="submit"
-                disabled={loading}
-                className={`w-full py-5 text-[15px] font-black tracking-widest uppercase text-slate-900 bg-[#FBD904] hover:bg-[#e5c603] flex items-center justify-center gap-2 transition-colors ${loading ? 'opacity-70 pointer-events-none' : ''}`}
+                disabled={loading || checkingConflicts}
+                className={`w-full py-5 text-[15px] font-black tracking-widest uppercase text-slate-900 bg-[#FBD904] hover:bg-[#e5c603] flex items-center justify-center gap-2 transition-colors ${(loading || checkingConflicts) ? 'opacity-70 pointer-events-none' : ''}`}
               >
-                {loading ? (
+                {(loading || checkingConflicts) ? (
                   <div className="w-5 h-5 border-2 border-slate-900/30 border-t-slate-900 rounded-full animate-spin" />
                 ) : (
                   <Sparkles size={18} />
                 )}
-                {initial ? 'Update Invoice' : 'Create Invoice'}
+                {checkingConflicts ? 'Checking Schedule…' : initial ? 'Update Invoice' : 'Create Invoice'}
               </button>
             </div>
             <p className="text-center text-[11px] font-medium text-gray-400 mt-2 px-6">

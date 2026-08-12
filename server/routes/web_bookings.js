@@ -26,6 +26,69 @@ router.get('/', async (req, res) => {
   }
 });
 
+// List existing active bookings for a service on a given day, so staff can see
+// what's already taken before picking an allocated time (not just after).
+router.get('/busy-slots', async (req, res) => {
+  try {
+    const { service_id, date } = req.query;
+    if (!service_id || !date) return res.json({ slots: [] });
+    const { rows } = await db.query(
+      `SELECT DISTINCT v.make_model, v.license_vin, iv.checkin_time, iv.checkout_time,
+              COALESCE(c.full_name, o.org_name) AS customer_name
+       FROM invoice_services isv
+       JOIN invoice_vehicles iv ON iv.invoice_order_id = isv.invoice_order_id AND iv.vehicle_id = isv.vehicle_id
+       JOIN invoices i ON i.id = iv.invoice_order_id
+       JOIN vehicles v ON v.id = iv.vehicle_id
+       LEFT JOIN clients c ON i.client_id = c.id
+       LEFT JOIN organizations o ON i.organization_id = o.id
+       WHERE isv.service_id = $1
+         AND iv.checkin_time < ($2::date + interval '1 day')
+         AND iv.checkout_time > $2::date
+         AND i.status NOT IN ('completed', 'cancelled')
+       ORDER BY iv.checkin_time`,
+      [service_id, date]
+    );
+    res.json({ slots: rows });
+  } catch (err) {
+    console.error('Error fetching busy slots:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Check for schedule conflicts before confirming a pending booking.
+// Bookings have no vehicle_id yet and no checkout time, so the window is
+// treated as a fixed 2-hour block from allocated_time, and any other active
+// booking/invoice for the same service overlapping that block is a conflict
+// (vehicle isn't known yet, so it can't be excluded like the invoice-form check does).
+router.post('/check-conflicts', async (req, res) => {
+  try {
+    const { service_id, preferred_date, allocated_time } = req.body;
+    if (!service_id || !preferred_date || !allocated_time) return res.json({ conflicts: [] });
+    const checkin = `${preferred_date} ${allocated_time}`;
+    const { rows } = await db.query(
+      `SELECT DISTINCT s.service_name, v.make_model, v.license_vin,
+              iv.checkin_time, iv.checkout_time,
+              COALESCE(c.full_name, o.org_name) AS customer_name
+       FROM invoice_services isv
+       JOIN services s ON isv.service_id = s.id
+       JOIN invoice_vehicles iv ON iv.invoice_order_id = isv.invoice_order_id AND iv.vehicle_id = isv.vehicle_id
+       JOIN invoices i ON i.id = iv.invoice_order_id
+       JOIN vehicles v ON v.id = iv.vehicle_id
+       LEFT JOIN clients c ON i.client_id = c.id
+       LEFT JOIN organizations o ON i.organization_id = o.id
+       WHERE isv.service_id = $1
+         AND iv.checkin_time < ($2::timestamp + interval '2 hours')
+         AND iv.checkout_time > $2::timestamp
+         AND i.status NOT IN ('completed', 'cancelled')`,
+      [service_id, checkin]
+    );
+    res.json({ conflicts: rows });
+  } catch (err) {
+    console.error('Error checking booking conflicts:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 // GET a single web booking
 router.get('/:id', async (req, res) => {
   try {

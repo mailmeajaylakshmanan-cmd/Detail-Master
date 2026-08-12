@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Globe, Search, Calendar, Car, Phone, Mail, Clock, MoreVertical,
-  CheckCircle2, XCircle, Clock4, CheckSquare, PenSquare, Check, X as XIcon
+  CheckCircle2, XCircle, Clock4, CheckSquare, PenSquare, Check, X as XIcon, AlertCircle
 } from 'lucide-react';
 import api from '../api/axios';
 import { format, parseISO } from 'date-fns';
@@ -38,6 +38,10 @@ export default function WebsiteBookings() {
 
   const [confirmingId, setConfirmingId] = useState(null);
   const [confirmTime, setConfirmTime] = useState('');
+  const [checkingConflicts, setCheckingConflicts] = useState(false);
+  const [conflictModal, setConflictModal] = useState({ isOpen: false, conflicts: [], booking: null, time: null });
+  const [busySlots, setBusySlots] = useState([]);
+  const [loadingBusySlots, setLoadingBusySlots] = useState(false);
 
   const [cancellingId, setCancellingId] = useState(null);
   const [cancelReason, setCancelReason] = useState('');
@@ -118,26 +122,75 @@ export default function WebsiteBookings() {
   };
 
   // ── Confirm ──
-  const startConfirm = (booking) => {
+  const startConfirm = async (booking) => {
     setConfirmingId(booking.booking_id);
     setConfirmTime('');
+    setBusySlots([]);
+    if (!booking.service_id || !booking.preferred_date) return;
+    setLoadingBusySlots(true);
+    try {
+      const res = await api.get('/web_bookings/busy-slots', {
+        params: {
+          service_id: booking.service_id,
+          date: format(parseISO(booking.preferred_date), 'yyyy-MM-dd'),
+        },
+      });
+      setBusySlots(res.data?.slots || []);
+    } catch (err) {
+      // Non-critical — just skip showing busy slots if this fails
+    }
+    setLoadingBusySlots(false);
   };
 
-  const submitConfirm = (booking) => {
-    if (!confirmTime) { toast.error('Pick an allocated time'); return; }
+  const doConfirm = (booking, time) => {
     const waWindow = openWhatsAppLazy();
     updateStatusMutation.mutate(
-      { id: booking.booking_id, status: 'confirmed', allocated_time: confirmTime },
+      { id: booking.booking_id, status: 'confirmed', allocated_time: time },
       {
         onSuccess: () => {
           toast.success('Booking confirmed — customer notified by email');
-          const msg = `Hi ${booking.full_name}, your Detailing Masters booking for ${booking.service_name || 'General Detailing'} is confirmed for ${formatDate(booking.preferred_date)} at ${confirmTime}. See you then!`;
+          const msg = `Hi ${booking.full_name}, your Detailing Masters booking for ${booking.service_name || 'General Detailing'} is confirmed for ${formatDate(booking.preferred_date)} at ${time}. See you then!`;
           if (waWindow) waWindow.location.href = waLink(booking.phone, msg);
         },
         onError: () => { if (waWindow) waWindow.close(); }
       }
     );
+  };
+
+  const submitConfirm = async (booking) => {
+    if (!confirmTime) { toast.error('Pick an allocated time'); return; }
+    if (!booking.service_id) {
+      doConfirm(booking, confirmTime);
+      setConfirmingId(null);
+      return;
+    }
+    setCheckingConflicts(true);
+    let conflicts = [];
+    try {
+      const res = await api.post('/web_bookings/check-conflicts', {
+        service_id: booking.service_id,
+        preferred_date: booking.preferred_date ? format(parseISO(booking.preferred_date), 'yyyy-MM-dd') : null,
+        allocated_time: confirmTime,
+      });
+      conflicts = res.data?.conflicts || [];
+    } catch (err) {
+      // Don't block confirmation if the conflict check itself fails
+    }
+    setCheckingConflicts(false);
+
+    if (conflicts.length > 0) {
+      setConflictModal({ isOpen: true, conflicts, booking, time: confirmTime });
+      setConfirmingId(null);
+      return;
+    }
+    doConfirm(booking, confirmTime);
     setConfirmingId(null);
+  };
+
+  const handleProceedDespiteConflict = () => {
+    const { booking, time } = conflictModal;
+    setConflictModal({ isOpen: false, conflicts: [], booking: null, time: null });
+    if (booking && time) doConfirm(booking, time);
   };
 
   // ── Cancel ──
@@ -390,14 +443,78 @@ export default function WebsiteBookings() {
               type="time"
               value={confirmTime}
               onChange={(e) => setConfirmTime(e.target.value)}
-              className="w-full text-sm font-bold text-gray-700 bg-gray-50 px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 mb-6"
+              className="w-full text-sm font-bold text-gray-700 bg-gray-50 px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 mb-3"
             />
+            {loadingBusySlots && (
+              <p className="text-[12px] text-gray-400 mb-4">Checking today&apos;s schedule…</p>
+            )}
+            {!loadingBusySlots && busySlots.length > 0 && (
+              <div className="mb-4 p-3 bg-amber-50/50 border border-amber-100 rounded-xl flex flex-col gap-1.5">
+                <p className="text-[11px] font-bold text-amber-700 uppercase tracking-wide">Already booked today for this service</p>
+                {busySlots.map((s, i) => (
+                  <p key={i} className="text-[12px] text-gray-700">
+                    <span className="font-bold">
+                      {new Date(s.checkin_time).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: 'numeric', minute: '2-digit' })}
+                      {' – '}
+                      {new Date(s.checkout_time).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: 'numeric', minute: '2-digit' })}
+                    </span>
+                    {' '}— {s.make_model}{s.license_vin ? ` (${s.license_vin})` : ''} · {s.customer_name}
+                  </p>
+                ))}
+              </div>
+            )}
             <div className="flex gap-3">
               <button onClick={() => setConfirmingId(null)} className="flex-1 py-2.5 rounded-xl text-sm font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 transition-colors">
                 Cancel
               </button>
-              <button onClick={() => submitConfirm(bookings.find(b => b.booking_id === confirmingId))} className="flex-1 py-2.5 rounded-xl text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 transition-colors">
-                Confirm
+              <button
+                disabled={checkingConflicts}
+                onClick={() => submitConfirm(bookings.find(b => b.booking_id === confirmingId))}
+                className={`flex-1 py-2.5 rounded-xl text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 transition-colors ${checkingConflicts ? 'opacity-70 pointer-events-none' : ''}`}
+              >
+                {checkingConflicts ? 'Checking Schedule…' : 'Confirm'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Schedule Conflict Modal */}
+      {conflictModal.isOpen && (
+        <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-gray-900/40 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden flex flex-col">
+            <div className="flex items-center gap-3 p-4 border-b border-amber-100 bg-amber-50/50">
+              <AlertCircle size={20} className="text-amber-500 shrink-0" />
+              <h3 className="font-bold text-gray-900 text-lg">Scheduling Conflict</h3>
+            </div>
+            <div className="p-4 max-h-[50vh] overflow-y-auto flex flex-col gap-2">
+              {conflictModal.conflicts.map((c, i) => (
+                <div key={i} className="p-3 bg-amber-50/50 border border-amber-100 rounded-xl text-[13px]">
+                  <span className="font-bold text-gray-900">{c.service_name}</span> is already scheduled{' '}
+                  <span className="font-bold">
+                    {new Date(c.checkin_time).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: 'numeric', minute: '2-digit' })}
+                    {' – '}
+                    {new Date(c.checkout_time).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: 'numeric', minute: '2-digit' })}
+                  </span>{' '}
+                  for <span className="font-bold">{c.make_model}{c.license_vin ? ` (${c.license_vin})` : ''}</span> — {c.customer_name}.
+                </div>
+              ))}
+              <p className="text-[12px] text-gray-500 mt-1">This is just a heads-up — you can still proceed if this is intentional (e.g. a second team is available).</p>
+            </div>
+            <div className="p-4 border-t border-gray-100 flex justify-end gap-3 bg-white">
+              <button
+                type="button"
+                onClick={() => setConflictModal({ isOpen: false, conflicts: [], booking: null, time: null })}
+                className="px-5 py-2.5 text-[13px] font-bold text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-xl transition-colors"
+              >
+                Go Back
+              </button>
+              <button
+                type="button"
+                onClick={handleProceedDespiteConflict}
+                className="px-6 py-2.5 text-[13px] font-bold text-white bg-amber-500 hover:bg-amber-600 rounded-xl transition-colors shadow-sm"
+              >
+                Proceed Anyway
               </button>
             </div>
           </div>
