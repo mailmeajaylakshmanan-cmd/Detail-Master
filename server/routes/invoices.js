@@ -203,6 +203,82 @@ router.get('/:id', async (req, res) => {
   }
 });
 
+// Check for schedule conflicts before booking a service on a vehicle.
+// A conflict = the SAME service already booked on a DIFFERENT vehicle with an
+// overlapping check-in/check-out window, on an invoice that's still active
+// (not completed or cancelled). Different services at the same time are fine
+// (different bay/team) — only same-service double-booking is a conflict.
+// Body: { vehicle_id, checkin_time, checkout_time, service_ids?: number[],
+//         third_party_service_ids?: number[], exclude_invoice_id? }
+router.post('/check-conflicts', async (req, res) => {
+  try {
+    const { vehicle_id, checkin_time, checkout_time, service_ids, third_party_service_ids, exclude_invoice_id } = req.body;
+
+    if (!vehicle_id || !checkin_time || !checkout_time) {
+      return res.json({ conflicts: [] });
+    }
+
+    const svcIds = Array.isArray(service_ids) ? service_ids.filter(Boolean) : [];
+    const tpIds = Array.isArray(third_party_service_ids) ? third_party_service_ids.filter(Boolean) : [];
+
+    if (svcIds.length === 0 && tpIds.length === 0) {
+      return res.json({ conflicts: [] });
+    }
+
+    const conflicts = [];
+
+    if (svcIds.length > 0) {
+      const { rows } = await db.query(
+        `SELECT DISTINCT s.service_name, v.make_model, v.license_vin,
+                iv.checkin_time, iv.checkout_time,
+                COALESCE(c.full_name, o.org_name) AS customer_name
+         FROM invoice_services isv
+         JOIN services s ON isv.service_id = s.id
+         JOIN invoice_vehicles iv ON iv.invoice_order_id = isv.invoice_order_id AND iv.vehicle_id = isv.vehicle_id
+         JOIN invoices i ON i.id = iv.invoice_order_id
+         JOIN vehicles v ON v.id = iv.vehicle_id
+         LEFT JOIN clients c ON i.client_id = c.id
+         LEFT JOIN organizations o ON i.organization_id = o.id
+         WHERE isv.service_id = ANY($1::int[])
+           AND iv.vehicle_id != $2
+           AND iv.checkin_time < $4::timestamp
+           AND iv.checkout_time > $3::timestamp
+           AND i.status NOT IN ('completed', 'cancelled')
+           AND ($5::int IS NULL OR i.id != $5::int)`,
+        [svcIds, vehicle_id, checkin_time, checkout_time, exclude_invoice_id || null]
+      );
+      conflicts.push(...rows);
+    }
+
+    if (tpIds.length > 0) {
+      const { rows } = await db.query(
+        `SELECT DISTINCT itp.service_name, v.make_model, v.license_vin,
+                iv.checkin_time, iv.checkout_time,
+                COALESCE(c.full_name, o.org_name) AS customer_name
+         FROM invoice_third_party_services itp
+         JOIN invoice_vehicles iv ON iv.invoice_order_id = itp.invoice_order_id AND iv.vehicle_id = itp.vehicle_id
+         JOIN invoices i ON i.id = iv.invoice_order_id
+         JOIN vehicles v ON v.id = iv.vehicle_id
+         LEFT JOIN clients c ON i.client_id = c.id
+         LEFT JOIN organizations o ON i.organization_id = o.id
+         WHERE itp.third_party_service_id = ANY($1::int[])
+           AND iv.vehicle_id != $2
+           AND iv.checkin_time < $4::timestamp
+           AND iv.checkout_time > $3::timestamp
+           AND i.status NOT IN ('completed', 'cancelled')
+           AND ($5::int IS NULL OR i.id != $5::int)`,
+        [tpIds, vehicle_id, checkin_time, checkout_time, exclude_invoice_id || null]
+      );
+      conflicts.push(...rows);
+    }
+
+    res.json({ conflicts });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 // CREATE invoice + all service lines (+ optional payments) in one call
 // Body: client_id, vehicle_id, service_ids: number[], discount?, amount_paid?,
 //       status?, special_notes?, include_terms?, terms_conditions?, payments?,
