@@ -453,7 +453,7 @@ export default function InvoiceView() {
         </div>
 
         {/* SERVICES TABLE */}
-        <div style={{ padding: '20px 40px 0 40px', flex: 1 }}>
+        <div style={{ padding: '20px 40px 0 40px' }}>
            <h3 style={{ fontSize: 15, fontWeight: 700, margin: '0 0 8px 0', color: '#0A0A0A', textTransform: 'uppercase' }}>SERVICES</h3>
            <div style={{ height: 2, backgroundColor: '#0A0A0A', marginBottom: 16 }}></div>
            
@@ -461,10 +461,10 @@ export default function InvoiceView() {
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, position: 'relative', zIndex: 1, backgroundColor: 'transparent' }}>
                  <thead>
                     <tr style={{ backgroundColor: '#0A0A0A', color: '#fff' }}>
-                       <th style={{ padding: '12px 12px', textAlign: 'left', fontWeight: 600, border: '1px solid #000', width: '50%' }}>Service</th>
-                       <th style={{ padding: '12px 12px', textAlign: 'center', fontWeight: 600, border: '1px solid #000', width: '15%' }}>Quantity</th>
-                       <th style={{ padding: '12px 12px', textAlign: 'center', fontWeight: 600, border: '1px solid #000', width: '17.5%' }}>Unit Price (₹)</th>
-                       <th style={{ padding: '12px 12px', textAlign: 'center', fontWeight: 600, border: '1px solid #000', width: '17.5%' }}>Amount (₹)</th>
+                       <th style={{ padding: '8px 10px', textAlign: 'left', fontWeight: 600, border: '1px solid #000', width: '50%' }}>Service</th>
+                       <th style={{ padding: '8px 10px', textAlign: 'center', fontWeight: 600, border: '1px solid #000', width: '15%' }}>Quantity</th>
+                       <th style={{ padding: '8px 10px', textAlign: 'center', fontWeight: 600, border: '1px solid #000', width: '17.5%' }}>Unit Price (₹)</th>
+                       <th style={{ padding: '8px 10px', textAlign: 'center', fontWeight: 600, border: '1px solid #000', width: '17.5%' }}>Amount (₹)</th>
                     </tr>
                  </thead>
                  <tbody>
@@ -475,9 +475,9 @@ export default function InvoiceView() {
                           const globalIdx = idx;
                           return (
                           <tr key={`s-${idx}`} style={{ backgroundColor: globalIdx % 2 === 0 ? '#FFFFFF' : '#f8fafc' }}>
-                             <td style={{ padding: '10px 12px', border: '1px solid #000', display: 'flex', alignItems: 'center', gap: 12 }}>
-                                <div style={{ backgroundColor: '#FBD904', borderRadius: 4, width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                                   <IconComponent size={14} color="#000" />
+                             <td style={{ padding: '6px 10px', border: '1px solid #000', display: 'flex', alignItems: 'center', gap: 12 }}>
+                                <div style={{ backgroundColor: '#FBD904', borderRadius: 4, width: 20, height: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                   <IconComponent size={12} color="#000" />
                                 </div>
                                 <div>
                                    <div style={{ fontWeight: 500, color: '#000' }}>{s.service}</div>
@@ -489,19 +489,20 @@ export default function InvoiceView() {
                                    )}
                                 </div>
                              </td>
-                             <td style={{ padding: '10px 12px', border: '1px solid #000', textAlign: 'center', color: '#000' }}>{s.quantity || 1}</td>
-                             <td style={{ padding: '10px 12px', border: '1px solid #000', textAlign: 'center', color: '#000' }}>₹{fmt(s.price)}</td>
-                             <td style={{ padding: '10px 12px', border: '1px solid #000', textAlign: 'center', color: '#000', fontWeight: 600 }}>₹{fmt(s.total)}</td>
+                             <td style={{ padding: '6px 10px', border: '1px solid #000', textAlign: 'center', color: '#000' }}>{s.quantity || 1}</td>
+                             <td style={{ padding: '6px 10px', border: '1px solid #000', textAlign: 'center', color: '#000' }}>₹{fmt(s.price)}</td>
+                             <td style={{ padding: '6px 10px', border: '1px solid #000', textAlign: 'center', color: '#000', fontWeight: 600 }}>₹{fmt(s.total)}</td>
                           </tr>
-                       )})}
+                          );
+                       })}
                        {invoice.thirdPartyServices?.map((t, idx) => {
                           const globalIdx = (invoice.services?.length || 0) + idx;
                           const IconComponent = ICONS[globalIdx % ICONS.length];
                           return (
                           <tr key={`tp-${idx}`} style={{ backgroundColor: globalIdx % 2 === 0 ? '#FFFFFF' : '#f8fafc' }}>
-                             <td style={{ padding: '10px 12px', border: '1px solid #000', display: 'flex', alignItems: 'center', gap: 12 }}>
-                                <div style={{ backgroundColor: '#FBD904', borderRadius: 4, width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                                   <IconComponent size={14} color="#000" />
+                             <td style={{ padding: '6px 10px', border: '1px solid #000', display: 'flex', alignItems: 'center', gap: 12 }}>
+                                <div style={{ backgroundColor: '#FBD904', borderRadius: 4, width: 20, height: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                   <IconComponent size={12} color="#000" />
                                 </div>
                                 <div>
                                    <div style={{ fontWeight: 500, color: '#000' }}>{t.service_name}</div>
@@ -513,11 +514,12 @@ export default function InvoiceView() {
                                    )}
                                 </div>
                              </td>
-                             <td style={{ padding: '10px 12px', border: '1px solid #000', textAlign: 'center', color: '#000' }}>{t.quantity || 1}</td>
-                             <td style={{ padding: '10px 12px', border: '1px solid #000', textAlign: 'center', color: '#000' }}>₹{fmt(t.selling_price)}</td>
-                             <td style={{ padding: '10px 12px', border: '1px solid #000', textAlign: 'center', color: '#000', fontWeight: 600 }}>₹{fmt(t.total)}</td>
+                             <td style={{ padding: '6px 10px', border: '1px solid #000', textAlign: 'center', color: '#000' }}>{t.quantity || 1}</td>
+                             <td style={{ padding: '6px 10px', border: '1px solid #000', textAlign: 'center', color: '#000' }}>₹{fmt(t.selling_price)}</td>
+                             <td style={{ padding: '6px 10px', border: '1px solid #000', textAlign: 'center', color: '#000', fontWeight: 600 }}>₹{fmt(t.total)}</td>
                           </tr>
-                       )})}
+                          );
+                       })}
                        </>
                     ) : (
                        <tr style={{ backgroundColor: '#FFFFFF' }}>
@@ -552,12 +554,31 @@ export default function InvoiceView() {
         </div>
 
         {/* FOOTER */}
-        <div style={{ position: 'relative', width: '100%', marginTop: 40, overflow: 'hidden' }}>
+        <div style={{ position: 'relative', width: '100%', marginTop: 'auto', overflow: 'hidden' }}>
            <div style={{ margin: '0 40px', borderTop: '1.5px solid #111', paddingTop: '15px', paddingBottom: '30px', textAlign: 'center', fontSize: 13, color: '#111', zIndex: 10, position: 'relative' }}>
               <strong>Detailing Masters</strong>, 123 High Street, Opp. KTM Bike Showroom, Bengaluru, India.<br/>
               Ph: +91 (23 367 7873 | E-mail: infi@detailingmasters.com
            </div>
         </div>
+
+        {/* Global Print Styles applied safely inside the element so Puppeteer keeps them */}
+        <style>{`
+          @keyframes spin { to { transform: rotate(360deg); } }
+          @media print {
+            @page { margin: 0; size: A4; }
+            html, body { height: 100%; margin: 0 !important; padding: 0 !important; overflow: hidden; }
+            .print\\:hidden { display: none !important; }
+            body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            #invoice-print {
+              max-width: 100% !important;
+              margin: 0 !important;
+              box-shadow: none !important;
+              border-radius: 0 !important;
+              border: none !important;
+              overflow: hidden !important;
+            }
+          }
+        `}</style>
       </div>
 
       {/* Running Cars Marquee */}
@@ -579,23 +600,6 @@ export default function InvoiceView() {
            ))}
         </div>
       </div>
-
-      <style>{`
-        @keyframes spin { to { transform: rotate(360deg); } }
-        @media print {
-          .print\\:hidden { display: none !important; }
-          body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-          #invoice-print {
-            max-width: 100% !important;
-            margin: 0 !important;
-            box-shadow: none !important;
-            border-radius: 0 !important;
-            border: none !important;
-            overflow: hidden !important;
-          }
-        }
-      `}</style>
-
       {payOpen && (
         <div
           className="print:hidden"
@@ -729,7 +733,9 @@ const bar = {
 
 const doc = {
   wrap: {
-    width: '800px',
+    width: '210mm',
+    height: '296mm', // 1mm less than A4 to prevent any risk of rounding spillover to a second page
+    boxSizing: 'border-box',
     margin: '0 auto',
     background: '#EBEBED',
     boxShadow: '0 12px 40px rgba(0,0,0,0.06)',

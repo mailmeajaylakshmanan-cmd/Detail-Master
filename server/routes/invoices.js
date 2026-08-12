@@ -840,13 +840,12 @@ router.get('/:id/pdf', async (req, res) => {
       // Return dimensions to set the exact PDF size dynamically
       return {
         height: document.body.scrollHeight || 1123,
-        width: document.body.scrollWidth || 800
+        width: document.body.scrollWidth || 794
       };
     });
 
     const pdfBuffer = await page.pdf({ 
-      width: Math.max(width, 800) + 'px',
-      height: (height + 1) + 'px', // Add 1px to prevent any rounding spillover
+      format: 'A4',
       printBackground: true,
       margin: { top: '0', bottom: '0', left: '0', right: '0' }
     });
