@@ -369,16 +369,24 @@ export default function WebsiteBookings() {
                             </button>
                           </div>
                         ) : (
-                          <span className="flex items-center gap-1.5 text-[12px] font-bold text-gray-700 bg-gray-50 px-3 py-1 rounded-lg border border-gray-200 group/date">
-                            <Calendar size={14} className="text-gray-400" />
-                            {formatDate(booking.preferred_date) === 'TBD' ? 'No Date' : formatDate(booking.preferred_date)}
-                            {booking.allocated_time && (
-                              <span className="ml-1 text-blue-600">· {booking.allocated_time}</span>
+                          <div className="flex flex-col gap-1 items-start">
+                            <span className="flex items-center gap-1.5 text-[12px] font-bold text-gray-700 bg-gray-50 px-3 py-1 rounded-lg border border-gray-200 group/date">
+                              <Calendar size={14} className="text-gray-400" />
+                              {formatDate(booking.preferred_date) === 'TBD' ? 'No Date' : formatDate(booking.preferred_date)}
+                              {booking.allocated_time && (
+                                <span className="ml-1 text-blue-600">· {booking.allocated_time}</span>
+                              )}
+                              <button onClick={() => startReschedule(booking)} title="Reschedule" className="ml-1 text-gray-400 hover:text-blue-600">
+                                <PenSquare size={13} />
+                              </button>
+                            </span>
+                            {activeTab === 'pending' && booking.preferred_time_period && (
+                              <span className="flex items-center gap-1.5 text-[11px] font-bold text-amber-700 px-3">
+                                <Clock size={12} className="text-amber-500" />
+                                Requested: {booking.preferred_time_period}
+                              </span>
                             )}
-                            <button onClick={() => startReschedule(booking)} title="Reschedule" className="ml-1 text-gray-400 hover:text-blue-600">
-                              <PenSquare size={13} />
-                            </button>
-                          </span>
+                          </div>
                         )}
                       </td>
                       <td className="px-6 py-4 max-w-[200px]">
@@ -439,6 +447,14 @@ export default function WebsiteBookings() {
           <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl animate-in zoom-in-95">
             <h3 className="text-lg font-black text-gray-900 mb-2">Confirm Booking</h3>
             <p className="text-[13px] text-gray-500 mb-4">Please set an allocated time for this booking to notify the customer.</p>
+            {(() => {
+              const b = bookings.find(bk => bk.booking_id === confirmingId);
+              return b?.preferred_time_period ? (
+                <p className="text-[12px] font-bold text-amber-700 bg-amber-50/50 border border-amber-100 rounded-xl px-3 py-2 mb-4">
+                  Customer requested: {b.preferred_time_period}
+                </p>
+              ) : null;
+            })()}
             <input
               type="time"
               value={confirmTime}

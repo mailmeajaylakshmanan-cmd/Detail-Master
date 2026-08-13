@@ -433,7 +433,7 @@ export default function InvoiceForm({ initial, onSubmit, loading, onCustomerSele
       vehicleVisitMeta: {},
       vehicleId: null,
       carMake: '', carModel: '', licensePlate: '',
-      serviceDate: '', location: '',
+      location: '',
       services: [], thirdPartyItems: [], subTotal: 0, discount: 0,
       status: 'draft', notes: 'Thank you for choosing Detailing Masters for your car care needs!',
       payments: [{ amount: '', date: new Date().toISOString().slice(0, 10), method: 'Cash', reference_no: '' }],
@@ -1032,48 +1032,32 @@ export default function InvoiceForm({ initial, onSubmit, loading, onCustomerSele
 
               {clientType === 'individual' ? (
                 <>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <Field label="Vehicle" required>
-                      <Select
-                        isClearable
-                        isSearchable
-                        placeholder={form.customer?.id ? 'Select vehicle…' : 'Select first…'}
-                        styles={selectStyles()}
-                        menuPortalTarget={document.body}
-                        menuPosition="fixed"
-                        options={vehicleOptions}
-                        value={selectedVehicle}
-                        isDisabled={!form.customer?.id || !!initial}
-                        onChange={sel => {
-                          if (!sel) {
-                            setForm(f => ({ ...f, vehicleId: null, carMake: '', licensePlate: '' }));
-                            return;
-                          }
-                          const v = sel.vehicle;
-                          setForm(f => ({
-                            ...f,
-                            vehicleId: v.id,
-                            carMake: `${v.make || ''} ${v.model || ''}`.trim(),
-                            licensePlate: v.plate || '',
-                          }));
-                        }}
-                      />
-                    </Field>
-                    <Field label="Induction Date">
-                      <div className="relative">
-                        <Calendar size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-                        <DatePicker
-                          selected={form.serviceDate ? parseISO(form.serviceDate) : null}
-                          onChange={date => setF('serviceDate', date ? format(date, 'yyyy-MM-dd') : '')}
-                          dateFormat="dd/MM/yyyy"
-                          className={`${inputCls} pl-9 w-full`}
-                          placeholderText="Select date"
-                          wrapperClassName="w-full"
-                          portalId="root"
-                        />
-                      </div>
-                    </Field>
-                  </div>
+                  <Field label="Vehicle" required>
+                    <Select
+                      isClearable
+                      isSearchable
+                      placeholder={form.customer?.id ? 'Select vehicle…' : 'Select first…'}
+                      styles={selectStyles()}
+                      menuPortalTarget={document.body}
+                      menuPosition="fixed"
+                      options={vehicleOptions}
+                      value={selectedVehicle}
+                      isDisabled={!form.customer?.id || !!initial}
+                      onChange={sel => {
+                        if (!sel) {
+                          setForm(f => ({ ...f, vehicleId: null, carMake: '', licensePlate: '' }));
+                          return;
+                        }
+                        const v = sel.vehicle;
+                        setForm(f => ({
+                          ...f,
+                          vehicleId: v.id,
+                          carMake: `${v.make || ''} ${v.model || ''}`.trim(),
+                          licensePlate: v.plate || '',
+                        }));
+                      }}
+                    />
+                  </Field>
                   {form.customer?.id && vehicleOptions.length === 0 && (
                     <p className="text-[12px] font-medium text-rose-600">
                       This client has no vehicles. Add a vehicle in Master Customer first.
@@ -1092,21 +1076,6 @@ export default function InvoiceForm({ initial, onSubmit, loading, onCustomerSele
                 </>
               ) : (
                 <>
-                  <Field label="Induction Date">
-                    <div className="relative max-w-xs">
-                      <Calendar size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-                      <DatePicker
-                        selected={form.serviceDate ? parseISO(form.serviceDate) : null}
-                        onChange={date => setF('serviceDate', date ? format(date, 'yyyy-MM-dd') : '')}
-                        dateFormat="dd/MM/yyyy"
-                        className={`${inputCls} pl-9 w-full`}
-                        placeholderText="Select date"
-                        wrapperClassName="w-full"
-                        portalId="root"
-                      />
-                    </div>
-                  </Field>
-
                   <div className="flex flex-wrap gap-2.5">
                     {vehicleOptions.map(opt => (
                       <VehicleChip
