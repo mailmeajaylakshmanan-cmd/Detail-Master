@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import api from '../api/axios.js';
 import toast from 'react-hot-toast';
-import { Users, Save, Loader2, Plus, Shield, X, Key } from 'lucide-react';
+import { Users, Save, Loader2, Plus, Shield, X, Key, Eye, EyeOff } from 'lucide-react';
 
 export default function UserMenuAssignment() {
   const [users, setUsers] = useState([]);
@@ -33,6 +33,7 @@ export default function UserMenuAssignment() {
   // Password Modal State
   const [newPassword, setNewPassword] = useState('');
   const [savingPassword, setSavingPassword] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
     fetchInitialData();
@@ -262,7 +263,7 @@ export default function UserMenuAssignment() {
               </h2>
               <button
                 type="button"
-                onClick={() => setIsCreateModalOpen(false)}
+                onClick={() => { setIsCreateModalOpen(false); setShowPassword(false); }}
                 className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-200 text-gray-500 transition-colors"
               >
                 <X size={18} />
@@ -295,14 +296,23 @@ export default function UserMenuAssignment() {
                 </div>
                 <div>
                   <label className="block text-sm font-bold text-gray-700 mb-1">Password</label>
-                  <input
-                    type="password"
-                    required
-                    value={newUser.password}
-                    onChange={(e) => setNewUser({...newUser, password: e.target.value})}
-                    className="input"
-                    placeholder="••••••••"
-                  />
+                  <div className="relative">
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      required
+                      value={newUser.password}
+                      onChange={(e) => setNewUser({...newUser, password: e.target.value})}
+                      className="input pr-10"
+                      placeholder="••••••••"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none"
+                    >
+                      {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
+                  </div>
                 </div>
               </div>
               <div>
@@ -444,7 +454,7 @@ export default function UserMenuAssignment() {
               </h2>
               <button
                 type="button"
-                onClick={() => setIsPasswordModalOpen(false)}
+                onClick={() => { setIsPasswordModalOpen(false); setShowPassword(false); }}
                 className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-200 text-gray-500 transition-colors"
               >
                 <X size={18} />
@@ -457,15 +467,24 @@ export default function UserMenuAssignment() {
               </p>
               <div>
                 <label className="block text-sm font-bold text-gray-700 mb-1">New Password</label>
-                <input
-                  type="password"
-                  required
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  className="input"
-                  placeholder="••••••••"
-                  autoFocus
-                />
+                <div className="relative">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    required
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    className="input pr-10"
+                    placeholder="••••••••"
+                    autoFocus
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none"
+                  >
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
               </div>
 
               <div className="pt-4 flex justify-end gap-3 border-t border-gray-100 mt-2">

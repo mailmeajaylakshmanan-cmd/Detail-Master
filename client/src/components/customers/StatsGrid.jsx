@@ -7,11 +7,11 @@ function StatCard({ icon: Icon, label, value, sub, accent }) {
       style={{ borderLeft: `4px solid ${accent}` }}
     >
       <div className="flex justify-between items-start w-full">
-        <span className="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-1">{label}</span>
+        <span className="text-[10px] font-bold uppercase tracking-widest text-gray-900 mb-1">{label}</span>
         <Icon size={14} style={{ color: accent }} className="opacity-80" />
       </div>
       <div className="text-2xl font-black text-gray-900 tracking-tight leading-none mt-1">{value}</div>
-      {sub && <div className="text-[9px] text-gray-400 font-bold mt-2 uppercase tracking-wide">{sub}</div>}
+      {sub && <div className="text-[9px] text-gray-800 font-bold mt-2 uppercase tracking-wide">{sub}</div>}
     </div>
   );
 }

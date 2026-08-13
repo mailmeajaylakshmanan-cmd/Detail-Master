@@ -10,30 +10,30 @@ export default function CustomerProfileHeader({ customer, isVIP, memberSince, on
       
       <div className="flex flex-col min-w-0">
         <div className="flex items-center gap-2.5 mb-1.5">
-          <h1 className="text-[22px] font-black text-gray-900 tracking-tight leading-none truncate">
+          <h1 className="text-[24px] font-black text-gray-900 tracking-tight leading-none truncate">
             {customer.name}
           </h1>
           <button
             onClick={onEdit}
-            className="w-5 h-5 rounded-full bg-gray-50 hover:bg-gray-100 border border-gray-200 text-gray-400 hover:text-gray-700 flex items-center justify-center transition-all shrink-0 ml-1"
+            className="btn-secondary flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold ml-2 shadow-sm border border-gray-200 text-gray-900 bg-white hover:bg-gray-50 transition-all"
             title="Edit Customer"
           >
-            <Edit3 size={11} strokeWidth={2.5} />
+            <Edit3 size={14} strokeWidth={2.5} /> Edit Profile
           </button>
           {isVIP && <VipBadge size="sm" />}
         </div>
         
-        <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 text-[11px] font-bold text-gray-400">
-          <span className="flex items-center gap-1">
-            <Phone size={12} className="text-gray-400" /> {customer.phone}
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 text-[12px] font-bold text-gray-900">
+          <span className="flex items-center gap-1.5">
+            <Phone size={14} className="text-gray-900" /> {customer.phone}
           </span>
           {customer.address && (
-            <span className="flex items-center gap-1 truncate max-w-[260px]">
-              <MapPin size={12} className="text-gray-400" /> {customer.address}
+            <span className="flex items-center gap-1.5 truncate max-w-[260px]">
+              <MapPin size={14} className="text-gray-900" /> {customer.address}
             </span>
           )}
-          <span className="flex items-center gap-1">
-            <Calendar size={12} className="text-gray-400" /> Member since {memberSince}
+          <span className="flex items-center gap-1.5">
+            <Calendar size={14} className="text-gray-900" /> Member since {memberSince}
           </span>
         </div>
       </div>
