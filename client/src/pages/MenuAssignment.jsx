@@ -86,7 +86,7 @@ export default function MenuAssignment() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-black text-gray-900 tracking-tight flex items-center gap-2">
             <Shield className="text-blue-600" /> Menu Assignments
@@ -96,14 +96,14 @@ export default function MenuAssignment() {
         <button
           onClick={handleSave}
           disabled={saving || !selectedRole}
-          className="btn-primary flex items-center gap-2 py-2 px-6 shadow-md disabled:opacity-50"
+          className="btn-primary flex items-center gap-2"
         >
           {saving ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />}
           Save Changes
         </button>
       </div>
 
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+      <div className="card p-6">
         <label className="block text-sm font-bold text-gray-700 mb-4">Select Role</label>
         <div className="flex flex-wrap gap-4">
           {roles.map(r => (
@@ -123,11 +123,11 @@ export default function MenuAssignment() {
       </div>
 
       {selectedRole && (
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        <div className="card overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse min-w-[600px]">
+            <table className="w-full text-left whitespace-nowrap">
               <thead>
-                <tr className="bg-gray-50/80 border-b border-gray-100">
+                <tr className="bg-gray-50/50 border-b border-gray-100">
                   <th className="py-4 px-6 text-[11px] font-black uppercase tracking-wider text-gray-500">Menu Name</th>
                   <th className="py-4 px-6 text-[11px] font-black uppercase tracking-wider text-gray-500 text-center">Can View</th>
                   <th className="py-4 px-6 text-[11px] font-black uppercase tracking-wider text-gray-500 text-center">Can Add</th>
@@ -135,11 +135,16 @@ export default function MenuAssignment() {
                   <th className="py-4 px-6 text-[11px] font-black uppercase tracking-wider text-gray-500 text-center">Can Delete</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-gray-100">
                 {allMenus.map(menu => {
-                  const perms = roleMenus[menu.id] || { can_view: false, can_add: false, can_edit: false, can_delete: false };
+                  const currentRoleObj = roles.find(r => r.id === selectedRole);
+                  const isFullAdmin = currentRoleObj?.role_name === 'Administrator' || currentRoleObj?.role_name === 'Super Admin';
+                  const perms = isFullAdmin 
+                    ? { can_view: true, can_add: true, can_edit: true, can_delete: true }
+                    : (roleMenus[menu.id] || { can_view: false, can_add: false, can_edit: false, can_delete: false });
+                  
                   return (
-                    <tr key={menu.id} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
+                    <tr key={menu.id} className="hover:bg-gray-50/50 transition-colors">
                       <td className="py-4 px-6 text-sm font-bold text-gray-800 flex items-center gap-2">
                         {menu.parent_id ? <span className="ml-4 text-gray-400">↳ </span> : ''}
                         {menu.menu_name}
@@ -147,10 +152,11 @@ export default function MenuAssignment() {
                       {['can_view', 'can_add', 'can_edit', 'can_delete'].map(field => (
                         <td key={field} className="py-4 px-6 text-center">
                           <button
-                            onClick={() => togglePermission(menu.id, field)}
-                            className={`w-10 h-6 rounded-full relative inline-flex items-center transition-colors ${perms[field] ? 'bg-green-500' : 'bg-gray-200'}`}
+                            disabled={isFullAdmin}
+                            onClick={() => !isFullAdmin && togglePermission(menu.id, field)}
+                            className={`w-11 h-6 rounded-full relative inline-flex items-center transition-colors cursor-pointer disabled:cursor-not-allowed disabled:opacity-60 ${perms[field] ? 'bg-emerald-500' : 'bg-gray-200'}`}
                           >
-                            <span className={`w-4 h-4 rounded-full bg-white shadow-sm transform transition-transform duration-200 ${perms[field] ? 'translate-x-5' : 'translate-x-1'}`} />
+                            <span className={`w-5 h-5 rounded-full bg-white shadow-sm transform transition-transform duration-200 ${perms[field] ? 'translate-x-5' : 'translate-x-0.5'}`} />
                           </button>
                         </td>
                       ))}

@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import api from '../api/axios.js';
 import toast from 'react-hot-toast';
-import { Plus, Edit3, X, Search, Sparkles } from 'lucide-react';
+import { Plus, Edit3, X, Search, Sparkles, Trash2, AlertTriangle, Loader2 } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useServices } from '../hooks/useQueries.js';
 import { useDebouncedValue } from '../hooks/useDebouncedValue.js';
@@ -18,6 +18,11 @@ export default function MasterService() {
   const [description, setDescription] = useState('');
   const [price, setPrice] = useState('');
   const [editId, setEditId] = useState(null);
+
+  const [deleteServiceId, setDeleteServiceId] = useState(null);
+  const [deleteDependencies, setDeleteDependencies] = useState(null);
+  const [checkingDependencies, setCheckingDependencies] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const filteredServices = useMemo(() => {
     if (!debouncedSearch) return services;
@@ -100,6 +105,37 @@ export default function MasterService() {
     }
   }
 
+  async function handleDeleteClick(e, id) {
+    e.stopPropagation();
+    setDeleteServiceId(id);
+    setCheckingDependencies(true);
+    setDeleteDependencies(null);
+    try {
+      const res = await api.get(`/services/${id}/dependencies`);
+      setDeleteDependencies(res.data);
+    } catch (err) {
+      toast.error('Failed to check dependencies');
+      setDeleteServiceId(null);
+    } finally {
+      setCheckingDependencies(false);
+    }
+  }
+
+  async function confirmDelete() {
+    setDeleting(true);
+    try {
+      await api.delete(`/services/${deleteServiceId}`);
+      toast.success('Service deleted successfully');
+      queryClient.invalidateQueries({ queryKey: queryKeys.services.all });
+      setDeleteServiceId(null);
+      setDeleteDependencies(null);
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to delete service');
+    } finally {
+      setDeleting(false);
+    }
+  }
+
   if (loading) return <div className="p-8 text-center text-gray-500">Loading Services...</div>;
 
   return (
@@ -159,16 +195,25 @@ export default function MasterService() {
               <div className="text-gray-900 font-bold text-[22px] tracking-tight">
                 ₹{Number(srv.price || 0).toLocaleString('en-IN')}
               </div>
-              <button
-                onClick={(e) => { e.stopPropagation(); handleStatusChange(srv.id, srv.isActive ? 'Inactive' : 'Active'); }}
-                className={`text-[11px] font-bold uppercase rounded-full px-4 py-1.5 transition-all shadow-sm ${
-                  srv.isActive
-                    ? 'bg-yellow-400 text-yellow-900 hover:bg-yellow-500'
-                    : 'bg-rose-600 text-white hover:bg-rose-700'
-                }`}
-              >
-                {srv.isActive ? 'Active' : 'Inactive'}
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={(e) => { e.stopPropagation(); handleStatusChange(srv.id, srv.isActive ? 'Inactive' : 'Active'); }}
+                  className={`text-[11px] font-bold uppercase rounded-full px-4 py-1.5 transition-all shadow-sm ${
+                    srv.isActive
+                      ? 'bg-yellow-400 text-yellow-900 hover:bg-yellow-500'
+                      : 'bg-rose-600 text-white hover:bg-rose-700'
+                  }`}
+                >
+                  {srv.isActive ? 'Active' : 'Inactive'}
+                </button>
+                <button
+                  onClick={(e) => handleDeleteClick(e, srv.id)}
+                  className="w-7 h-7 rounded-full bg-red-50 text-red-600 flex items-center justify-center hover:bg-red-100 transition-colors"
+                  title="Delete Service"
+                >
+                  <Trash2 size={14} />
+                </button>
+              </div>
             </div>
           </div>
         ))}
@@ -208,6 +253,77 @@ export default function MasterService() {
                 <button type="submit" className="btn-primary">Save Service</button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Dependency Warning Modal */}
+      {deleteServiceId && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
+          <div className="w-full max-w-md bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden flex flex-col">
+            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-red-50/50 shrink-0">
+              <h2 className="text-lg font-bold text-red-700 flex items-center gap-2">
+                <AlertTriangle size={20} /> Confirm Deletion
+              </h2>
+              <button
+                type="button"
+                onClick={() => { setDeleteServiceId(null); setDeleteDependencies(null); }}
+                className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-red-100 text-red-500 transition-colors"
+              >
+                <X size={18} />
+              </button>
+            </div>
+            
+            <div className="p-6">
+              {checkingDependencies ? (
+                <div className="flex flex-col items-center justify-center py-6">
+                  <Loader2 className="animate-spin text-red-500 mb-2" size={32} />
+                  <p className="text-sm text-gray-500 font-medium">Checking relationships...</p>
+                </div>
+              ) : deleteDependencies ? (
+                <div className="space-y-4">
+                  <p className="text-sm font-medium text-gray-800">
+                    Are you sure you want to delete this service?
+                  </p>
+                  
+                  {deleteDependencies.total > 0 && (
+                    <div className="bg-orange-50 border border-orange-200 rounded-xl p-4">
+                      <p className="text-sm font-bold text-orange-800 mb-2">⚠️ Warning: Active Dependencies</p>
+                      <p className="text-xs font-medium text-orange-700 mb-3">
+                        This service has historical usage. Soft deleting it will hide it from the active master list, but preserve historical invoices.
+                      </p>
+                      <ul className="text-xs font-bold text-orange-800 space-y-1 ml-4 list-disc">
+                        {deleteDependencies.invoices > 0 && (
+                          <li>Linked to {deleteDependencies.invoices} Invoices</li>
+                        )}
+                        {deleteDependencies.jobOrders > 0 && (
+                          <li>Linked to {deleteDependencies.jobOrders} Job Orders</li>
+                        )}
+                      </ul>
+                    </div>
+                  )}
+                  
+                  <div className="pt-4 flex justify-end gap-3 border-t border-gray-100 mt-2">
+                    <button
+                      type="button"
+                      onClick={() => { setDeleteServiceId(null); setDeleteDependencies(null); }}
+                      className="btn-secondary"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={confirmDelete}
+                      disabled={deleting}
+                      className="btn-primary bg-red-600 hover:bg-red-700 focus:ring-red-500 flex items-center justify-center gap-2 min-w-[100px]"
+                    >
+                      {deleting ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
+                      <span>Delete</span>
+                    </button>
+                  </div>
+                </div>
+              ) : null}
+            </div>
           </div>
         </div>
       )}

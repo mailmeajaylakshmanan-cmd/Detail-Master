@@ -253,7 +253,7 @@ export default function InvoiceView() {
   if (!invoice) {
     return (
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 200 }}>
-        <div style={{ width: 28, height: 28, borderRadius: '50%', border: '3px solid #FBD904', borderTopColor: 'transparent', animation: 'spin 0.8s linear infinite' }} />
+        <div style={{ width: 28, height: 28, borderRadius: '50%', border: '3px solid #F6CB59', borderTopColor: 'transparent', animation: 'spin 0.8s linear infinite' }} />
       </div>
     );
   }
@@ -261,13 +261,13 @@ export default function InvoiceView() {
   const st = STATUS[invoice.status] ?? STATUS.pending;
   const dateStr = fmtDate(invoice.date);
   const needsRef = payForm.method === 'UPI' || payForm.method === 'Bank Transfer';
-  const brandGold = '#FBD904';
+  const brandGold = '#F6CB59';
   const textDark = '#374151';
   const textMuted = '#6b7280';
   const borderCol = '#d1d5db';
 
   return (
-    <div>
+    <div className="p-4 sm:p-6 lg:p-8 pb-20 min-h-full space-y-6">
       <div style={{ position: 'fixed', inset: 0, backgroundColor: '#FFFFFF', zIndex: -10 }}></div>
       <div className="print:hidden" style={bar.wrap}>
         <div style={bar.left}>
@@ -476,7 +476,7 @@ export default function InvoiceView() {
                           return (
                           <tr key={`s-${idx}`} style={{ backgroundColor: globalIdx % 2 === 0 ? '#FFFFFF' : '#f8fafc' }}>
                              <td style={{ padding: '6px 10px', border: '1px solid #000', display: 'flex', alignItems: 'center', gap: 12 }}>
-                                <div style={{ backgroundColor: '#FBD904', borderRadius: 4, width: 20, height: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                <div style={{ backgroundColor: '#F6CB59', borderRadius: 4, width: 20, height: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                                    <IconComponent size={12} color="#000" />
                                 </div>
                                 <div>
@@ -501,7 +501,7 @@ export default function InvoiceView() {
                           return (
                           <tr key={`tp-${idx}`} style={{ backgroundColor: globalIdx % 2 === 0 ? '#FFFFFF' : '#f8fafc' }}>
                              <td style={{ padding: '6px 10px', border: '1px solid #000', display: 'flex', alignItems: 'center', gap: 12 }}>
-                                <div style={{ backgroundColor: '#FBD904', borderRadius: 4, width: 20, height: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                <div style={{ backgroundColor: '#F6CB59', borderRadius: 4, width: 20, height: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                                    <IconComponent size={12} color="#000" />
                                 </div>
                                 <div>
@@ -529,7 +529,7 @@ export default function InvoiceView() {
                     <tr>
                        <td style={{ border: 'none', backgroundColor: 'transparent' }}></td>
                        <td colSpan="3" style={{ border: 'none', padding: 0, backgroundColor: 'transparent' }}>
-                          <div style={{ backgroundColor: '#FBD904', color: '#000', padding: '12px 16px', fontWeight: 800, fontSize: 16, textAlign: 'center', width: '100%' }}>
+                          <div style={{ backgroundColor: '#F6CB59', color: '#000', padding: '12px 16px', fontWeight: 800, fontSize: 16, textAlign: 'center', width: '100%' }}>
                              TOTAL AMOUNT DUE: ₹{fmt(invoice.total || 45000)}
                           </div>
                        </td>
@@ -665,7 +665,7 @@ export default function InvoiceView() {
             <button
               type="submit"
               disabled={paying}
-              style={{ width: '100%', padding: 12, borderRadius: 8, border: 'none', background: '#FBD904', fontWeight: 800, cursor: 'pointer', opacity: paying ? 0.7 : 1 }}
+              style={{ width: '100%', padding: 12, borderRadius: 8, border: 'none', background: '#F6CB59', fontWeight: 800, cursor: 'pointer', opacity: paying ? 0.7 : 1 }}
             >
               {paying ? 'Saving…' : 'Save Payment'}
             </button>
@@ -687,7 +687,7 @@ export default function InvoiceView() {
             </div>
             <div style={{ padding: 24, background: '#f8fafc', borderRadius: 12, border: '1px dashed #cbd5e1', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, marginBottom: 24 }}>
               <div style={{ width: 48, height: 48, background: '#fff', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
-                <FileText size={24} color="#FBD904" />
+                <FileText size={24} color="#F6CB59" />
               </div>
               <div style={{ textAlign: 'center' }}>
                 <div style={{ fontWeight: 600, color: '#1e293b' }}>DETAILING MASTERS-Invoice-{invoice.invoiceNo}.pdf</div>

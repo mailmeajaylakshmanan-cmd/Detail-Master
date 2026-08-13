@@ -13,6 +13,8 @@ const mapOffer = (row) => ({
   freeWashes: row.free_washes,
   terms: row.terms,
   isActive: row.is_active,
+  serviceIds: row.service_ids || [],
+  thirdPartyServiceIds: row.third_party_service_ids || [],
   createdAt: row.created_at,
   updatedAt: row.updated_at
 });
@@ -49,13 +51,13 @@ router.get('/:id', protect, async (req, res) => {
 
 // POST /offerMaster
 router.post('/', protect, async (req, res) => {
-  const { name, description, defaultPrice, defaultValidityDays, totalWashes, freeWashes, terms } = req.body;
+  const { name, description, defaultPrice, defaultValidityDays, totalWashes, freeWashes, terms, serviceIds = [], thirdPartyServiceIds = [] } = req.body;
   try {
     const result = await pool.query(
       `INSERT INTO master_offers 
-       (name, description, default_price, default_validity_days, total_washes, free_washes, terms)
-       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
-      [name, description, defaultPrice || 0, defaultValidityDays || 365, totalWashes || 0, freeWashes || 0, terms]
+       (name, description, default_price, default_validity_days, total_washes, free_washes, terms, service_ids, third_party_service_ids)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`,
+      [name, description, defaultPrice || 0, defaultValidityDays || 365, totalWashes || 0, freeWashes || 0, terms, JSON.stringify(serviceIds), JSON.stringify(thirdPartyServiceIds)]
     );
     res.status(201).json(mapOffer(result.rows[0]));
   } catch (err) {
@@ -66,7 +68,7 @@ router.post('/', protect, async (req, res) => {
 
 // PUT /offerMaster/:id
 router.put('/:id', protect, async (req, res) => {
-  const { name, description, defaultPrice, defaultValidityDays, totalWashes, freeWashes, terms, is_active } = req.body;
+  const { name, description, defaultPrice, defaultValidityDays, totalWashes, freeWashes, terms, is_active, serviceIds = [], thirdPartyServiceIds = [] } = req.body;
   try {
     const result = await pool.query(
       `UPDATE master_offers SET 
@@ -78,9 +80,11 @@ router.put('/:id', protect, async (req, res) => {
         free_washes = $6,
         terms = $7,
         is_active = COALESCE($8, is_active),
+        service_ids = $9,
+        third_party_service_ids = $10,
         updated_at = CURRENT_TIMESTAMP
-       WHERE id = $9 RETURNING *`,
-      [name, description, defaultPrice, defaultValidityDays, totalWashes || 0, freeWashes || 0, terms, is_active, req.params.id]
+       WHERE id = $11 RETURNING *`,
+      [name, description, defaultPrice, defaultValidityDays, totalWashes || 0, freeWashes || 0, terms, is_active, JSON.stringify(serviceIds), JSON.stringify(thirdPartyServiceIds), req.params.id]
     );
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Offer not found' });

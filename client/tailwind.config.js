@@ -22,11 +22,12 @@ export default {
           900: '#2d2828', // Intermediate dark shade
           950: '#1A1616', // Main application background
         },
-        brand: {
-          red: '#D91A3A',
-          darkred: '#801426',
-          gold: '#FCDF4C',
-          white: '#FFFFFF'
+        theme: {
+          light: '#FFF9E6',
+          khaki: '#FFE4A0',
+          ochre: '#FFD700',
+          brown: '#5C4A0A',
+          gold: '#FFC107'
         },
       },
     },

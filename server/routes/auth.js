@@ -21,9 +21,15 @@ async function getUserWithMenus(userId) {
 
   let flatMenus = [];
   
-  if (user.role_name === 'Super Admin') {
+  if (user.role_name === 'Super Admin' || user.role_name === 'Administrator') {
     const menuResult = await pool.query('SELECT * FROM public.menus WHERE is_active = TRUE ORDER BY id ASC');
-    flatMenus = menuResult.rows;
+    flatMenus = menuResult.rows.map(m => ({
+      ...m,
+      can_view: true,
+      can_add: true,
+      can_edit: true,
+      can_delete: true
+    }));
   } else {
     // Menus from role_menus OR user_menus overrides
     const menuQuery = `

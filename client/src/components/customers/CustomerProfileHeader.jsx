@@ -41,7 +41,7 @@ export default function CustomerProfileHeader({ customer, isVIP, memberSince, on
       <div className="ml-auto flex items-center gap-3">
         <Link 
           to={`/offers/new?phone=${customer.phone}`}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#FBD904] text-[#020029] hover:bg-[#e6c700] transition-colors shadow-sm font-bold text-[13px] tracking-wide"
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#F6CB59] text-[#886D52] hover:bg-[#e6c700] transition-colors shadow-sm font-bold text-[13px] tracking-wide"
         >
           <Gift size={16} strokeWidth={2.5} />
           <span>Assign Package</span>

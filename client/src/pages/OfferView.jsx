@@ -122,13 +122,13 @@ export default function OfferView() {
   if (!offer) {
     return (
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 200 }}>
-        <div style={{ width: 28, height: 28, borderRadius: '50%', border: `3px solid #FBD904`, borderTopColor: 'transparent', animation: 'spin 0.8s linear infinite' }} />
+        <div style={{ width: 28, height: 28, borderRadius: '50%', border: `3px solid #F6CB59`, borderTopColor: 'transparent', animation: 'spin 0.8s linear infinite' }} />
       </div>
     );
   }
 
   const dateStr = fmtDate(offer.date);
-  const brandGold = '#FBD904';
+  const brandGold = '#F6CB59';
   const textDark = '#374151';
   const textMuted = '#6b7280';
   const borderCol = '#d1d5db';
@@ -305,7 +305,7 @@ export default function OfferView() {
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: 10 }}>
             <div style={{ 
               backgroundColor: '#111827', 
-              color: '#FBD904', 
+              color: '#F6CB59', 
               width: 80, 
               height: 90, 
               clipPath: 'polygon(50% 0%, 100% 0, 100% 70%, 50% 100%, 0 70%, 0 0)',
@@ -367,7 +367,7 @@ export default function OfferView() {
             
             <div style={{ padding: 24, background: '#f8fafc', borderRadius: 12, border: '1px dashed #cbd5e1', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, marginBottom: 24 }}>
               <div style={{ width: 48, height: 48, background: '#fff', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
-                <FileText size={24} color="#FBD904" />
+                <FileText size={24} color="#F6CB59" />
               </div>
               <div style={{ textAlign: 'center' }}>
                 <div style={{ fontWeight: 600, color: '#1e293b' }}>DETAILING MASTERS-Offer-{offer.offerNo}.pdf</div>

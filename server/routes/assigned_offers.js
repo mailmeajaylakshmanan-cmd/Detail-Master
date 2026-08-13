@@ -13,7 +13,7 @@ async function generateOfferNo() {
 
 // POST /offers - Create new assigned offer
 router.post('/', protect, async (req, res) => {
-  const { customer, vehicleId, masterOfferId, packageName, price, validityDate, totalWashes, freeWashes, terms } = req.body;
+  const { customer, vehicleId, masterOfferId, packageName, price, validityDate, totalWashes, freeWashes, terms, services = [], thirdPartyItems = [] } = req.body;
   
   if (!customer || !customer.id) {
     return res.status(400).json({ message: 'Customer is required' });
@@ -31,7 +31,16 @@ router.post('/', protect, async (req, res) => {
     
     // 2. Generate Linked Purchase Invoice
     const invoiceNumber = `INV-DM-${Date.now()}`;
-    const invoicePrice = price || 0;
+    const invoicePrice = Number(price) || 0;
+    
+    // Calculate subtotal from selected services
+    let servicesSubTotal = services.reduce((acc, s) => acc + (Number(s.price) || 0), 0);
+    let thirdPartySubTotal = thirdPartyItems.reduce((acc, t) => acc + (Number(t.selling_price) || 0), 0);
+    let calculatedSubTotal = servicesSubTotal + thirdPartySubTotal;
+    
+    // If no services were selected, we fallback to just the package price as subtotal
+    let subTotal = calculatedSubTotal > 0 ? calculatedSubTotal : invoicePrice;
+    let discount = Math.max(0, subTotal - invoicePrice);
     
     const invRes = await client.query(
       `INSERT INTO invoices (
@@ -40,29 +49,59 @@ router.post('/', protect, async (req, res) => {
          special_notes, include_terms, terms_conditions
        ) VALUES (
          $1, $2, $3, $4,
-         $5, 0, $6, 0, $7,
-         $8, true, null
+         $5, $6, $7, 0, $8,
+         $9, true, null
        ) RETURNING id`,
       [
         invoiceNumber,
         customer.id,
         vehicleId || null,
         'open',
-        invoicePrice,
-        invoicePrice,
-        invoicePrice,
+        subTotal,
+        discount,
+        invoicePrice, // Grand total is always the package price
+        invoicePrice, // Balance due starts as the package price
         `Purchase of Package: ${packageName}`
       ]
     );
     const invoiceId = invRes.rows[0].id;
 
-    // 3. Insert Line Item into Invoice (for PDF display)
-    await client.query(
-      `INSERT INTO invoice_third_party_services 
-       (invoice_order_id, service_name, selling_price, service_cost)
-       VALUES ($1, $2, $3, 0)`,
-      [invoiceId, `Package Subscription: ${packageName}`, invoicePrice]
-    );
+    // 3. Insert Line Items into Invoice
+    if (services.length > 0 || thirdPartyItems.length > 0) {
+      for (const s of services) {
+        if (!s.service_id) continue;
+        await client.query(
+          `INSERT INTO invoice_services (invoice_order_id, service_id, price)
+           VALUES ($1, $2, $3)`,
+          [invoiceId, s.service_id, s.price || 0]
+        );
+      }
+      for (const t of thirdPartyItems) {
+        await client.query(
+          `INSERT INTO invoice_third_party_services 
+           (invoice_order_id, third_party_service_id, service_name, vendor_name, labour_count, labour_charge, service_cost, selling_price)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+          [
+            invoiceId, 
+            t.third_party_service_id || null, 
+            t.service_name || 'Custom Third-Party Service',
+            t.vendor_name || null,
+            t.labour_count || 1,
+            t.labour_charge || 0,
+            t.service_cost || 0,
+            t.selling_price || 0
+          ]
+        );
+      }
+    } else {
+      // Fallback: If no services selected, insert generic package line item
+      await client.query(
+        `INSERT INTO invoice_third_party_services 
+         (invoice_order_id, service_name, selling_price, service_cost)
+         VALUES ($1, $2, $3, 0)`,
+        [invoiceId, `Package Subscription: ${packageName}`, invoicePrice]
+      );
+    }
 
     // 4. Save Assigned Offer with invoice link
     const result = await client.query(
@@ -116,7 +155,11 @@ const mapAssignedOffer = (offerData) => ({
   status: offerData.status,
   carMake: offerData.vehicle_make || '', 
   carModel: '',
-  licensePlate: offerData.license_vin || ''
+  licensePlate: offerData.license_vin || '',
+  vehicleId: offerData.vehicle_id || null,
+  masterOfferId: offerData.master_offer_id || null,
+  serviceIds: offerData.service_ids || [],
+  thirdPartyServiceIds: offerData.third_party_service_ids || []
 });
 
 // GET /offers - List all assigned offers
@@ -125,10 +168,11 @@ router.get('/', protect, async (req, res) => {
     const { client_id } = req.query;
     
     let query = `
-      SELECT o.*, c.full_name as customer_name, c.phone as customer_phone, v.make_model as vehicle_make
+      SELECT o.*, c.full_name as customer_name, c.phone as customer_phone, v.make_model as vehicle_make, mo.service_ids, mo.third_party_service_ids
       FROM assigned_offers o
       JOIN clients c ON o.client_id = c.id
       LEFT JOIN vehicles v ON o.vehicle_id = v.id
+      LEFT JOIN master_offers mo ON o.master_offer_id = mo.id
     `;
     const params = [];
     
@@ -151,9 +195,10 @@ router.get('/', protect, async (req, res) => {
 router.get('/:id', protect, async (req, res) => {
   try {
     const result = await pool.query(
-      `SELECT o.*, c.full_name as "customer_name", c.phone as "customer_phone"
+      `SELECT o.*, c.full_name as "customer_name", c.phone as "customer_phone", mo.service_ids, mo.third_party_service_ids
        FROM assigned_offers o
        JOIN clients c ON o.client_id = c.id
+       LEFT JOIN master_offers mo ON o.master_offer_id = mo.id
        WHERE o.id = $1`,
       [req.params.id]
     );

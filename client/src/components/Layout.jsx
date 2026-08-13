@@ -3,7 +3,7 @@ import { Outlet, NavLink, useNavigate, useLocation, Link } from 'react-router-do
 import {
   LayoutDashboard, FileText, Users, Briefcase, Plus, Bell, Search, LogOut, Activity, Gift, ChevronDown, Database, Globe, Menu, X, Sparkles, Shield, Car
 } from 'lucide-react';
-import brandLogo from '../assets/brand_logo.png';
+import brandLogo from '../assets/brand-logo-for-invoice.png';
 import api from '../api/axios.js';
 
 const iconMap = {
@@ -106,7 +106,7 @@ function SidebarNav({ navItems, openGroups, setOpenGroups, onNavigate }) {
                       className={({ isActive }) => `
                         flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] font-bold transition-colors
                         ${isActive
-                          ? 'bg-blue-600 text-white shadow-sm shadow-blue-500/20'
+                          ? 'bg-black text-[#FFD700] shadow-md border border-[#FFD700]/30'
                           : 'text-gray-800 hover:text-gray-900 hover:bg-white/50'}
                       `}
                     >
@@ -129,7 +129,7 @@ function SidebarNav({ navItems, openGroups, setOpenGroups, onNavigate }) {
             className={({ isActive }) => `
               flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-extrabold transition-colors
               ${isActive
-                ? 'bg-blue-600 text-white shadow-sm shadow-blue-500/20'
+                ? 'bg-black text-[#FFD700] shadow-md border border-[#FFD700]/30'
                 : 'text-gray-800 hover:bg-white/50 hover:text-gray-900'}
             `}
           >
@@ -202,21 +202,13 @@ export default function Layout() {
   };
 
   return (
-    <div className="min-h-screen font-sans text-gray-900 flex overflow-hidden" style={{ background: 'linear-gradient(135deg, #fdfbf7 0%, #fdf8eb 50%, #f9eed2 100%)' }}>
+    <div className="min-h-screen font-sans text-theme-brown flex overflow-hidden" style={{ background: 'linear-gradient(135deg, #FFFFFF 0%, #EBEBED 50%, #E5E5E0 100%)' }}>
       
-      {/* ── Background Aesthetic (Pinterest style gradient & Glassium Car) ── */}
+      {/* ── Background Aesthetic (Glassmorphism Warm Gradient) ── */}
       <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
-        {/* Soft yellow glow */}
-        <div className="absolute top-[-10%] right-[-5%] w-[800px] h-[800px] bg-[#fcdf4c] rounded-full blur-[140px] opacity-15"></div>
-        <div className="absolute bottom-[-20%] left-[-10%] w-[600px] h-[600px] bg-[#fcdf4c] rounded-full blur-[120px] opacity-10"></div>
-        
-        {/* Giant Logo Watermark */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center justify-center opacity-10">
-           <img src={brandLogo} alt="" className="w-[315px] h-[315px] md:w-[440px] md:h-[440px] object-contain drop-shadow-2xl" />
-        </div>
-        
-        {/* Diagonal stripes pattern (like Pinterest image left-side) */}
-        <div className="absolute bottom-10 left-10 w-64 h-64 opacity-5" style={{ backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 10px, #000 10px, #000 12px)' }}></div>
+        {/* Soft warm glows */}
+        <div className="absolute top-[-10%] right-[-5%] w-[800px] h-[800px] bg-[#F6CB59] rounded-full blur-[140px] opacity-25"></div>
+        <div className="absolute bottom-[-20%] left-[-10%] w-[600px] h-[600px] bg-[#F6CB59] rounded-full blur-[120px] opacity-20"></div>
       </div>
 
       {/* Mobile backdrop */}
@@ -239,12 +231,12 @@ export default function Layout() {
         `}
       >
         <div className="flex items-center justify-between px-3 py-4 border-b border-white/40 shrink-0 gap-2">
-          <Link to="/" className="flex items-center gap-2.5 min-w-0 flex-1" onClick={() => setIsMobileMenuOpen(false)}>
-            <img src={brandLogo} alt="" className="h-10 w-10 object-contain shrink-0" />
-            <span className="text-[13px] font-black tracking-tight leading-tight uppercase whitespace-nowrap drop-shadow-sm">
-              <span className="text-[#FBD904]">DETAILING</span> <span className="text-gray-900">MASTERS</span>
-            </span>
-          </Link>
+            <Link to="/" className="flex items-center gap-2.5 min-w-0 flex-1" onClick={() => setIsMobileMenuOpen(false)}>
+              <img src={brandLogo} alt="Logo" className="h-12 w-auto object-contain shrink-0 bg-white rounded p-1" />
+              <span className="text-[14px] font-black tracking-tight leading-tight uppercase whitespace-nowrap drop-shadow-sm">
+                <span className="text-[#F6CB59]">DETAILING</span> <span className="text-black">MASTERS</span>
+              </span>
+            </Link>
           <button
             type="button"
             onClick={() => setIsMobileMenuOpen(false)}
@@ -282,8 +274,8 @@ export default function Layout() {
       {/* Main column */}
       <div className={`flex-1 flex flex-col min-w-0 transition-all duration-300 ${isDesktopSidebarOpen ? 'lg:pl-[260px]' : 'lg:pl-0'} bg-transparent`}>
         <header
-          className={`sticky top-0 z-50 transition-all duration-200 bg-transparent ${
-            scrolled ? 'bg-white/40 backdrop-blur-xl border-b border-white/50 shadow-sm' : 'border-b border-transparent'
+          className={`sticky top-0 z-50 transition-all duration-200 bg-white ${
+            scrolled ? 'border-b border-gray-200 shadow-sm' : 'border-b border-gray-200'
           }`}
         >
           <div className="px-4 sm:px-6 h-[64px] flex items-center justify-between gap-3">
@@ -291,7 +283,7 @@ export default function Layout() {
               <button
                 type="button"
                 onClick={() => setIsMobileMenuOpen(true)}
-                className="lg:hidden w-10 h-10 flex items-center justify-center rounded-xl bg-white/50 border border-white/50 text-gray-700 hover:bg-white/80 shrink-0"
+                className="lg:hidden w-10 h-10 flex items-center justify-center rounded-xl bg-gray-100 border border-gray-200 text-gray-700 hover:bg-gray-200 shrink-0"
               >
                 <Menu size={20} />
               </button>
@@ -300,18 +292,18 @@ export default function Layout() {
                 <button
                   type="button"
                   onClick={() => setIsDesktopSidebarOpen(true)}
-                  className="hidden lg:flex w-10 h-10 items-center justify-center rounded-xl bg-white/50 border border-white/50 text-gray-700 hover:bg-white/80 shrink-0"
+                  className="hidden lg:flex w-10 h-10 items-center justify-center rounded-xl bg-gray-100 border border-gray-200 text-gray-700 hover:bg-gray-200 shrink-0"
                 >
                   <Menu size={20} />
                 </button>
               )}
 
-              <div className="lg:hidden flex items-center gap-2 min-w-0">
-                <img src={brandLogo} alt="" className="h-8 w-8 object-contain shrink-0" />
-                <span className="text-[12px] font-black tracking-tight leading-tight uppercase truncate">
-                  <span className="text-[#FBD904]">DETAILING</span> <span className="text-gray-900">MASTERS</span>
-                </span>
-              </div>
+                <div className="lg:hidden flex items-center gap-2 min-w-0">
+                  <img src={brandLogo} alt="Logo" className="h-10 w-auto object-contain shrink-0 bg-white rounded p-1" />
+                  <span className="text-[13px] font-black tracking-tight leading-tight uppercase truncate">
+                    <span className="text-[#F6CB59]">DETAILING</span> <span className="text-black">MASTERS</span>
+                  </span>
+                </div>
               <p className="hidden lg:block text-sm font-bold text-gray-900 truncate ml-1">
                 Dashboard
               </p>
@@ -319,17 +311,17 @@ export default function Layout() {
 
             <div className="flex items-center gap-2 sm:gap-3">
               <div className="relative hidden md:block">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-800" size={15} />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={15} />
                 <input
                   type="text"
                   placeholder="Search…"
-                  className="pl-9 pr-4 py-2 bg-white/50 backdrop-blur-md border border-white/50 rounded-full text-sm font-bold focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 w-[180px] lg:w-[220px] text-gray-900 placeholder-gray-600"
+                  className="pl-9 pr-4 py-2 bg-white border border-gray-200 rounded-full text-sm font-bold focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 w-[180px] lg:w-[220px] text-gray-900 placeholder-gray-400 shadow-sm"
                 />
               </div>
 
               <button
                 type="button"
-                className="w-10 h-10 rounded-full flex items-center justify-center bg-white/50 backdrop-blur-md border border-white/50 text-gray-800 hover:bg-white/80 relative"
+                className="w-10 h-10 rounded-full flex items-center justify-center bg-white border border-gray-200 text-gray-800 hover:bg-gray-50 relative shadow-sm"
               >
                 <Bell size={17} />
                 <span className="absolute top-2 right-2.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white" />
@@ -345,11 +337,13 @@ export default function Layout() {
           </div>
         </header>
 
-        <main className="flex-1 w-full mx-auto px-4 sm:px-6 py-6 sm:py-8 pb-20 max-w-[1600px] bg-transparent">
-          <Outlet />
+        <main className="flex-1 w-full mx-auto p-4 sm:p-6 lg:p-8 max-w-[1600px] h-full relative">
+          <div className="bg-transparent min-h-[calc(100vh-140px)] rounded-[20px] overflow-hidden flex flex-col">
+            <Outlet />
+          </div>
         </main>
 
-        <footer className="mt-auto border-t border-white/40 bg-white/40 backdrop-blur-xl">
+        <footer className="mt-auto border-t border-gray-200 bg-white">
           <div className="px-4 sm:px-6 py-4 flex flex-col sm:flex-row items-center justify-between text-[11px] sm:text-xs font-bold text-gray-800 gap-2">
             <p>© {new Date().getFullYear()} Detailing Masters. All rights reserved.</p>
             <span className="flex items-center gap-1.5">

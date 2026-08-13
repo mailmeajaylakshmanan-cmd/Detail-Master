@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const bcrypt = require('bcryptjs');
 const { pool } = require('../db');
 const { protect } = require('../middleware/auth');
 
@@ -41,6 +42,64 @@ router.get('/users', protect, async (req, res) => {
   } catch (error) {
     console.error('Error fetching users:', error);
     res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// POST create a new user
+router.post('/users', protect, async (req, res) => {
+  const { username, password, email, full_name, role_id } = req.body;
+  if (!username || !password || !email || !role_id) {
+    return res.status(400).json({ message: 'Missing required fields' });
+  }
+
+  try {
+    // Check if user already exists
+    const existing = await pool.query('SELECT id FROM public.admin_users WHERE username = $1 OR email = $2', [username, email]);
+    if (existing.rows.length > 0) {
+      return res.status(400).json({ message: 'Username or Email already exists' });
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    const hash = await bcrypt.hash(password, salt);
+
+    const result = await pool.query(
+      `INSERT INTO public.admin_users (username, password_hash, email, full_name, role_id, is_active, created_at, updated_at) 
+       VALUES ($1, $2, $3, $4, $5, true, NOW(), NOW()) RETURNING id, username, email, full_name, role_id`,
+      [username, hash, email, full_name || username, role_id]
+    );
+
+    res.status(201).json(result.rows[0]);
+  } catch (error) {
+    console.error('Error creating user:', error);
+    res.status(500).json({ message: 'Server error creating user' });
+  }
+});
+
+// PUT update a user's password
+router.put('/users/:id/password', protect, async (req, res) => {
+  const { id } = req.params;
+  const { newPassword } = req.body;
+  if (!newPassword) {
+    return res.status(400).json({ message: 'Missing new password' });
+  }
+
+  try {
+    const salt = await bcrypt.genSalt(10);
+    const hash = await bcrypt.hash(newPassword, salt);
+
+    const result = await pool.query(
+      'UPDATE public.admin_users SET password_hash = $1, updated_at = NOW() WHERE id = $2 RETURNING id',
+      [hash, id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    res.json({ message: 'Password updated successfully' });
+  } catch (error) {
+    console.error('Error updating password:', error);
+    res.status(500).json({ message: 'Server error updating password' });
   }
 });
 
@@ -136,11 +195,18 @@ router.post('/users/:userId/menus', protect, async (req, res) => {
     await client.query('DELETE FROM public.user_menus WHERE user_id = $1', [userId]);
 
     for (const menu of menus || []) {
-      if (menu.can_view) {
+      if (menu.can_view || menu.can_add || menu.can_edit || menu.can_delete) {
         await client.query(
-          `INSERT INTO public.user_menus (user_id, menu_id, can_view)
-           VALUES ($1, $2, TRUE)`,
-          [userId, menu.menu_id]
+          `INSERT INTO public.user_menus (user_id, menu_id, can_view, can_add, can_edit, can_delete)
+           VALUES ($1, $2, $3, $4, $5, $6)`,
+          [
+            userId, 
+            menu.menu_id, 
+            menu.can_view || false,
+            menu.can_add || false,
+            menu.can_edit || false,
+            menu.can_delete || false
+          ]
         );
       }
     }
