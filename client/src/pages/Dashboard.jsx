@@ -166,30 +166,24 @@ export default function Dashboard() {
             </div>
 
             <div className="flex-1 overflow-y-auto space-y-4 pr-2 custom-scrollbar relative pl-6 border-l-2 border-dashed border-gray-100 ml-2">
-               {/* Timeline Item 1 */}
-               <div className="relative">
-                 <div className="absolute -left-[30px] top-1 w-4 h-4 rounded-full bg-[#2c2c2c] ring-4 ring-white"></div>
-                 <div className="bg-[#2c2c2c] text-white p-4 rounded-2xl">
-                    <h3 className="text-[14px] font-medium mb-1">Porsche 911</h3>
-                    <p className="text-[11px] text-gray-300 font-medium">09:30am - 10:30am • Ceramic Coating</p>
-                 </div>
-               </div>
-               {/* Timeline Item 2 */}
-               <div className="relative">
-                 <div className="absolute -left-[30px] top-1 w-4 h-4 rounded-full bg-gray-200 ring-4 ring-white"></div>
-                 <div className="bg-white border border-gray-100 shadow-sm p-4 rounded-2xl">
-                    <h3 className="text-[14px] font-medium text-gray-900 mb-1">Range Rover</h3>
-                    <p className="text-[11px] text-gray-800 font-medium">11:30am - 01:00pm • Interior Deep Clean</p>
-                 </div>
-               </div>
-               {/* Timeline Item 3 */}
-               <div className="relative">
-                 <div className="absolute -left-[30px] top-1 w-4 h-4 rounded-full bg-[#fcdf4c] ring-4 ring-white"></div>
-                 <div className="bg-white border border-gray-100 shadow-sm p-4 rounded-2xl">
-                    <h3 className="text-[14px] font-medium text-gray-900 mb-1">BMW X5</h3>
-                    <p className="text-[11px] text-gray-800 font-medium">02:00pm - 05:00pm • Wash & Wax</p>
-                 </div>
-               </div>
+               {data?.schedule && data.schedule.length > 0 ? (
+                 data.schedule.map((item, i) => {
+                   const isFirst = i === 0;
+                   return (
+                     <div key={item.booking_id || i} className="relative">
+                       <div className={`absolute -left-[30px] top-1 w-4 h-4 rounded-full ${isFirst ? 'bg-[#2c2c2c]' : 'bg-gray-200'} ring-4 ring-white`}></div>
+                       <div className={`${isFirst ? 'bg-[#2c2c2c] text-white' : 'bg-white border border-gray-100 shadow-sm text-gray-900'} p-4 rounded-2xl`}>
+                          <h3 className={`text-[14px] font-medium mb-1 ${isFirst ? '' : 'text-gray-900'}`}>{item.vehicle_brand} {item.vehicle_model}</h3>
+                          <p className={`text-[11px] font-medium ${isFirst ? 'text-gray-300' : 'text-gray-800'}`}>
+                             {item.allocated_time || 'TBD'} • {item.service_name || 'No service specified'}
+                          </p>
+                       </div>
+                     </div>
+                   );
+                 })
+               ) : (
+                 <div className="text-gray-500 text-sm font-medium">No upcoming appointments</div>
+               )}
             </div>
           </div>
 
@@ -216,27 +210,35 @@ export default function Dashboard() {
                     </tr>
                   </thead>
                   <tbody>
-                    {[
-                      { name: 'Yulia Polishchuk', vehicle: 'Porsche 911', service: 'Ceramic 3yr', status: 'In Progress', statusColor: 'bg-emerald-50 text-emerald-600' },
-                      { name: 'Bogdan Nikitin', vehicle: 'Range Rover', service: 'Interior Deep', status: 'Waiting', statusColor: 'bg-gray-100 text-gray-500' },
-                      { name: 'Daria Yurchenko', vehicle: 'BMW X5', service: 'Wash & Wax', status: 'Pending', statusColor: 'bg-[#fcdf4c]/20 text-[#D8A700]' },
-                    ].map((item, i) => (
-                      <tr key={i} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/50 transition-colors">
-                        <td className="py-3">
-                          <div className="flex items-center gap-3">
-                            <img src={`https://ui-avatars.com/api/?name=${item.name}&background=random&color=fff`} alt="" className="w-8 h-8 rounded-full" />
-                            <span className="text-[13px] font-medium text-gray-900">{item.name}</span>
-                          </div>
-                        </td>
-                        <td className="py-3 text-[13px] text-gray-900 font-medium">{item.vehicle}</td>
-                        <td className="py-3 text-[13px] text-gray-900 font-medium">{item.service}</td>
-                        <td className="py-3">
-                          <span className={`px-2 py-1 rounded-md text-[10px] font-semibold ${item.statusColor}`}>
-                            • {item.status}
-                          </span>
-                        </td>
+                    {data?.activeServices && data.activeServices.length > 0 ? (
+                      data.activeServices.map((item, i) => {
+                        let statusColor = 'bg-gray-100 text-gray-500';
+                        if (item.status === 'in_progress') statusColor = 'bg-emerald-50 text-emerald-600';
+                        if (item.status === 'draft') statusColor = 'bg-[#fcdf4c]/20 text-[#D8A700]';
+                        if (item.status === 'pending') statusColor = 'bg-orange-50 text-orange-600';
+                        return (
+                          <tr key={item.id || i} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/50 transition-colors">
+                            <td className="py-3">
+                              <div className="flex items-center gap-3">
+                                <img src={`https://ui-avatars.com/api/?name=${encodeURIComponent(item.customer_name || 'Unknown')}&background=random&color=fff`} alt="" className="w-8 h-8 rounded-full" />
+                                <span className="text-[13px] font-medium text-gray-900">{item.customer_name}</span>
+                              </div>
+                            </td>
+                            <td className="py-3 text-[13px] text-gray-900 font-medium">{item.vehicle_name || 'N/A'}</td>
+                            <td className="py-3 text-[13px] text-gray-900 font-medium">{item.service_name || 'N/A'}</td>
+                            <td className="py-3">
+                              <span className={`px-2 py-1 rounded-md text-[10px] font-semibold ${statusColor} capitalize`}>
+                                • {item.status.replace('_', ' ')}
+                              </span>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    ) : (
+                      <tr>
+                        <td colSpan="4" className="py-4 text-center text-sm font-medium text-gray-500">No active services</td>
                       </tr>
-                    ))}
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -248,29 +250,40 @@ export default function Dashboard() {
                <div className="w-full bg-white/40 backdrop-blur-3xl border border-white/50 shadow-[0_8px_32px_rgba(0,0,0,0.05)] rounded-[32px] p-6 flex flex-col items-center justify-center relative min-h-[180px]">
                   <h2 className="text-[14px] font-bold text-gray-900 absolute top-6 left-6 uppercase tracking-wide">Service Mix Overview</h2>
                   <div className="flex flex-col sm:flex-row items-center gap-12 mt-8 sm:mt-0">
-                    <div className="relative w-28 h-28">
-                      {/* Fake Donut */}
-                      <div className="absolute inset-0 rounded-full border-8 border-gray-100"></div>
-                      <div className="absolute inset-0 rounded-full border-8 border-[#2c2c2c] border-l-transparent border-t-transparent border-r-transparent -rotate-45"></div>
-                      <div className="absolute inset-0 rounded-full border-8 border-[#fcdf4c] border-b-transparent border-t-transparent border-r-transparent rotate-12"></div>
-                      
-                      <div className="absolute inset-0 flex flex-col items-center justify-center">
-                        <span className="text-[24px] font-black text-gray-900">248</span>
-                        <span className="text-[10px] text-gray-800 font-bold uppercase">Total</span>
-                      </div>
-                    </div>
-                    <div className="flex flex-col gap-4 text-[13px] font-bold text-gray-800">
-                      <div className="flex items-center gap-3">
-                        <span className="w-3.5 h-3.5 rounded-full bg-[#fcdf4c]"></span>
-                        <span className="w-32">Premium Wash</span>
-                        <span className="text-gray-900 text-[16px] font-black">70%</span>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <span className="w-3.5 h-3.5 rounded-full bg-[#2c2c2c]"></span>
-                        <span className="w-32">Ceramic Coating</span>
-                        <span className="text-gray-900 text-[16px] font-black">30%</span>
-                      </div>
-                    </div>
+                   {(() => {
+                      const totalMix = data?.serviceMix?.reduce((acc, curr) => acc + curr.count, 0) || 0;
+                      const mixColors = ['bg-[#fcdf4c]', 'bg-[#2c2c2c]', 'bg-gray-400'];
+                      return (
+                        <>
+                          <div className="relative w-28 h-28">
+                            <div className="absolute inset-0 rounded-full border-8 border-gray-100"></div>
+                            {data?.serviceMix?.length > 0 && (
+                               <div className="absolute inset-0 rounded-full border-8 border-[#2c2c2c] border-l-transparent border-t-transparent border-r-transparent -rotate-45"></div>
+                            )}
+                            {data?.serviceMix?.length > 1 && (
+                               <div className="absolute inset-0 rounded-full border-8 border-[#fcdf4c] border-b-transparent border-t-transparent border-r-transparent rotate-12"></div>
+                            )}
+                            <div className="absolute inset-0 flex flex-col items-center justify-center">
+                              <span className="text-[24px] font-black text-gray-900">{totalMix}</span>
+                              <span className="text-[10px] text-gray-800 font-bold uppercase">Total</span>
+                            </div>
+                          </div>
+                          <div className="flex flex-col gap-4 text-[13px] font-bold text-gray-800">
+                            {data?.serviceMix?.slice(0, 3).map((mix, idx) => {
+                              const percentage = totalMix > 0 ? Math.round((mix.count / totalMix) * 100) : 0;
+                              return (
+                                <div key={idx} className="flex items-center gap-3">
+                                  <span className={`w-3.5 h-3.5 rounded-full ${mixColors[idx] || 'bg-gray-200'}`}></span>
+                                  <span className="w-32 truncate">{mix.service_name}</span>
+                                  <span className="text-gray-900 text-[16px] font-black">{percentage}%</span>
+                                </div>
+                              );
+                            })}
+                            {!data?.serviceMix?.length && <span className="text-gray-500 font-medium text-[13px]">No data available</span>}
+                          </div>
+                        </>
+                      );
+                   })()}
                   </div>
                </div>
             </div>
