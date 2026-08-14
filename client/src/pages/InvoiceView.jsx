@@ -440,7 +440,7 @@ export default function InvoiceView() {
            <div style={{ flex: 1 }}>
               <h3 style={{ fontSize: 15, fontWeight: 700, margin: '0 0 12px 0', color: '#111', textTransform: 'uppercase' }}>INVOICE INFO</h3>
               <div style={{ fontSize: 13, color: '#333', lineHeight: 1.8 }}>
-                 <div style={{ display: 'flex' }}><span style={{ width: 65, fontWeight: 600 }}>Address:</span> <span style={{ flex: 1 }}>Opposite KTM Bike Showroom, Kulasekharam, Kanyakumari</span></div>
+                 <div style={{ display: 'flex' }}><span style={{ width: 65, fontWeight: 600 }}>Address:</span> <span style={{ flex: 1 }}>Opposite KTM Bike Showroom, Chankai, Marthandam, Tamil Nadu 629155</span></div>
                  <div style={{ display: 'flex' }}><span style={{ width: 65, fontWeight: 600 }}>Phone:</span> <span>+91 9994122652</span></div>
                  <div style={{ display: 'flex' }}><span style={{ width: 65, fontWeight: 600 }}>Email:</span> <span>detailingmasters@gmail.com</span></div>
               </div>
