@@ -250,23 +250,25 @@ export default function WebsiteBookings() {
       <div className="relative z-10 space-y-6">
         {/* ── Header ── */}
         <div className="flex flex-col gap-2 mb-8">
-          <div className="inline-flex items-center w-fit px-3 py-1 bg-white/80 backdrop-blur-xl border border-white rounded-full shadow-sm">
-            <span className="text-blue-600 text-[12px] font-black uppercase tracking-widest flex items-center gap-2">
-              <div className="w-1.5 h-1.5 rounded-full bg-blue-600 animate-pulse"></div>
+          <div className="inline-flex items-center w-fit px-3 py-1 bg-black rounded-full shadow-md border border-gray-800">
+            <span className="text-[#F6CB59] text-[12px] font-black uppercase tracking-widest flex items-center gap-2">
+              <div className="w-1.5 h-1.5 rounded-full bg-[#F6CB59] animate-pulse"></div>
               Leads & Inquiries
             </span>
           </div>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <h1 className="text-3xl font-black text-gray-900 tracking-tight">Website Bookings</h1>
-              <Globe className="text-[#3b82f6]" size={28} />
+              <div className="w-10 h-10 rounded-2xl bg-black text-[#F6CB59] flex items-center justify-center shadow-md shrink-0">
+                <Globe size={20} strokeWidth={2.5} />
+              </div>
             </div>
           </div>
         </div>
 
         {/* ── Controls row ── */}
         <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
-          <div className="flex items-center bg-white/90 backdrop-blur-xl rounded-2xl p-1.5 border border-gray-100 shadow-xl shadow-gray-200/50">
+          <div className="flex items-center bg-white/60 backdrop-blur-xl rounded-2xl p-1.5 border border-white/80 shadow-[0_8px_32px_rgba(0,0,0,0.06)] overflow-x-auto custom-scrollbar w-full sm:w-auto">
             {[
               { id: 'pending', label: 'Pending' },
               { id: 'confirmed', label: 'Confirmed' },
@@ -276,13 +278,13 @@ export default function WebsiteBookings() {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`px-6 py-2.5 rounded-xl text-[13px] font-black uppercase tracking-widest transition-all ${activeTab === tab.id
-                    ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30 ring-2 ring-blue-600 ring-offset-1'
-                    : 'text-gray-500 hover:bg-gray-100 hover:text-gray-900'
+                className={`px-6 py-2.5 rounded-xl text-[13px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${activeTab === tab.id
+                    ? 'bg-gray-900 text-[#F6CB59] shadow-md scale-100'
+                    : 'text-gray-500 hover:bg-white/80 hover:text-gray-900'
                   }`}
               >
                 {tab.label}
-                <span className={`ml-2 px-2 py-0.5 rounded-full text-[10px] font-black ${activeTab === tab.id ? 'bg-white/20 text-white' : 'bg-gray-200 text-gray-600'
+                <span className={`ml-2 px-2 py-0.5 rounded-full text-[10px] font-black ${activeTab === tab.id ? 'bg-white/20 text-[#F6CB59]' : 'bg-gray-200 text-gray-600'
                   }`}>
                   {bookings.filter(b => b.status === tab.id).length}
                 </span>
@@ -291,13 +293,13 @@ export default function WebsiteBookings() {
           </div>
 
           <div className="relative w-full sm:w-auto flex items-center group">
-            <Search className="absolute left-4 text-blue-500 z-10 transition-transform group-focus-within:scale-110" size={20} />
+              <Search className="absolute left-4 text-gray-400 z-10 transition-transform group-focus-within:scale-110" size={20} />
             <input
               type="text"
               placeholder="Search by name, car..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full sm:w-80 pl-11 pr-4 py-3.5 bg-white backdrop-blur-xl border-2 border-gray-200 rounded-2xl text-[15px] font-black text-gray-900 shadow-xl shadow-gray-200/40 focus:outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all placeholder-gray-400 placeholder:font-bold"
+              className="w-full sm:w-80 pl-11 pr-4 py-3 bg-white/60 backdrop-blur-xl border border-white/80 rounded-2xl text-[13px] font-bold text-gray-900 shadow-[0_8px_32px_rgba(0,0,0,0.04)] focus:outline-none focus:ring-2 focus:ring-[#F6CB59]/30 focus:border-[#F6CB59] transition-all placeholder-gray-400"
             />
           </div>
         </div>
@@ -316,11 +318,12 @@ export default function WebsiteBookings() {
             <p className="text-gray-500 font-bold">There are currently no website bookings in this status.</p>
           </div>
         ) : (
-          <div className="bg-white/90 backdrop-blur-xl rounded-3xl border border-gray-100 shadow-xl shadow-gray-200/50 overflow-hidden pb-4">
-            <div className="overflow-x-auto custom-scrollbar">
+          <>
+            <div className="hidden lg:block bg-white/60 backdrop-blur-2xl rounded-[24px] border border-white/80 shadow-[0_8px_32px_rgba(0,0,0,0.06)] overflow-hidden pb-4">
+              <div className="overflow-x-auto custom-scrollbar">
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="bg-gray-50/50 border-b border-gray-100 text-[10px] uppercase tracking-widest text-gray-500 font-bold">
+                  <tr className="bg-white/40 backdrop-blur-md border-b border-white/50 text-[10px] uppercase tracking-widest text-gray-500 font-bold sticky top-0 z-10">
                     <th className="px-6 py-4">Customer Info</th>
                     <th className="px-6 py-4">Vehicle</th>
                     <th className="px-6 py-4">Interested Service</th>
@@ -329,9 +332,9 @@ export default function WebsiteBookings() {
                     <th className="px-6 py-4 text-center">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-50">
+                <tbody className="divide-y divide-gray-100/50">
                   {filteredBookings.map(booking => (
-                    <tr key={booking.booking_id} className="hover:bg-gray-50/30 transition-colors group">
+                    <tr key={booking.booking_id} className="hover:bg-white/60 transition-colors group">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center font-black text-sm border border-blue-100 shadow-sm shrink-0">
@@ -398,10 +401,10 @@ export default function WebsiteBookings() {
                         <div className="flex items-center justify-center gap-2 transition-opacity">
                           {activeTab === 'pending' && (
                             <>
-                              <button onClick={() => startConfirm(booking)} className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-black rounded-lg transition-all shadow-sm">
+                              <button onClick={() => startConfirm(booking)} className="px-4 py-2 bg-black hover:bg-gray-900 text-[#F6CB59] text-[11px] font-black rounded-xl transition-all shadow-md">
                                 Confirm
                               </button>
-                              <button onClick={() => startCancel(booking)} className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 text-[11px] font-black rounded-lg transition-all shadow-sm">
+                              <button onClick={() => startCancel(booking)} className="px-4 py-2 bg-white hover:bg-rose-50 text-rose-600 border border-rose-200 text-[11px] font-black rounded-xl transition-all shadow-sm">
                                 Cancel
                               </button>
                             </>
@@ -415,18 +418,18 @@ export default function WebsiteBookings() {
                                   }
                                 }}
                                 disabled={convertBookingMutation.isPending}
-                                className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-black rounded-lg transition-all shadow-sm flex items-center gap-1 disabled:opacity-50"
+                                className="px-4 py-2 bg-black hover:bg-gray-900 text-[#F6CB59] text-[11px] font-black rounded-xl transition-all shadow-md flex items-center gap-1.5 disabled:opacity-50"
                               >
                                 {convertBookingMutation.isPending && convertBookingMutation.variables === booking.booking_id ? <Globe className="animate-spin" size={12} /> : null}
                                 Convert to Invoice
                               </button>
-                              <button onClick={() => plainStatusChange(booking, 'pending')} className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-600 border border-gray-200 text-[11px] font-black rounded-lg transition-all shadow-sm">
+                              <button onClick={() => plainStatusChange(booking, 'pending')} className="px-4 py-2 bg-white hover:bg-gray-50 text-gray-600 border border-gray-200 text-[11px] font-black rounded-xl transition-all shadow-sm">
                                 Revert
                               </button>
                             </>
                           )}
                           {(activeTab === 'converted' || activeTab === 'cancelled') && (
-                            <button onClick={() => plainStatusChange(booking, 'pending')} className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-600 border border-gray-200 text-[11px] font-black rounded-lg transition-all shadow-sm">
+                            <button onClick={() => plainStatusChange(booking, 'pending')} className="px-4 py-2 bg-white hover:bg-gray-50 text-gray-600 border border-gray-200 text-[11px] font-black rounded-xl transition-all shadow-sm">
                               Reopen
                             </button>
                           )}
@@ -438,6 +441,124 @@ export default function WebsiteBookings() {
               </table>
             </div>
           </div>
+
+          {/* Mobile Cards */}
+          <div className="block lg:hidden flex flex-col gap-5 py-2">
+            {filteredBookings.map(booking => (
+              <div key={booking.booking_id} className="bg-white/60 backdrop-blur-2xl border border-white/80 rounded-[24px] p-5 shadow-[0_8px_32px_rgba(0,0,0,0.06)] flex flex-col gap-4 relative">
+                <div className="flex justify-between items-start">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-11 h-11 rounded-[12px] bg-black text-[#F6CB59] flex items-center justify-center font-black text-sm shrink-0 shadow-md">
+                      {(booking.full_name || 'U').charAt(0).toUpperCase()}
+                    </div>
+                    <div className="min-w-0 pr-2">
+                      <div className="font-black text-[16px] text-gray-900 truncate tracking-tight">{booking.full_name}</div>
+                      <div className="text-[12px] font-bold text-gray-500 tracking-wider uppercase mt-0.5">{booking.phone}</div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 bg-white/50 p-4 rounded-2xl border border-white/60 shadow-sm mt-1">
+                  <div className="flex items-start gap-2 text-[13px] font-bold text-gray-800 col-span-2">
+                    <Car size={14} className="text-gray-400 shrink-0 mt-0.5" />
+                    <span className="truncate whitespace-normal leading-tight">
+                      {booking.vehicle_brand} {booking.vehicle_model}
+                    </span>
+                  </div>
+                  <div className="flex items-start gap-2 text-[13px] font-bold text-gray-800 col-span-2 pt-3 border-t border-gray-200/50">
+                    <CheckSquare size={14} className="text-[#F6CB59] shrink-0 mt-0.5" />
+                    <span className="truncate whitespace-normal leading-tight text-[#854D0E]">
+                      {booking.service_name || 'General Inquiry'}
+                    </span>
+                  </div>
+                  <div className="flex items-start gap-2 text-[13px] font-bold text-gray-800 col-span-2 pt-3 border-t border-gray-200/50">
+                    <Calendar size={14} className="text-gray-400 shrink-0 mt-0.5" />
+                    <span className="truncate whitespace-normal leading-tight">
+                      {formatDate(booking.preferred_date) === 'TBD' ? 'No Date' : formatDate(booking.preferred_date)}
+                      {booking.allocated_time && <span className="ml-1 text-gray-500">· {booking.allocated_time}</span>}
+                    </span>
+                  </div>
+                  {activeTab === 'pending' && booking.preferred_time_period && (
+                    <div className="flex items-start gap-2 text-[13px] font-bold text-gray-800 col-span-2 pt-3 border-t border-gray-200/50">
+                      <Clock size={14} className="text-gray-400 shrink-0 mt-0.5" />
+                      <span className="truncate whitespace-normal leading-tight text-gray-700">
+                        Requested: {booking.preferred_time_period}
+                      </span>
+                    </div>
+                  )}
+                </div>
+                
+                {booking.additional_notes && (
+                  <div className="px-1">
+                    <p className="text-[12px] text-gray-600 font-medium line-clamp-2">
+                      <span className="font-bold text-gray-900 mr-1">Notes:</span> {booking.additional_notes}
+                    </p>
+                  </div>
+                )}
+
+                <div className="flex flex-col gap-2 mt-2">
+                  {reschedulingId === booking.booking_id ? (
+                    <div className="flex flex-col gap-2 bg-white/50 p-3 rounded-xl border border-white/60 shadow-sm">
+                      <label className="text-[11px] font-bold text-gray-500 uppercase tracking-wide">Pick New Date</label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="date"
+                          value={rescheduleValue}
+                          onChange={(e) => setRescheduleValue(e.target.value)}
+                          className="flex-1 text-[13px] font-bold text-gray-900 bg-white px-3 py-2 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#F6CB59]/30"
+                        />
+                        <button onClick={() => confirmReschedule(booking)} className="w-10 h-10 flex items-center justify-center rounded-xl bg-black text-[#F6CB59] shadow-md">
+                          <Check size={16} strokeWidth={3} />
+                        </button>
+                        <button onClick={() => setReschedulingId(null)} className="w-10 h-10 flex items-center justify-center rounded-xl bg-white text-gray-500 border border-gray-200 shadow-sm">
+                          <XIcon size={16} strokeWidth={3} />
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex gap-2">
+                      {activeTab === 'pending' && (
+                        <>
+                          <button onClick={() => startConfirm(booking)} className="flex-1 py-2.5 bg-black hover:bg-gray-900 text-[#F6CB59] text-[12px] font-black rounded-xl transition-all shadow-md">
+                            Confirm
+                          </button>
+                          <button onClick={() => startReschedule(booking)} className="flex-1 py-2.5 bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 text-[12px] font-black rounded-xl transition-all shadow-sm">
+                            Reschedule
+                          </button>
+                          <button onClick={() => startCancel(booking)} className="py-2.5 px-4 bg-white hover:bg-rose-50 text-rose-600 border border-rose-200 text-[12px] font-black rounded-xl transition-all shadow-sm">
+                            <XIcon size={16} />
+                          </button>
+                        </>
+                      )}
+                      {activeTab === 'confirmed' && (
+                        <>
+                          <button
+                            onClick={() => {
+                              if (window.confirm('Convert booking into invoice?')) convertBookingMutation.mutate(booking.booking_id);
+                            }}
+                            disabled={convertBookingMutation.isPending}
+                            className="flex-1 py-2.5 bg-black hover:bg-gray-900 text-[#F6CB59] text-[12px] font-black rounded-xl transition-all shadow-md flex items-center justify-center gap-1.5 disabled:opacity-50"
+                          >
+                            {convertBookingMutation.isPending && convertBookingMutation.variables === booking.booking_id ? <Globe className="animate-spin" size={14} /> : null}
+                            Convert to Invoice
+                          </button>
+                          <button onClick={() => plainStatusChange(booking, 'pending')} className="flex-1 py-2.5 bg-white hover:bg-gray-50 text-gray-600 border border-gray-200 text-[12px] font-black rounded-xl transition-all shadow-sm">
+                            Revert
+                          </button>
+                        </>
+                      )}
+                      {(activeTab === 'converted' || activeTab === 'cancelled') && (
+                        <button onClick={() => plainStatusChange(booking, 'pending')} className="flex-1 py-2.5 bg-white hover:bg-gray-50 text-gray-600 border border-gray-200 text-[12px] font-black rounded-xl transition-all shadow-sm">
+                          Reopen
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+          </>
         )}
       </div>
 

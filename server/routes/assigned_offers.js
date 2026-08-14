@@ -71,7 +71,7 @@ router.post('/', protect, async (req, res) => {
       for (const s of services) {
         if (!s.service_id) continue;
         await client.query(
-          `INSERT INTO invoice_services (invoice_order_id, service_id, price)
+          `INSERT INTO invoice_services (invoice_order_id, service_id, unit_price)
            VALUES ($1, $2, $3)`,
           [invoiceId, s.service_id, s.price || 0]
         );

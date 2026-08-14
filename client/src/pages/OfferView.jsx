@@ -8,6 +8,7 @@ import api from '../api/axios.js';
 import toast from 'react-hot-toast';
 import brandLogo from '../assets/brand-logo-for-invoice.png';
 import goldenCar from '../assets/new-invoice-add.png';
+import ResponsiveDocumentWrapper from '../components/ResponsiveDocumentWrapper.jsx';
 
 function fmt(n) {
   return Number(n || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -167,7 +168,9 @@ export default function OfferView() {
         </div>
       </div>
 
-      <div id="invoice-print" style={doc.wrap}>
+      <div className="pb-8">
+      <ResponsiveDocumentWrapper documentWidth={820}>
+        <div id="invoice-print" style={doc.wrap}>
         
         {/* HEADER */}
         <div style={{ position: 'relative', height: '115px', backgroundColor: '#EBEBED', width: '100%', WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>
@@ -406,15 +409,20 @@ export default function OfferView() {
           </p>
         </div>
 
+        </div>
+
+      </ResponsiveDocumentWrapper>
       </div>
 
       <style>{`
         @keyframes spin { to { transform: rotate(360deg); } }
+
         @media print {
           .print\\:hidden { display: none !important; }
           body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
           #invoice-print {
             max-width: 100% !important;
+            min-width: 100% !important;
             margin: 0 !important;
             box-shadow: none !important;
             border-radius: 0 !important;

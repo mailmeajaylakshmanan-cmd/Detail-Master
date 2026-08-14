@@ -132,7 +132,7 @@ export default function ServiceHistoryTable({ history, customerPhone, isVIP }) {
       </div>
 
       <div className="flex-1 bg-white rounded-[20px] shadow-sm overflow-hidden flex flex-col">
-        <div className="flex-1 overflow-x-auto overflow-y-auto custom-scrollbar">
+        <div className="hidden lg:block flex-1 overflow-x-auto overflow-y-auto custom-scrollbar">
           <table className="w-full border-collapse min-w-[720px]">
             <thead className="sticky top-0 z-10 bg-[#F8FAFC]">
               <tr>
@@ -195,14 +195,66 @@ export default function ServiceHistoryTable({ history, customerPhone, isVIP }) {
               ))}
             </tbody>
           </table>
+        </div>
+
+        {/* Mobile View */}
+        <div className="block lg:hidden flex flex-col gap-3 p-3 bg-gray-50/50">
+          {pageRows.map((inv) => (
+             <div key={inv.id} className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm flex flex-col gap-3">
+                <div className="flex justify-between items-start">
+                   <div>
+                     <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-[#F0F4F8] text-[#B45309] inline-block mb-1.5">
+                       {inv._invoiceNo}
+                     </span>
+                     <div className="text-[13px] font-bold text-[#1E293B] line-clamp-2">{inv._service}</div>
+                   </div>
+                   <div className="text-right shrink-0 ml-2">
+                     <div className="text-[14px] font-black text-[#1E293B] tabular-nums mb-1">₹{inv.total?.toLocaleString('en-IN')}</div>
+                     <PaymentStatusBadge status={inv.displayStatus || inv.status} />
+                   </div>
+                </div>
+                
+                <div className="flex items-center gap-2 text-[12px] font-medium text-gray-500 mt-1">
+                   <span>{formatDate(inv.date)}</span>
+                   <span className="w-1 h-1 rounded-full bg-gray-300"></span>
+                   <span className="truncate">{inv._vehicle}</span>
+                </div>
+
+                <div className="flex gap-2 mt-2 pt-3 border-t border-gray-100">
+                    <Link
+                      to={`/invoices/${inv.id}`}
+                      className="flex-1 inline-flex items-center justify-center gap-1.5 text-[11px] font-bold text-[#475569]
+                      bg-gray-50 px-3 py-2 rounded-lg border border-gray-200
+                      active:bg-gray-100 transition-colors"
+                    >
+                      <FileText size={13} /> View
+                    </Link>
+                    <Link
+                      to={`/invoices/${inv.id}/service-report`}
+                      className="flex-1 inline-flex items-center justify-center gap-1.5 text-[11px] font-bold text-white
+                      bg-purple-600 px-3 py-2 rounded-lg border border-purple-600
+                      active:bg-purple-700 transition-colors"
+                    >
+                      <ClipboardList size={13} /> Report
+                    </Link>
+                </div>
+             </div>
+          ))}
 
           {sorted.length === 0 && (
-            <div className="flex flex-col items-center justify-center py-20 text-gray-300">
-              <ClipboardList size={40} className="mb-4 opacity-30 text-gray-400" />
-              <p className="text-[12px] font-semibold text-gray-500">No further history found for this customer.</p>
+            <div className="flex flex-col items-center justify-center py-10 text-gray-300">
+              <ClipboardList size={32} className="mb-3 opacity-30 text-gray-400" />
+              <p className="text-[12px] font-semibold text-gray-500">No further history found.</p>
             </div>
           )}
         </div>
+
+        {sorted.length === 0 && (
+          <div className="hidden lg:flex flex-col items-center justify-center py-20 text-gray-300">
+            <ClipboardList size={40} className="mb-4 opacity-30 text-gray-400" />
+            <p className="text-[12px] font-semibold text-gray-500">No further history found for this customer.</p>
+          </div>
+        )}
       </div>
 
       <Pagination page={page} totalPages={totalPages} totalItems={sorted.length} pageSize={PAGE_SIZE} onPageChange={setPage} />

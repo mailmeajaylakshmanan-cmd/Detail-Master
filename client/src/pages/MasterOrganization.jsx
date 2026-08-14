@@ -135,27 +135,36 @@ export default function MasterOrganization() {
     <div className="w-full h-[calc(100vh-100px)] flex flex-col bg-transparent animate-fade-in">
       <div className="w-full flex flex-col h-full gap-4">
         {/* Toolbar */}
-        <div className="bg-white rounded-[20px] shadow-sm border border-gray-100 px-2 py-2 flex flex-wrap items-center justify-between gap-4 shrink-0">
-          <div className="flex items-center gap-2 ml-2">
-            <Briefcase size={18} className="text-gray-400" />
-            <h2 className="text-sm font-bold text-gray-700">Organizations</h2>
+        <div className="bg-white/60 backdrop-blur-2xl rounded-[24px] shadow-[0_8px_32px_rgba(0,0,0,0.06)] border border-white/80 p-3 flex flex-col lg:flex-row lg:items-center justify-between gap-4 shrink-0">
+          <div className="flex items-center justify-between gap-2 px-1 lg:px-0">
+            <div className="flex items-center gap-2">
+              <Briefcase size={18} className="text-gray-400" />
+              <h2 className="text-sm font-bold text-gray-700">Organizations</h2>
+            </div>
+            
+            <button
+              onClick={handleAdd}
+              className="w-[42px] h-[42px] shrink-0 rounded-[12px] border border-white/80 bg-white/50 shadow-sm flex items-center justify-center text-gray-500 hover:bg-white/80 transition-colors"
+            >
+              <Plus size={13} strokeWidth={2.5} />
+            </button>
           </div>
 
-          <div className="flex items-center gap-3 pr-2 ml-auto">
-            <div className="relative">
+          <div className="flex items-center gap-2 lg:gap-3 px-1 lg:px-0">
+            <div className="relative flex-1 lg:flex-none">
               <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={14} strokeWidth={2.5} />
               <input
                 type="text"
                 placeholder="Search organizations..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="input pl-9 pr-4 py-2.5 text-[12px] font-medium w-[220px] border-gray-200 bg-gray-50 rounded-[12px]"
+                className="input pl-9 pr-4 py-2.5 text-[12px] font-medium w-full lg:w-[220px] rounded-[12px]"
               />
             </div>
 
             <button
               onClick={handleAdd}
-              className="btn-primary whitespace-nowrap flex items-center gap-1.5"
+              className="btn-primary whitespace-nowrap hidden lg:flex items-center gap-1.5"
             >
               <Plus size={14} strokeWidth={2.5} /> Add New Organization
             </button>

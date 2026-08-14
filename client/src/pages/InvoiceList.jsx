@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
-import { Plus, Search, Filter, ArrowUpDown, ChevronLeft, ChevronRight, Eye, Pencil, ClipboardList } from 'lucide-react';
+import { Plus, Search, Filter, ArrowUpDown, ChevronLeft, ChevronRight, Eye, Pencil, ClipboardList, Car, Calendar, User } from 'lucide-react';
 import { useInvoices } from '../hooks/useQueries.js';
 import { useDebouncedValue } from '../hooks/useDebouncedValue.js';
 import { parseSafeDate } from '../utils/dateFormatter.js';
@@ -79,7 +79,7 @@ export default function InvoiceList() {
         <h1 className="text-2xl font-bold text-slate-900">Invoices</h1>
         <Link
           to="/invoices/new"
-          className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm px-5 py-2.5 rounded-lg font-medium transition-colors"
+          className="flex items-center justify-center gap-2 bg-gray-900 hover:bg-black text-[#F6CB59] text-sm px-6 py-2.5 rounded-xl font-bold transition-all shadow-[0_4px_12px_rgba(0,0,0,0.1)] hover:shadow-[0_6px_16px_rgba(0,0,0,0.15)] hover:-translate-y-0.5"
         >
           <span>Create Invoice</span>
         </Link>
@@ -96,13 +96,13 @@ export default function InvoiceList() {
                 onClick={() => { setStatus(tab.id); setPage(1); }}
                 className={`flex items-center gap-2 px-4 py-2.5 rounded-t-lg text-sm font-medium whitespace-nowrap transition-colors border-b-2 ${
                   isActive 
-                    ? 'border-blue-600 text-blue-600' 
+                    ? 'border-gray-900 text-gray-900' 
                     : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
                 }`}
               >
                 {tab.label}
                 <span className={`px-2 py-0.5 rounded-full text-[11px] font-bold ${
-                  isActive ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-600'
+                  isActive ? 'bg-[#F6CB59]/20 text-gray-900' : 'bg-slate-100 text-slate-600'
                 }`}>
                   {tab.count}
                 </span>
@@ -123,7 +123,7 @@ export default function InvoiceList() {
         </div>
       </div>
 
-      <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+      <div className="bg-white/60 backdrop-blur-xl border border-white/50 rounded-3xl overflow-hidden shadow-[0_8px_30px_rgba(0,0,0,0.04)]">
         {/* Toolbar */}
         <div className="p-4 flex flex-col sm:flex-row justify-between items-center gap-4 border-b border-slate-200">
           <div className="relative w-full sm:w-80">
@@ -131,7 +131,7 @@ export default function InvoiceList() {
             <input
               type="text"
               placeholder="Search invoice"
-              className="w-full pl-10 pr-4 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-slate-800 placeholder:text-slate-400"
+              className="w-full pl-10 pr-4 py-2 text-sm bg-white/50 border border-white/60 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#F6CB59]/30 focus:border-[#F6CB59] transition-all text-slate-800 placeholder:text-slate-400 shadow-sm backdrop-blur-md"
               value={search}
               onChange={e => { setSearch(e.target.value); setPage(1); }}
             />
@@ -149,12 +149,12 @@ export default function InvoiceList() {
           </div>
         )}
 
-        {/* Table */}
-        <div className="overflow-x-auto">
+        {/* Table - Desktop Only */}
+        <div className="hidden lg:block overflow-x-auto">
           <table className="w-full text-left whitespace-nowrap">
             <thead>
               <tr className="bg-white border-b border-slate-200 text-slate-500">
-                <th className="px-5 py-3 w-12"><input type="checkbox" className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 w-4 h-4 cursor-pointer" /></th>
+                <th className="px-5 py-3 w-12"><input type="checkbox" className="rounded border-slate-300 text-gray-900 focus:ring-gray-900 w-4 h-4 cursor-pointer" /></th>
                 <th className="px-5 py-3 text-sm font-medium"><div className="flex items-center gap-1 cursor-pointer hover:text-slate-800">Invoice <ArrowUpDown size={14} className="opacity-50" /></div></th>
                 <th className="px-5 py-3 text-sm font-medium">Client/Customer</th>
                 <th className="px-5 py-3 text-sm font-medium"><div className="flex items-center gap-1 cursor-pointer hover:text-slate-800">Amount <ArrowUpDown size={14} className="opacity-50" /></div></th>
@@ -179,7 +179,7 @@ export default function InvoiceList() {
                 return (
                   <tr key={inv.id} className="hover:bg-slate-50 transition-colors group bg-white">
                     <td className="px-5 py-4">
-                      <input type="checkbox" className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 w-4 h-4 cursor-pointer" />
+                      <input type="checkbox" className="rounded border-slate-300 text-gray-900 focus:ring-gray-900 w-4 h-4 cursor-pointer" />
                     </td>
                     <td className="px-5 py-4">
                       <div className="font-bold text-slate-900 text-[15px]">{inv.invoiceNo || '—'}</div>
@@ -209,7 +209,7 @@ export default function InvoiceList() {
                     </td>
                     <td className="px-5 py-4 text-center">
                       <div className="flex items-center justify-center gap-2">
-                        <button onClick={() => navigate(`/invoices/${inv.id}`)} title="View Invoice" className="p-1.5 text-blue-600 bg-blue-50 hover:bg-blue-100 hover:text-blue-700 rounded-lg transition-colors inline-flex">
+                        <button onClick={() => navigate(`/invoices/${inv.id}`)} title="View Invoice" className="p-1.5 text-gray-900 bg-gray-100 hover:bg-[#F6CB59] hover:text-gray-900 rounded-lg transition-colors inline-flex">
                           <Eye size={18} />
                         </button>
                         <button onClick={() => navigate(`/invoices/${inv.id}/service-report`)} title="Service Report" className="p-1.5 text-slate-700 bg-slate-100 hover:bg-yellow-100 hover:text-yellow-800 rounded-lg transition-colors inline-flex">
@@ -227,8 +227,50 @@ export default function InvoiceList() {
           </table>
         </div>
 
+        {/* Mobile Cards */}
+        <div className="block lg:hidden flex flex-col gap-4 p-4 bg-transparent border-t border-white/30">
+          {(loading || isFetching) && (
+            <div className="text-center py-12 text-slate-500 text-sm font-medium">Loading invoices…</div>
+          )}
+          {!loading && !isFetching && invoices.length === 0 && (
+            <div className="text-center py-12 text-slate-500 text-sm font-medium">No invoices found.</div>
+          )}
+          {!loading && invoices.map(inv => {
+            const badge = badgeStatus(inv);
+            const total = inv.total || 0;
+            const balance = inv.balance || 0;
+            
+            return (
+              <div key={inv.id} className="bg-white/80 backdrop-blur-md border border-white/60 rounded-[20px] p-5 shadow-[0_2px_15px_rgba(0,0,0,0.03)] flex flex-col gap-4 relative active:scale-[0.98] transition-transform cursor-pointer" onClick={() => navigate(`/invoices/${inv.id}`)}>
+                 <div className="flex justify-between items-start">
+                   <div>
+                     <h3 className="font-bold text-slate-900 text-[16px] tracking-tight">{inv.organization_name || inv.client_name || inv.customer?.name || '—'}</h3>
+                     <p className="text-xs text-slate-500 font-medium mt-1">{inv.invoiceNo || '—'}</p>
+                   </div>
+                   <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${getBadgeStyle(badge)} shadow-sm`}>
+                     {badge}
+                   </span>
+                 </div>
+                 <div className="grid grid-cols-2 gap-3 bg-white/50 p-3.5 rounded-xl border border-white/60 shadow-sm backdrop-blur-sm">
+                    <div className="flex items-center gap-2 text-[13px] font-medium text-slate-700">
+                      <Calendar size={14} className="text-slate-400 shrink-0" /> 
+                      {inv.status?.toLowerCase() === 'recurring' ? 'Recurring' : formatDate(inv.date)}
+                    </div>
+                    <div className="flex items-center justify-end gap-1.5 text-[15px] font-bold text-slate-900">
+                      {fmt(total)}
+                    </div>
+                    <div className="flex items-center gap-2 text-[13px] font-medium text-slate-700 col-span-2 mt-1 pt-2.5 border-t border-slate-200/50">
+                      <Car size={14} className="text-slate-400 shrink-0" /> 
+                      <span className="truncate">{vehicleLine(inv)}</span>
+                    </div>
+                 </div>
+              </div>
+            );
+          })}
+        </div>
+
         {/* Pagination */}
-        <div className="px-6 py-4 flex items-center justify-center sm:justify-end border-t border-slate-200 bg-white">
+        <div className="px-6 py-4 flex items-center justify-center sm:justify-end border-t border-white/40 bg-white/30 backdrop-blur-md">
           <div className="flex items-center gap-1">
             <button
               onClick={() => setPage(p => Math.max(1, p - 1))}
@@ -246,8 +288,8 @@ export default function InvoiceList() {
                    onClick={() => setPage(p)}
                    className={`w-8 h-8 flex items-center justify-center rounded-lg text-sm font-medium ${
                      page === p
-                       ? 'bg-slate-100 text-slate-900 border border-slate-200'
-                       : 'text-slate-600 hover:bg-slate-50 border border-transparent'
+                       ? 'bg-gray-900 text-[#F6CB59]'
+                       : 'text-slate-600 hover:bg-slate-100'
                    }`}
                  >
                    {p}

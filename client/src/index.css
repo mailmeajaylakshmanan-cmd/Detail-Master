@@ -53,20 +53,18 @@
     @apply shadow-md transform -translate-y-0.5;
   }
   .input {
-    @apply w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none bg-white placeholder-gray-400 transition-all duration-300 shadow-sm;
-    color: #5C4A0A;
+    @apply w-full bg-white/50 backdrop-blur-md border border-white/60 rounded-xl px-4 py-2.5 text-[13px] font-bold text-gray-900 focus:outline-none placeholder-gray-400 transition-all duration-300 shadow-sm;
   }
   .input:focus {
-    border-color: #FFC107;
-    box-shadow: 0 0 0 2px rgba(255, 193, 7, 0.3);
+    @apply border-[#F6CB59] ring-2 ring-[#F6CB59]/30 bg-white/80;
   }
   .card {
-    @apply bg-white/80 backdrop-blur-xl rounded-2xl border border-white transition-all duration-300;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+    @apply bg-white/60 backdrop-blur-2xl rounded-[24px] border border-white/80 transition-all duration-300;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.06);
   }
   .card:hover {
-    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
-    @apply bg-white/95;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.08);
+    @apply bg-white/80 scale-[1.01] active:scale-[0.99];
   }
   .glass-panel {
     @apply bg-white/40 backdrop-blur-2xl border border-white/60 shadow-xl rounded-3xl;

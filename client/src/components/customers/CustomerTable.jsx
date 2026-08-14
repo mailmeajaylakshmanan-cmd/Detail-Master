@@ -1,5 +1,5 @@
 import { useMemo, useState, useRef, useEffect } from 'react';
-import { ArrowUpDown, ArrowUp, ArrowDown, MoreVertical, Eye, Edit3, Search } from 'lucide-react';
+import { ArrowUpDown, ArrowUp, ArrowDown, MoreVertical, Eye, Edit3, Search, Phone, Car, Calendar } from 'lucide-react';
 import { formatDate } from '../../utils/dateFormatter.js';
 import CustomerAvatar from './CustomerAvatar.jsx';
 import { VipBadge, OfferBadge } from './Badge.jsx';
@@ -73,10 +73,11 @@ export default function CustomerTable({ rows, selectedId, onSelect, onEdit }) {
   const pageRows = sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   return (
-    <div className="flex-1 flex flex-col overflow-hidden bg-white rounded-[20px] shadow-sm border border-gray-100">
-      <div className="flex-1 overflow-y-auto custom-scrollbar">
-        <table className="w-full border-collapse">
-          <thead className="sticky top-0 z-10 bg-[#F8FAFC]">
+    <div className="flex-1 flex flex-col lg:overflow-hidden bg-transparent lg:bg-white/60 lg:backdrop-blur-xl lg:rounded-[24px] lg:shadow-[0_8px_32px_rgba(0,0,0,0.04)] lg:border lg:border-white/50">
+      <div className="flex-1 lg:overflow-y-auto lg:custom-scrollbar">
+        <div className="hidden lg:block">
+          <table className="w-full border-collapse">
+          <thead className="sticky top-0 z-10 bg-white/40 backdrop-blur-md">
             <tr>
               {COLUMNS.map(col => (
                 <th
@@ -100,9 +101,9 @@ export default function CustomerTable({ rows, selectedId, onSelect, onEdit }) {
                 <tr
                   key={row.id}
                   onClick={() => onSelect(row.phone)}
-                  className={`cursor-pointer transition-colors border-b border-gray-100 ${isSelected
-                    ? 'bg-blue-50/50'
-                    : 'hover:bg-gray-50/80'
+                  className={`cursor-pointer transition-colors border-b border-gray-100/50 ${isSelected
+                    ? 'bg-[#F6CB59]/10'
+                    : 'hover:bg-white/60'
                     }`}
                 >
                   <td className="px-5 py-4">
@@ -194,8 +195,82 @@ export default function CustomerTable({ rows, selectedId, onSelect, onEdit }) {
                 </tr>
               );
             })}
-          </tbody>
-        </table>
+            </tbody>
+          </table>
+        </div>
+
+        {/* Mobile Cards */}
+        <div className="block lg:hidden flex flex-col gap-5 py-2">
+          {pageRows.map((row, idx) => {
+            return (
+              <div key={row.id} className="bg-white/60 backdrop-blur-2xl border border-white/80 rounded-[24px] p-5 shadow-[0_8px_32px_rgba(0,0,0,0.06)] flex flex-col gap-4 relative cursor-pointer active:scale-[0.98] transition-all" onClick={() => onSelect(row.phone)}>
+                <div className="flex justify-between items-start">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div
+                      className="w-11 h-11 rounded-full flex items-center justify-center text-[14px] font-black shrink-0 shadow-sm border border-white/50"
+                      style={{
+                        backgroundColor: idx % 3 === 0 ? '#FEF9C3' : idx % 3 === 1 ? '#E0E7FF' : '#FFE4E6',
+                        color: idx % 3 === 0 ? '#854D0E' : idx % 3 === 1 ? '#3730A3' : '#9F1239'
+                      }}
+                    >
+                      {String(row.name).charAt(0).toUpperCase()}
+                    </div>
+                    <div className="min-w-0 pr-2">
+                      <div className="flex items-center gap-2">
+                        <span className="font-black text-[16px] text-gray-900 truncate tracking-tight">{row.name}</span>
+                        {row.isVIP && <VipBadge />}
+                      </div>
+                      <div className="text-[11px] font-bold text-gray-500 mt-0.5 tracking-wider uppercase">
+                        ID: {row.customId}
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); onSelect(row.phone); }}
+                      className="w-9 h-9 rounded-full bg-black flex items-center justify-center text-white shadow-md active:scale-95 transition-transform"
+                    >
+                      <Eye size={15} strokeWidth={2.5} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); onEdit(row.raw); }}
+                      className="w-9 h-9 rounded-full bg-black flex items-center justify-center text-white shadow-md active:scale-95 transition-transform"
+                    >
+                      <Edit3 size={15} strokeWidth={2.5} />
+                    </button>
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-3 bg-white/50 p-4 rounded-2xl border border-white/60 mt-1 shadow-sm">
+                  <div className="flex items-center gap-2 text-[13px] font-bold text-gray-800 min-w-0">
+                    <Phone size={14} className="text-gray-400 shrink-0" />
+                    <span className="truncate">+91 {String(row.phone).replace('+91', '').trim()}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-[13px] font-bold text-gray-800 justify-end">
+                    <span className="text-[15px] font-black text-gray-900">₹{row.totalSpend.toLocaleString('en-IN')}</span>
+                  </div>
+                  <div className="flex items-start gap-2 text-[13px] font-bold text-gray-800 col-span-2 pt-3 mt-1 border-t border-gray-200/50">
+                    <Car size={14} className="text-gray-400 shrink-0 mt-0.5" />
+                    <span className="truncate whitespace-normal leading-tight">
+                      {row.vehicles && row.vehicles.length > 0 ? (
+                        row.vehicles.map(v => `${v.make} ${v.model}`).join(', ')
+                      ) : (
+                        <span className="text-gray-400">No vehicles</span>
+                      )}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 text-[13px] font-bold text-gray-800 col-span-2 pt-3 border-t border-gray-200/50">
+                    <Calendar size={14} className="text-gray-400 shrink-0" />
+                    <span className="truncate text-gray-600">Last visit: {row.lastVisit ? formatDate(row.lastVisit) : 'Never'}</span>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
 
         {sorted.length === 0 && (
           <div className="flex flex-col items-center justify-center py-16 text-gray-400">

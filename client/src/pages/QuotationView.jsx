@@ -9,7 +9,8 @@ import {
 import { parseSafeDate } from '../utils/dateFormatter.js';
 import api from '../api/axios.js';
 import toast from 'react-hot-toast';
-import brandLogo from '../assets/brand_logo.png';
+import brandLogo from '../assets/brand-logo-for-invoice.png';
+import ResponsiveDocumentWrapper from '../components/ResponsiveDocumentWrapper.jsx';
 
 // ─── color palette ───────────────────────────────────────────────────────────
 const C = {
@@ -254,7 +255,9 @@ export default function QuotationView() {
       </div>
 
       {/* ── QUOTATION DOCUMENT ── */}
-      <div id="invoice-print" style={doc.wrap}>
+      <div className="pb-8">
+      <ResponsiveDocumentWrapper documentWidth={820}>
+        <div id="invoice-print" style={doc.wrap}>
         {/* Header Band */}
         <div className="quotation-header" style={doc.headerBand}>
           <div className="quotation-logo-zone" style={doc.logoZone}>
@@ -398,29 +401,24 @@ export default function QuotationView() {
           <span>Thank you for considering <strong style={{ color: C.white, fontWeight: 600 }}>DETAILING MASTERS</strong>. We look forward to capturing your beautiful moments.</span>
         </div>
       </div>
+      </ResponsiveDocumentWrapper>
+      </div>
 
       <style>{`
         @keyframes spin { to { transform: rotate(360deg); } }
-        @media (max-width: 640px) {
-          .invoice-parties { grid-template-columns: 1fr !important; gap: 24px !important; }
-          .quotation-services { grid-template-columns: 1fr !important; }
-          .quotation-header { flex-direction: column !important; align-items: flex-start !important; gap: 20px !important; }
-          .quotation-logo-zone { flex-direction: column !important; align-items: flex-start !important; gap: 12px !important; }
-          .quotation-meta { text-align: left !important; }
-          .quotation-meta p { justify-content: flex-start !important; }
-          .quotation-totals { float: none !important; width: 100% !important; max-width: 100% !important; }
-        }
         @media print {
           .print\\:hidden { display: none !important; }
-          .terms-page-break { page-break-inside: avoid; margin-top: 8px !important; border: none !important; background: transparent !important; }
+          body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
           #invoice-print {
             max-width: 100% !important;
+            min-width: 100% !important;
             margin: 0 !important;
             box-shadow: none !important;
             border-radius: 0 !important;
             border: none !important;
-            overflow: visible !important;
+            overflow: hidden !important;
           }
+          .terms-page-break { page-break-inside: avoid; margin-top: 8px !important; border: none !important; background: transparent !important; }
           .invoice-parties { grid-template-columns: 1fr 1fr !important; gap: 32px !important; }
           
           /* Ensure grid flows nicely across pages */

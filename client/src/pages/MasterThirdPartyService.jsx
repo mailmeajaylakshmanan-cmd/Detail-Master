@@ -115,37 +115,43 @@ export default function MasterThirdPartyService() {
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
-      <div className="card p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-            <Truck className="text-gray-900" /> Third-Party Services
-          </h1>
-          <p className="text-gray-500 text-sm mt-1">Manage vendor-provided services with their own labour and cost breakdown.</p>
+      <div className="bg-white/60 backdrop-blur-2xl rounded-[24px] shadow-[0_8px_32px_rgba(0,0,0,0.06)] border border-white/80 p-5 flex flex-col lg:flex-row lg:items-center justify-between gap-5 shrink-0">
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 rounded-2xl bg-black text-[#F6CB59] flex items-center justify-center shadow-md shrink-0">
+            <Truck size={24} strokeWidth={2.5} />
+          </div>
+          <div>
+            <h1 className="text-[22px] font-black text-gray-900 tracking-tight leading-none mb-1">
+              Third-Party Services
+            </h1>
+            <p className="text-[12px] font-bold text-gray-500 tracking-wide uppercase">
+              Manage vendor-provided services & costs
+            </p>
+          </div>
+
         </div>
 
-        <div className="flex w-full md:w-auto gap-3">
-          <div className="relative flex-1 md:w-80">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <Search size={18} className="text-gray-500" />
-            </div>
+        <div className="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto shrink-0">
+          <div className="relative w-full sm:w-64 shrink-0">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
             <input
               type="text"
-              className="input pl-10 bg-white/60"
+              className="w-full pl-10 pr-4 py-2.5 bg-white/80 border border-gray-200/60 rounded-xl text-[13px] font-bold text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent transition-all shadow-sm"
               placeholder="Search vendor services..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
-          <button onClick={handleAdd} className="btn-primary whitespace-nowrap flex items-center gap-2">
-            <Plus size={18} /> Add Service
+          <button onClick={handleAdd} className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-black text-[#F6CB59] hover:scale-[1.02] active:scale-[0.98] transition-all font-bold text-[13px] shadow-md whitespace-nowrap">
+            <Plus size={16} strokeWidth={2.5} /> Add Service
           </button>
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredItems.map(item => (
-          <div key={item.id} onClick={() => handleEdit(item)} className="card p-5 relative overflow-hidden flex flex-col cursor-pointer group hover:-translate-y-1 transition-all duration-300">
-            <h3 className="text-lg font-bold text-gray-900 group-hover:text-blue-600 transition-colors">{item.name}</h3>
+          <div key={item.id} onClick={() => handleEdit(item)} className="card p-6 relative flex flex-col cursor-pointer group hover:-translate-y-1 transition-all duration-300 min-h-[220px]">
+            <h3 className="text-[20px] font-black text-gray-900 leading-tight pr-2 group-hover:text-[#F6CB59] transition-colors">{item.name}</h3>
             <p className="text-[13px] text-gray-500 mb-4">
               {item.vendorName || <span className="italic text-gray-400">No vendor specified</span>}
             </p>
@@ -182,11 +188,11 @@ export default function MasterThirdPartyService() {
       </div>
 
       {isModalOpen && (
-        <div className="fixed inset-0 bg-black/20 backdrop-blur-md flex items-center justify-center z-50 p-4">
-          <div className="card w-full max-w-md overflow-hidden">
-            <div className="flex justify-between items-center p-5 border-b border-white/50">
+        <div className="fixed inset-0 bg-black/20 backdrop-blur-md flex items-center justify-center z-[9999] p-4">
+          <div className="card w-full max-w-md bg-white">
+            <div className="flex justify-between items-center p-5 border-b border-gray-100 bg-gray-50/50">
               <h3 className="text-lg font-bold text-gray-900">{editId ? 'Edit Third-Party Service' : 'Add Third-Party Service'}</h3>
-              <button onClick={handleCancelEdit} className="text-gray-500 hover:text-white transition-colors">
+              <button onClick={handleCancelEdit} className="text-gray-400 hover:text-gray-900 transition-colors">
                 <X size={20} />
               </button>
             </div>

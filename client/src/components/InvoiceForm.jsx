@@ -4,7 +4,8 @@ import toast from 'react-hot-toast';
 import api from '../api/axios.js';
 import {
   User, Phone, MapPin, Plus, Trash2, Sparkles,
-  CheckCircle2, AlertCircle, Calendar, IndianRupee, Hash, Receipt, Settings, Truck, X
+  CheckCircle2, AlertCircle, Calendar, IndianRupee, Hash, Receipt, Settings, Truck, X,
+  ChevronDown, ChevronUp, Car
 } from 'lucide-react';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
@@ -22,8 +23,8 @@ const selectStyles = () => ({
     borderColor: 'transparent',
     borderRadius: '0.75rem',
     boxShadow: 'inset 0 2px 4px 0 rgba(0, 0, 0, 0.05)',
-    minHeight: '44px',
-    fontSize: '13px',
+    minHeight: window.innerWidth < 1024 ? '48px' : '44px',
+    fontSize: window.innerWidth < 1024 ? '14px' : '13px',
     fontWeight: '500',
     backgroundColor: '#ffffff',
     color: '#886D52',
@@ -42,25 +43,25 @@ const selectStyles = () => ({
   menuList: b => ({ ...b, maxHeight: '220px', padding: '6px' }),
   option: (b, s) => ({
     ...b,
-    fontSize: '13px',
+    fontSize: window.innerWidth < 1024 ? '14px' : '13px',
     fontWeight: '500',
     borderRadius: '0.5rem',
-    padding: '8px 12px',
+    padding: window.innerWidth < 1024 ? '12px 16px' : '8px 12px',
     backgroundColor: s.isSelected ? 'rgba(251, 217, 4, 0.2)' : s.isFocused ? '#f8fafc' : 'transparent',
     color: '#886D52',
     cursor: 'pointer',
     marginBottom: '2px'
   }),
-  placeholder: b => ({ ...b, color: '#64748b', fontSize: '13px', fontWeight: '500' }),
-  input: b => ({ ...b, fontSize: '13px', color: '#886D52' }),
+  placeholder: b => ({ ...b, color: '#64748b', fontSize: window.innerWidth < 1024 ? '14px' : '13px', fontWeight: '500' }),
+  input: b => ({ ...b, fontSize: window.innerWidth < 1024 ? '14px' : '13px', color: '#886D52' }),
   singleValue: b => ({ ...b, color: '#886D52', fontWeight: '600' }),
 });
 
 const inputCls = [
-  'input block w-full px-4 py-2 text-[13px] font-medium text-gray-900',
+  'input block w-full px-4 py-3 lg:py-2 text-[14px] lg:text-[13px] font-medium text-gray-900',
   'placeholder:text-gray-400 placeholder:font-medium',
   'bg-white focus:outline-none focus:ring-2 focus:ring-[#F6CB59]/40 focus:border-transparent',
-  'transition-all duration-200'
+  'transition-all duration-200 rounded-xl lg:rounded-md'
 ].join(' ');
 
 function Field({ label, required, children, invisibleLabel }) {
@@ -149,6 +150,32 @@ const PaymentRow = memo(function PaymentRow({
   );
 });
 
+function AccordionSection({ title, icon: Icon, isComplete, isOpen, onToggle, children, summary }) {
+  return (
+    <div className="bg-white/60 backdrop-blur-xl rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-white/50 overflow-hidden flex flex-col transition-all duration-300">
+      <button type="button" onClick={onToggle} className="w-full flex items-center gap-3 p-5 hover:bg-white/40 transition-colors text-left focus:outline-none">
+        <div className={`w-6 h-6 shrink-0 rounded-full flex items-center justify-center border-2 transition-colors ${isComplete ? 'border-emerald-500 text-emerald-500 bg-emerald-50' : 'border-[#F6CB59] text-amber-600 bg-amber-50'}`}>
+          {isComplete ? <CheckCircle2 size={14} className="fill-emerald-50" /> : <Icon size={12} />}
+        </div>
+        <div className="flex-1">
+          <h2 className="text-[15px] font-bold text-gray-900 tracking-tight">{title}</h2>
+          {!isOpen && summary && <p className="text-[12px] text-gray-500 font-medium mt-0.5 truncate">{summary}</p>}
+        </div>
+        <div className="text-gray-400">
+          {isOpen ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+        </div>
+      </button>
+      <div className={`grid transition-[grid-template-rows] duration-300 ease-in-out ${isOpen ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
+        <div className="overflow-hidden">
+          <div className="p-5 pt-0 border-t border-gray-100/50 mt-2">
+            {children}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 const ScheduleConflictModal = memo(function ScheduleConflictModal({ isOpen, conflicts, onCancel, onProceed }) {
   if (!isOpen) return null;
   return (
@@ -220,38 +247,6 @@ const ServiceVehicleModal = memo(function ServiceVehicleModal({ isOpen, onClose,
         </div>
       </div>
     </div>
-  );
-});
-
-const ServiceChip = memo(function ServiceChip({ opt, checked, onToggle }) {
-  return (
-    <label className={`flex items-center gap-2 cursor-pointer px-4 py-2.5 rounded-xl text-[13px] font-bold transition-all border ${
-      checked
-        ? 'bg-gray-900 text-white border-gray-900 shadow-md shadow-gray-900/20'
-        : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50 hover:border-gray-300'
-    }`}>
-      <input type="checkbox" checked={checked} onChange={e => onToggle(opt, e.target.checked)} className="sr-only" />
-      {opt.name}
-    </label>
-  );
-});
-
-const ThirdPartyServiceChip = memo(function ThirdPartyServiceChip({ opt, checked, onToggle }) {
-  return (
-    <label className={`flex flex-col gap-0.5 cursor-pointer px-4 py-2.5 rounded-xl text-[13px] font-bold transition-all border ${
-      checked
-        ? 'bg-amber-500 text-white border-amber-500 shadow-md shadow-amber-500/20'
-        : 'bg-white text-gray-600 border-gray-200 hover:bg-amber-50 hover:border-amber-200'
-    }`}>
-      <input type="checkbox" checked={checked} onChange={e => onToggle(opt, e.target.checked)} className="sr-only" />
-      <span className="flex items-center gap-1.5">
-        <Truck size={12} className={checked ? 'text-white' : 'text-amber-500'} />
-        {opt.name}
-      </span>
-      <span className={`text-[11px] font-medium ${checked ? 'text-amber-50' : 'text-gray-400'}`}>
-        {opt.vendorName ? `${opt.vendorName} · ` : ''}₹{Number(opt.sellingPrice || 0).toLocaleString('en-IN')}
-      </span>
-    </label>
   );
 });
 
@@ -330,9 +325,18 @@ const VehicleVisitRow = memo(function VehicleVisitRow({ label, meta, onField, on
   );
 });
 
-const SelectedServiceRow = memo(function SelectedServiceRow({ cur, onDesc, vehicleOptions, onVehiclesChange, assignedOffers, onRedeemPackage, readOnly }) {
+const SelectedServiceRow = memo(function SelectedServiceRow({ cur, onDesc, vehicleOptions, onVehiclesChange, assignedOffers, onRedeemPackage, readOnly, onRemove }) {
   return (
-    <div className="flex flex-col sm:flex-row sm:items-center gap-4 bg-gray-50 p-4 rounded-xl border border-gray-100">
+    <div className="flex flex-col sm:flex-row sm:items-center gap-4 bg-white/40 p-4 rounded-xl border border-white/60 shadow-sm relative group">
+      {!readOnly && (
+        <button
+          type="button"
+          onClick={onRemove}
+          className="absolute -top-2.5 -right-2.5 w-6 h-6 rounded-full bg-white shadow-[0_2px_10px_rgba(0,0,0,0.08)] border border-gray-100 flex items-center justify-center text-gray-400 hover:text-rose-500 hover:border-rose-200 transition-all opacity-0 group-hover:opacity-100 z-10"
+        >
+          <Trash2 size={12} />
+        </button>
+      )}
       <div className="sm:w-2/5 font-bold text-[14px] text-gray-900 flex items-center gap-2">
         <CheckCircle2 size={14} className="text-emerald-500" /> {cur.service}
       </div>
@@ -374,12 +378,12 @@ const SelectedServiceRow = memo(function SelectedServiceRow({ cur, onDesc, vehic
 
 const ThirdPartyServiceRow = memo(function ThirdPartyServiceRow({ item, onField, onRemove, vehicleOptions, onVehiclesChange, readOnly }) {
   return (
-    <div className="flex flex-col gap-3 bg-amber-50/50 p-4 rounded-xl border border-amber-100 relative">
+    <div className="flex flex-col gap-3 bg-white/40 p-4 rounded-xl border border-white/60 shadow-sm relative group">
       {!readOnly && (
         <button
           type="button"
           onClick={onRemove}
-          className="absolute -top-2.5 -right-2.5 w-6 h-6 rounded-full bg-white shadow-sm border border-gray-100 flex items-center justify-center text-gray-400 hover:text-rose-500 hover:border-rose-200 transition-all"
+          className="absolute -top-2.5 -right-2.5 w-6 h-6 rounded-full bg-white shadow-[0_2px_10px_rgba(0,0,0,0.08)] border border-gray-100 flex items-center justify-center text-gray-400 hover:text-rose-500 hover:border-rose-200 transition-all opacity-0 group-hover:opacity-100 z-10"
         >
           <Trash2 size={12} />
         </button>
@@ -444,6 +448,15 @@ export default function InvoiceForm({ initial, onSubmit, loading }) {
   const [serviceModal, setServiceModal] = useState({ isOpen: false, type: null, opt: null, selectedVehicleIds: [] });
   const [conflictModal, setConflictModal] = useState({ isOpen: false, conflicts: [] });
   const [checkingConflicts, setCheckingConflicts] = useState(false);
+  
+  const [accordions, setAccordions] = useState({
+    client: true,
+    vehicle: true,
+    services: true,
+    vendors: true,
+    notes: true
+  });
+  const toggleAccordion = useCallback((key) => setAccordions(a => ({ ...a, [key]: !a[key] })), []);
 
   const [form, setForm] = useState(() => {
     const base = {
@@ -985,17 +998,21 @@ export default function InvoiceForm({ initial, onSubmit, loading }) {
           </div>
 
           <div className="flex flex-col gap-6">
-            <div className="bg-white/90 backdrop-blur-md rounded-2xl shadow-sm border border-gray-200 p-6 flex flex-col gap-5">
-              <div className="flex items-center gap-3">
-                <div className={`w-6 h-6 rounded-full flex items-center justify-center border-2 transition-colors ${isStep1Complete ? 'border-emerald-500 text-emerald-500 bg-emerald-50' : 'border-gray-300 text-gray-400 bg-gray-50'}`}>
-                  {isStep1Complete ? <CheckCircle2 size={14} className="fill-emerald-50" /> : <span className="text-[10px] font-bold">1</span>}
+            <AccordionSection
+              title={clientType === 'individual' ? 'Client Details' : 'Organization Details'}
+              icon={User}
+              isComplete={isStep1Complete}
+              isOpen={accordions.client}
+              onToggle={() => toggleAccordion('client')}
+              summary={form.customer.name ? `${form.customer.name} (${form.customer.phone})` : 'Select a client'}
+            >
+              <div className="flex flex-col gap-5">
+                <div className="flex items-center justify-end">
+                  <div className="flex items-center gap-1 bg-gray-100/80 p-1 rounded-lg border border-gray-200/50">
+                    <button type="button" onClick={() => { setClientType('individual'); setForm(f => ({...f, customer: { name: '', phone: '', address: '', vehicles: [] }, vehicleId: null, selectedVehicleIds: [], vehicleVisitMeta: {}})); }} className={`px-3 py-1 text-[12px] font-bold rounded-md transition-colors ${clientType === 'individual' ? 'bg-white shadow-sm text-gray-900 border border-gray-200/50' : 'text-gray-500 hover:text-gray-700'}`}>Individual</button>
+                    <button type="button" onClick={() => { setClientType('organization'); setForm(f => ({...f, customer: { name: '', phone: '', address: '', vehicles: [] }, vehicleId: null, selectedVehicleIds: [], vehicleVisitMeta: {}})); }} className={`px-3 py-1 text-[12px] font-bold rounded-md transition-colors ${clientType === 'organization' ? 'bg-white shadow-sm text-gray-900 border border-gray-200/50' : 'text-gray-500 hover:text-gray-700'}`}>Organization</button>
+                  </div>
                 </div>
-                <h2 className="text-[15px] font-bold text-gray-900 tracking-tight">{clientType === 'individual' ? 'Client Details' : 'Organization Details'}</h2>
-                <div className="ml-auto flex items-center gap-1 bg-gray-100 p-1 rounded-lg">
-                  <button type="button" onClick={() => { setClientType('individual'); setForm(f => ({...f, customer: { name: '', phone: '', address: '', vehicles: [] }, vehicleId: null, selectedVehicleIds: [], vehicleVisitMeta: {}})); }} className={`px-3 py-1 text-[12px] font-bold rounded-md transition-colors ${clientType === 'individual' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}>Individual</button>
-                  <button type="button" onClick={() => { setClientType('organization'); setForm(f => ({...f, customer: { name: '', phone: '', address: '', vehicles: [] }, vehicleId: null, selectedVehicleIds: [], vehicleVisitMeta: {}})); }} className={`px-3 py-1 text-[12px] font-bold rounded-md transition-colors ${clientType === 'organization' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}>Organization</button>
-                </div>
-              </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
                 <Select
@@ -1035,7 +1052,6 @@ export default function InvoiceForm({ initial, onSubmit, loading }) {
                         carMake: '',
                         licensePlate: '',
                       }));
-                      onCustomerSelect?.(m);
                       return;
                     }
                     const first = vehicles[0];
@@ -1052,7 +1068,6 @@ export default function InvoiceForm({ initial, onSubmit, loading }) {
                       carMake: first ? `${first.make || ''} ${first.model || ''}`.trim() : '',
                       licensePlate: first?.plate || '',
                     }));
-                    onCustomerSelect?.(m);
                   }}
                   isDisabled={!!initial}
                 />
@@ -1079,14 +1094,17 @@ export default function InvoiceForm({ initial, onSubmit, loading }) {
                 )}
               </div>
             </div>
+          </AccordionSection>
 
-            <div className="bg-white/90 backdrop-blur-md rounded-2xl shadow-sm border border-gray-200 p-6 flex flex-col gap-5">
-              <div className="flex items-center gap-3">
-                <div className={`w-6 h-6 rounded-full flex items-center justify-center border-2 transition-colors ${isStep2Complete ? 'border-emerald-500 text-emerald-500 bg-emerald-50' : 'border-gray-300 text-gray-400 bg-gray-50'}`}>
-                  {isStep2Complete ? <CheckCircle2 size={14} className="fill-emerald-50" /> : <span className="text-[10px] font-bold">2</span>}
-                </div>
-                <h2 className="text-[15px] font-bold text-gray-900 tracking-tight">Vehicle Identifiers</h2>
-              </div>
+            <AccordionSection
+              title="Vehicle Identifiers"
+              icon={Car}
+              isComplete={isStep2Complete}
+              isOpen={accordions.vehicle}
+              onToggle={() => toggleAccordion('vehicle')}
+              summary={clientType === 'organization' ? `${form.selectedVehicleIds.length} vehicles selected` : (selectedVehicle?.label || 'Select a vehicle')}
+            >
+              <div className="flex flex-col gap-5">
 
               {clientType === 'individual' ? (
                 <>
@@ -1187,36 +1205,45 @@ export default function InvoiceForm({ initial, onSubmit, loading }) {
                   )}
                 </>
               )}
-            </div>
-
-            <div className="bg-white/90 backdrop-blur-md rounded-2xl shadow-sm border border-gray-200 p-6 flex flex-col gap-5">
-              <div className="flex items-center gap-3">
-                <div className={`w-6 h-6 rounded-full flex items-center justify-center border-2 transition-colors ${isStep3Complete ? 'border-emerald-500 text-emerald-500 bg-emerald-50' : 'border-gray-300 text-gray-400 bg-gray-50'}`}>
-                  {isStep3Complete ? <CheckCircle2 size={14} className="fill-emerald-50" /> : <span className="text-[10px] font-bold">3</span>}
-                </div>
-                <h2 className="text-[15px] font-bold text-gray-900 tracking-tight">Services Grid</h2>
-                {isOfferPurchase && <span className="text-[11px] font-medium text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">(Offer Purchase - Read Only)</span>}
               </div>
-              <div>
+            </AccordionSection>
+
+            <AccordionSection
+              title="Services"
+              icon={Sparkles}
+              isComplete={isStep3Complete}
+              isOpen={accordions.services}
+              onToggle={() => toggleAccordion('services')}
+              summary={`${form.services.length} services added`}
+            >
+              <div className="flex flex-col gap-5">
+                {isOfferPurchase && <span className="inline-block self-start text-[11px] font-medium text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full mb-2 border border-amber-200">(Offer Purchase - Read Only)</span>}
+                
                 {!isOfferPurchase && (
-                  <div className="flex flex-wrap gap-2.5">
-                    {serviceOptions.filter(o => o.isActive !== false).map(opt => (
-                      <ServiceChip
-                        key={opt.id}
-                        opt={opt}
-                        checked={selectedServiceIds.has(opt.id) || selectedServiceNames.has(opt.name)}
-                        onToggle={toggleService}
-                      />
-                    ))}
-                    {serviceOptions.length === 0 && (
-                      <div className="text-[13px] font-medium text-gray-500 p-4 border border-dashed border-gray-300 rounded-xl bg-gray-50">
-                        No services available.
-                      </div>
-                    )}
-                  </div>
+                  <Field label="Add Service">
+                    <Select
+                      isClearable
+                      isSearchable
+                      placeholder="Search and select a service to add..."
+                      styles={selectStyles()}
+                      menuPortalTarget={document.body}
+                      menuPosition="fixed"
+                      options={serviceOptions.filter(o => o.isActive !== false).map(o => ({ value: o.id, label: o.name, opt: o }))}
+                      value={null}
+                      onChange={sel => {
+                        if (sel) {
+                          if (!selectedServiceIds.has(sel.opt.id) && !selectedServiceNames.has(sel.opt.name)) {
+                            toggleService(sel.opt, true);
+                          } else {
+                            toast.error(`${sel.opt.name} is already added.`);
+                          }
+                        }
+                      }}
+                    />
+                  </Field>
                 )}
                 {form.services.length > 0 && (
-                  <div className="mt-6 flex flex-col gap-3">
+                  <div className="flex flex-col gap-3">
                     {form.services.map(cur => (
                       <SelectedServiceRow
                         key={cur.service_id || cur.service}
@@ -1227,42 +1254,49 @@ export default function InvoiceForm({ initial, onSubmit, loading }) {
                         assignedOffers={assignedOffers}
                         onRedeemPackage={id => updateServiceField(cur.service, 'assigned_offer_id', id)}
                         readOnly={isOfferPurchase}
+                        onRemove={() => toggleService({ id: cur.service_id, name: cur.service }, false)}
                       />
                     ))}
                   </div>
                 )}
               </div>
-            </div>
+            </AccordionSection>
 
-            <div className="bg-white/90 backdrop-blur-md rounded-2xl shadow-sm border border-gray-200 p-6 flex flex-col gap-5">
-              <div className="flex items-center gap-3">
-                <div className="w-6 h-6 rounded-full flex items-center justify-center border-2 border-gray-300 text-gray-400 bg-gray-50">
-                  <Truck size={12} />
-                </div>
-                <h2 className="text-[15px] font-bold text-gray-900 tracking-tight">Third-Party Services</h2>
-                <span className="text-[11px] font-medium text-gray-400">(Optional — vendor-provided work)</span>
-              </div>
-              <div>
+            <AccordionSection
+              title="Third-Party Services"
+              icon={Truck}
+              isComplete={form.thirdPartyItems.length > 0}
+              isOpen={accordions.vendors}
+              onToggle={() => toggleAccordion('vendors')}
+              summary={form.thirdPartyItems.length > 0 ? `${form.thirdPartyItems.length} vendor items added` : 'Optional vendor-provided work'}
+            >
+              <div className="flex flex-col gap-5">
                 {!isOfferPurchase && (
-                  <div className="flex flex-wrap gap-2.5">
-                    {thirdPartyOptions.filter(t => t.isActive !== false).map(opt => (
-                      <ThirdPartyServiceChip
-                        key={opt.id}
-                        opt={opt}
-                        checked={selectedThirdPartyIds.has(opt.id)}
-                        onToggle={toggleThirdPartyItem}
-                      />
-                    ))}
-                    {thirdPartyOptions.length === 0 && (
-                      <div className="text-[13px] font-medium text-gray-500 p-4 border border-dashed border-gray-300 rounded-xl bg-gray-50">
-                        No vendor services available.
-                      </div>
-                    )}
-                  </div>
+                  <Field label="Add Vendor Service">
+                    <Select
+                      isClearable
+                      isSearchable
+                      placeholder="Search vendor services..."
+                      styles={selectStyles()}
+                      menuPortalTarget={document.body}
+                      menuPosition="fixed"
+                      options={thirdPartyOptions.filter(t => t.isActive !== false).map(opt => ({ value: opt.id, label: `${opt.name} ${opt.vendorName ? `(${opt.vendorName})` : ''}`, opt }))}
+                      value={null}
+                      onChange={sel => {
+                        if (sel) {
+                          if (!selectedThirdPartyIds.has(sel.opt.id)) {
+                            toggleThirdPartyItem(sel.opt, true);
+                          } else {
+                            toast.error(`${sel.opt.name} is already added.`);
+                          }
+                        }
+                      }}
+                    />
+                  </Field>
                 )}
 
                 {form.thirdPartyItems.length > 0 && (
-                  <div className="mt-6 flex flex-col gap-3">
+                  <div className="flex flex-col gap-3">
                     {form.thirdPartyItems.map((item, idx) => (
                       <ThirdPartyServiceRow
                         key={idx}
@@ -1277,15 +1311,16 @@ export default function InvoiceForm({ initial, onSubmit, loading }) {
                   </div>
                 )}
               </div>
-            </div>
+            </AccordionSection>
 
-            <div className="bg-white/90 backdrop-blur-md rounded-2xl shadow-sm border border-gray-200 p-6 flex flex-col gap-5">
-              <div className="flex items-center gap-3">
-                <div className="w-6 h-6 rounded-full flex items-center justify-center border-2 border-gray-300 text-gray-400 bg-gray-50">
-                  <Settings size={12} />
-                </div>
-                <h2 className="text-[15px] font-bold text-gray-900 tracking-tight">Additional Terms & Notes</h2>
-              </div>
+            <AccordionSection
+              title="Additional Terms & Notes"
+              icon={Settings}
+              isComplete={!!form.notes || !!form.termsAndConditions}
+              isOpen={accordions.notes}
+              onToggle={() => toggleAccordion('notes')}
+              summary={form.notes ? 'Notes added' : 'Add special instructions'}
+            >
               <div className="flex flex-col gap-4">
                 <Field label="Special Notes for Client">
                   <textarea className={`${inputCls} resize-none h-16 bg-gray-50 border-gray-200`} value={form.notes} onChange={e => setF('notes', e.target.value)} placeholder="e.g. Thanks for your business!" />
@@ -1300,7 +1335,7 @@ export default function InvoiceForm({ initial, onSubmit, loading }) {
                   </Field>
                 )}
               </div>
-            </div>
+            </AccordionSection>
           </div>
         </div>
 
@@ -1319,7 +1354,7 @@ export default function InvoiceForm({ initial, onSubmit, loading }) {
                 </div>
               </div>
 
-              <div className="p-6 flex flex-col gap-5 bg-[#fafafa]">
+              <div className="p-6 flex flex-col gap-5 bg-white/40 backdrop-blur-xl">
                 <div className="flex flex-col gap-3">
                   <div className="flex items-center justify-between text-[14px]">
                     <span className="font-bold text-gray-500">Sub Total</span>
@@ -1417,7 +1452,7 @@ export default function InvoiceForm({ initial, onSubmit, loading }) {
               <button
                 type="submit"
                 disabled={loading || checkingConflicts}
-                className={`w-full py-5 text-[15px] font-black tracking-widest uppercase text-slate-900 bg-[#F6CB59] hover:bg-[#e5c603] flex items-center justify-center gap-2 transition-colors ${(loading || checkingConflicts) ? 'opacity-70 pointer-events-none' : ''}`}
+                className={`hidden lg:flex w-full py-5 text-[15px] font-black tracking-widest uppercase text-slate-900 bg-[#F6CB59] hover:bg-[#e5c603] items-center justify-center gap-2 transition-colors ${(loading || checkingConflicts) ? 'opacity-70 pointer-events-none' : ''}`}
               >
                 {(loading || checkingConflicts) ? (
                   <div className="w-5 h-5 border-2 border-slate-900/30 border-t-slate-900 rounded-full animate-spin" />
@@ -1427,7 +1462,23 @@ export default function InvoiceForm({ initial, onSubmit, loading }) {
                 {checkingConflicts ? 'Checking Schedule…' : initial ? 'Update Invoice' : 'Create Invoice'}
               </button>
             </div>
-            <p className="text-center text-[11px] font-medium text-gray-400 mt-2 px-6">
+            
+            <div className="block lg:hidden sticky bottom-[75px] z-30 px-1 mt-2">
+              <button
+                type="submit"
+                disabled={loading || checkingConflicts}
+                className={`w-full py-4 rounded-2xl text-[15px] font-black tracking-widest uppercase text-slate-900 bg-[#F6CB59] hover:bg-[#e5c603] flex items-center justify-center gap-2 transition-colors shadow-2xl border border-amber-300 ${(loading || checkingConflicts) ? 'opacity-70 pointer-events-none' : ''}`}
+              >
+                {(loading || checkingConflicts) ? (
+                  <div className="w-5 h-5 border-2 border-slate-900/30 border-t-slate-900 rounded-full animate-spin" />
+                ) : (
+                  <Sparkles size={18} />
+                )}
+                {checkingConflicts ? 'Checking Schedule…' : initial ? 'Update Invoice' : 'Create Invoice'}
+              </button>
+            </div>
+
+            <p className="hidden lg:block text-center text-[11px] font-medium text-gray-400 mt-2 px-6">
               Review all services and financial details before generating the final order.
             </p>
           </div>

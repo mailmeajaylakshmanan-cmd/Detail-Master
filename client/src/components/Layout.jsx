@@ -224,8 +224,8 @@ export default function Layout() {
         className={`
           print:hidden
           fixed top-0 left-0 z-[70] h-full w-[260px]
-          bg-transparent border-r border-gray-200/50
-          flex flex-col lg:shadow-none
+          bg-white/70 backdrop-blur-2xl border-r border-white/60
+          flex flex-col shadow-[4px_0_24px_rgba(0,0,0,0.1)]
           transform transition-transform duration-300 ease-in-out
           ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}
           ${isDesktopSidebarOpen ? 'lg:translate-x-0' : 'lg:-translate-x-full'}
@@ -330,7 +330,7 @@ export default function Layout() {
 
               <Link
                 to="/invoices/new"
-                className="inline-flex btn-primary items-center gap-2 py-2 px-3.5 shadow-sm text-sm whitespace-nowrap"
+                className="hidden lg:inline-flex btn-primary items-center gap-2 py-2 px-3.5 shadow-sm text-sm whitespace-nowrap"
               >
                 <Plus size={15} /> Add New
               </Link>
@@ -338,18 +338,9 @@ export default function Layout() {
           </div>
         </header>
 
-        <main className="flex-1 w-full mx-auto px-4 sm:px-6 py-6 sm:py-8 pb-20 max-w-[1600px] bg-transparent print:p-0 print:max-w-none print:mx-0">
+        <main className="flex-1 w-full mx-auto px-4 sm:px-6 py-6 sm:py-8 pb-8 max-w-[1600px] bg-transparent print:p-0 print:max-w-none print:mx-0">
           <Outlet />
         </main>
-
-        <footer className="print:hidden mt-auto border-t border-white/40 bg-white/40 backdrop-blur-xl">
-          <div className="px-4 sm:px-6 py-4 flex flex-col sm:flex-row items-center justify-between text-[11px] sm:text-xs font-bold text-gray-800 gap-2">
-            <p>© {new Date().getFullYear()} Detailing Masters. All rights reserved.</p>
-            <span className="flex items-center gap-1.5">
-              <Activity size={12} className="text-green-500" /> All systems operational
-            </span>
-          </div>
-        </footer>
       </div>
     </div>
   );

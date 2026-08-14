@@ -191,85 +191,105 @@ export default function MasterOffers() {
   if (loading) return <div className="p-8 text-center text-gray-500">Loading Offer Templates...</div>;
 
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6">
-      <div className="card p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-            <Gift className="text-gray-900" /> Offer Master
-          </h1>
-          <p className="text-gray-500 text-sm mt-1">Manage standard offer packages and pricing templates.</p>
+    <div className="p-4 sm:p-6 lg:p-8 max-w-[1600px] mx-auto flex flex-col gap-6 bg-transparent animate-fade-in pb-20">
+      
+      {/* ── Toolbar ── */}
+      <div className="bg-white/60 backdrop-blur-2xl rounded-[24px] shadow-[0_8px_32px_rgba(0,0,0,0.06)] border border-white/80 p-5 flex flex-col lg:flex-row lg:items-center justify-between gap-5 shrink-0">
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 rounded-2xl bg-black text-[#F6CB59] flex items-center justify-center shadow-md shrink-0">
+            <Gift size={24} strokeWidth={2.5} />
+          </div>
+          <div>
+            <h1 className="text-[22px] font-black text-gray-900 tracking-tight leading-none mb-1">
+              Offer Master
+            </h1>
+            <p className="text-[12px] font-bold text-gray-500 tracking-wide uppercase">
+              Manage standard packages
+            </p>
+          </div>
         </div>
         
-        <div className="flex w-full md:w-auto gap-3">
-          <div className="relative flex-1 md:w-80">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <Search size={18} className="text-gray-500" />
-            </div>
+        <div className="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto shrink-0">
+          <div className="relative w-full sm:w-64 shrink-0">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
             <input
               type="text"
-              className="input pl-10 bg-white/60"
+              className="w-full pl-10 pr-4 py-2.5 bg-white/80 border border-gray-200/60 rounded-xl text-[13px] font-bold text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent transition-all shadow-sm"
               placeholder="Search offers..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
-          <Link to="/assigned-offers" className="btn bg-gray-100 hover:bg-gray-200 text-gray-700 whitespace-nowrap flex items-center gap-2 px-4 rounded-xl font-bold transition-colors">
-            <Settings size={18} /> Manage Assigned
-          </Link>
-          <button onClick={handleAdd} className="btn-primary whitespace-nowrap flex items-center gap-2">
-            <Plus size={18} /> Add Offer
-          </button>
+          <div className="flex gap-2 w-full sm:w-auto shrink-0">
+            <Link
+              to="/assigned-offers"
+              className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-gray-200 text-gray-900 hover:bg-gray-300 transition-all font-bold text-[13px] shadow-sm whitespace-nowrap"
+            >
+              <Settings size={16} strokeWidth={2.5} /> Manage Assigned
+            </Link>
+            <button
+              onClick={handleAdd}
+              className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-black text-[#F6CB59] hover:scale-[1.02] active:scale-[0.98] transition-all font-bold text-[13px] shadow-md whitespace-nowrap"
+            >
+              <Plus size={16} strokeWidth={2.5} /> Add Offer
+            </button>
+          </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
         {filteredOffers.map(offer => (
-          <div key={offer.id} onClick={() => handleEdit(offer)} className="card p-5 relative overflow-hidden flex flex-col cursor-pointer group hover:-translate-y-1 transition-all duration-300">
-            <div className="flex justify-between items-start mb-2">
-              <h3 className="text-lg font-bold text-gray-900 pr-12 group-hover:text-blue-600 transition-colors">{offer.name}</h3>
-            </div>
-            
-            <p className="text-[13px] text-gray-500 mb-2 flex-1 pr-12 line-clamp-2">
-              {offer.description || <span className="italic text-gray-400">No description provided</span>}
-            </p>
-            <div className="flex gap-4 text-[12px] text-gray-500 mb-6 font-medium">
-              <span>Validity: {offer.defaultValidityDays} Days</span>
-              <span>•</span>
-              <span>Total Washes: {offer.totalWashes}</span>
-              {offer.freeWashes > 0 && (
-                <>
-                  <span>•</span>
-                  <span className="text-amber-600 font-bold">{offer.freeWashes} Free</span>
-                </>
-              )}
+          <div key={offer.id} onClick={() => handleEdit(offer)} className="card p-6 relative flex flex-col cursor-pointer group min-h-[220px]">
+            <div className="flex flex-col flex-1">
+              <h3 className="text-[20px] font-black text-gray-900 leading-tight mb-2 pr-2">{offer.name}</h3>
+              <p className="text-[13px] font-medium text-gray-500 mb-4 line-clamp-2">
+                {offer.description || <span className="italic text-gray-400">No description provided</span>}
+              </p>
+              
+              <div className="flex flex-wrap gap-2 mt-auto mb-6">
+                <span className="bg-white/50 border border-white/80 shadow-sm rounded-full px-3 py-1.5 text-[10px] font-bold text-gray-800 uppercase tracking-widest flex items-center gap-1.5">
+                  <span className="text-gray-400">Val</span> {offer.defaultValidityDays}d
+                </span>
+                <span className="bg-white/50 border border-white/80 shadow-sm rounded-full px-3 py-1.5 text-[10px] font-bold text-gray-800 uppercase tracking-widest flex items-center gap-1.5">
+                  <span className="text-gray-400">Washes</span> {offer.totalWashes}
+                </span>
+                {offer.freeWashes > 0 && (
+                  <span className="bg-[#F6CB59]/20 border border-[#F6CB59]/30 text-[#854D0E] shadow-sm rounded-full px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest flex items-center gap-1.5">
+                    <span className="text-[#854D0E]/60">Free</span> {offer.freeWashes}
+                  </span>
+                )}
+              </div>
             </div>
 
-            <div className="flex items-center justify-between mt-auto">
-              <div className="text-gray-900 font-bold text-[22px] tracking-tight">
-                ₹{Number(offer.defaultPrice || 0).toLocaleString('en-IN')}
+            <div className="flex items-end justify-between pt-4 border-t border-white/60">
+              <div>
+                <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-0.5">Price</div>
+                <div className="text-gray-900 font-black text-[28px] tracking-tight leading-none">
+                  ₹{Number(offer.defaultPrice || 0).toLocaleString('en-IN')}
+                </div>
               </div>
               <button
                 onClick={(e) => { e.stopPropagation(); handleDelete(offer.id); }}
-                className="text-[11px] font-bold uppercase rounded-full px-4 py-1.5 transition-all shadow-sm bg-rose-50 text-rose-600 hover:bg-rose-100 border border-rose-200"
+                className="w-7 h-7 rounded-full bg-white text-rose-500 shadow-sm border border-rose-100 flex items-center justify-center hover:bg-rose-50 hover:text-rose-600 transition-colors"
               >
-                Delete
+                <X size={14} strokeWidth={3} />
               </button>
             </div>
           </div>
         ))}
         {filteredOffers.length === 0 && (
-          <div className="col-span-full py-12 text-center border-2 border-dashed border-white/50 rounded-2xl bg-white/30 backdrop-blur-sm">
-            <Gift size={32} className="mx-auto text-gray-500 mb-3" />
-            <h3 className="text-lg font-medium text-gray-500">No offers found</h3>
-            <p className="text-gray-500 mt-1">Try adjusting your search or add a new offer template.</p>
+          <div className="col-span-full py-16 text-center border-[3px] border-dashed border-white/50 rounded-[24px] bg-white/40 backdrop-blur-md shadow-sm">
+            <Gift size={40} className="mx-auto text-gray-400 mb-4" />
+            <h3 className="text-[18px] font-black text-gray-800 mb-1">No offers found</h3>
+            <p className="text-[13px] font-bold text-gray-500 uppercase tracking-widest">Try adjusting your search or add a new template</p>
           </div>
         )}
       </div>
 
       {/* Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-black/20 backdrop-blur-md flex items-center justify-center z-50 p-4">
-          <div className="card w-full max-w-3xl overflow-hidden">
+        <div className="fixed inset-0 bg-black/20 backdrop-blur-md flex items-center justify-center z-[9999] p-4">
+          <div className="card w-full max-w-3xl overflow-hidden bg-white">
             <div className="flex justify-between items-center p-5 border-b border-white/50">
               <h3 className="text-lg font-bold text-gray-900">{editId ? 'Edit Offer Template' : 'Add New Offer Template'}</h3>
               <button onClick={handleCancelEdit} className="text-gray-500 hover:text-gray-900 transition-colors">

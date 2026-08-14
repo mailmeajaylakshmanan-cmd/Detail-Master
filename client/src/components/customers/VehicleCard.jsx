@@ -29,8 +29,8 @@ export default function VehicleTable({ vehicles, selectedIdx, onSelect }) {
 
       </div>
 
-      <div className="bg-white rounded-[20px] shadow-sm border border-gray-100 overflow-hidden">
-        <div className="overflow-x-auto">
+      <div className="bg-white/60 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.06)] border border-white/80 rounded-[24px] overflow-hidden">
+        <div className="hidden lg:block overflow-x-auto">
           <table className="w-full text-left border-collapse min-w-[800px]">
             <thead>
               <tr className="bg-gray-50 border-b border-gray-100">
@@ -85,6 +85,36 @@ export default function VehicleTable({ vehicles, selectedIdx, onSelect }) {
               })}
             </tbody>
           </table>
+        </div>
+
+        {/* Mobile View */}
+        <div className="block lg:hidden flex flex-col gap-4 p-4">
+           {vehicles.map((v, i) => {
+             const isSelected = selectedIdx === i;
+             return (
+               <div key={i} onClick={() => onSelect(i)} className={`border rounded-[20px] p-5 flex flex-col gap-3 transition-all duration-300 ${isSelected ? 'border-[#F6CB59] bg-white shadow-[0_0_20px_rgba(246,203,89,0.25)] scale-[1.02] relative z-10' : 'border-white/60 bg-white/40 hover:bg-white/70'}`}>
+                 <div className="flex justify-between items-start">
+                   <div className="flex items-center gap-4">
+                      <div className={`w-11 h-11 rounded-full flex items-center justify-center shrink-0 border transition-all ${isSelected ? 'bg-[#F6CB59]/10 text-yellow-600 border-[#F6CB59]/30' : 'bg-white text-gray-500 border-white shadow-sm'}`}>
+                         <Car size={20} strokeWidth={2.5} />
+                      </div>
+                      <div>
+                        <div className={`font-black text-[15px] ${isSelected ? 'text-gray-900' : 'text-gray-800'}`}>{v.make} {v.model}</div>
+                        <div className="text-[11px] font-mono font-bold text-gray-500 uppercase mt-0.5 tracking-widest">{v.plate || 'N/A'}</div>
+                      </div>
+                   </div>
+                   <div className="text-right">
+                      <div className="text-[10px] font-extrabold text-gray-400 uppercase tracking-widest mb-1.5">Visits</div>
+                      <div className="text-[14px] font-black text-gray-900 bg-white shadow-sm border border-gray-100 px-3 py-1 rounded-full inline-block">{v.totalVisits || 0}</div>
+                   </div>
+                 </div>
+                 <div className="mt-2 pt-3 border-t border-gray-200/50 flex justify-between items-center">
+                    <div className="text-[12px] font-bold text-gray-500 uppercase tracking-wider">{v.type || '--'}</div>
+                    <div className="font-black text-[18px] text-gray-900">₹{(v.totalSpend || 0).toLocaleString('en-IN')}</div>
+                 </div>
+               </div>
+             )
+           })}
         </div>
       </div>
     </div>

@@ -10,6 +10,7 @@ import api from '../api/axios.js';
 import toast from 'react-hot-toast';
 import brandLogo from '../assets/brand-logo-for-invoice.png';
 import goldenCar from '../assets/new-invoice-add.png';
+import ResponsiveDocumentWrapper from '../components/ResponsiveDocumentWrapper.jsx';
 
 function fmt(n) {
   return Number(n || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -347,7 +348,9 @@ export default function InvoiceView() {
         )}
       </div>
 
-      <div id="invoice-print" style={doc.wrap}>
+      <div className="pb-8">
+      <ResponsiveDocumentWrapper documentWidth={820}>
+        <div id="invoice-print" style={doc.wrap}>
         {/* HEADER */}
         <div style={{ position: 'relative', height: '115px', backgroundColor: '#EBEBED', width: '100%', WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>
           {/* Layer 1: Top Left Yellow Square */}
@@ -368,7 +371,7 @@ export default function InvoiceView() {
           {/* Layer 6: Main Left Black Polygon */}
           <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: '#2B2A2A', clipPath: 'polygon(4% 0, 60% 0, 45% 100%, 0 100%, 0 25%)', zIndex: 6 }}></div>
 
-          <div style={{ position: 'relative', zIndex: 10, display: 'flex', justifyContent: 'space-between', padding: '2px 40px 2px 45px', height: '100%' }}>
+          <div className="invoice-header-grid" style={{ position: 'relative', zIndex: 10, display: 'flex', justifyContent: 'space-between', padding: '2px 40px 2px 45px', height: '100%' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
               {/* Logo with pure white shield background */}
               <div style={{ position: 'relative', filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.5))', zIndex: 20 }}>
@@ -414,7 +417,7 @@ export default function InvoiceView() {
                <img src={goldenCar} alt="Car Accent" style={{ height: '80px', objectFit: 'contain', filter: 'drop-shadow(2px 2px 4px rgba(0,0,0,0.4))', position: 'relative', left: '20%', top: '10px' }} />
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'flex-start', paddingRight: '15px', paddingTop: '20px' }}>
+            <div className="invoice-header-title" style={{ display: 'flex', alignItems: 'flex-start', paddingRight: '15px', paddingTop: '20px' }}>
               <h1 style={{ 
                   fontFamily: "'Montserrat', 'Open Sans', sans-serif",
                   fontSize: 36, 
@@ -436,8 +439,8 @@ export default function InvoiceView() {
         </div>
 
         {/* INFO SECTIONS */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', gap: '40px', padding: '20px 40px', backgroundColor: 'transparent', position: 'relative', zIndex: 1, fontFamily: "'Inter', 'Segoe UI', 'Roboto', sans-serif" }}>
-           <div style={{ flex: 1 }}>
+        <div className="invoice-info-sections" style={{ padding: '20px 40px', backgroundColor: 'transparent', position: 'relative', zIndex: 1, fontFamily: "'Inter', 'Segoe UI', 'Roboto', sans-serif" }}>
+           <div className="invoice-info-col">
               <h3 style={{ fontSize: 13, fontWeight: 700, margin: '0 0 12px 0', color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.05em' }}>INVOICE INFO</h3>
               <div style={{ fontSize: 14, color: '#111827', display: 'flex', flexDirection: 'column', gap: '10px' }}>
                  <div style={{ display: 'flex', alignItems: 'flex-start' }}><span style={{ width: 85, color: '#6B7280', fontSize: 13, paddingTop: 1 }}>Address:</span> <span style={{ flex: 1, fontWeight: 500, lineHeight: 1.5 }}>Opposite KTM Bike Showroom, Kulasekharam, Kanyakumari</span></div>
@@ -445,7 +448,7 @@ export default function InvoiceView() {
                  <div style={{ display: 'flex', alignItems: 'center' }}><span style={{ width: 85, color: '#6B7280', fontSize: 13 }}>Email:</span> <span style={{ fontWeight: 500 }}>detailingmasters@gmail.com</span></div>
               </div>
            </div>
-           <div style={{ flex: 1 }}>
+           <div className="invoice-info-col">
               <h3 style={{ fontSize: 13, fontWeight: 700, margin: '0 0 12px 0', color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.05em' }}>CLIENT INFO</h3>
               <div style={{ fontSize: 14, color: '#111827', display: 'flex', flexDirection: 'column', gap: '10px' }}>
                  <div style={{ display: 'flex', alignItems: 'center' }}><span style={{ width: 85, color: '#6B7280', fontSize: 13 }}>Name:</span> <span style={{ fontWeight: 500 }}>{invoice.customer?.name || 'John Doe'}</span></div>
@@ -457,11 +460,11 @@ export default function InvoiceView() {
         </div>
 
         {/* SERVICES TABLE */}
-        <div style={{ padding: '20px 40px 0 40px' }}>
+        <div className="invoice-services-container" style={{ padding: '20px 40px 0 40px' }}>
            <h3 style={{ fontSize: 15, fontWeight: 700, margin: '0 0 8px 0', color: '#0A0A0A', textTransform: 'uppercase' }}>SERVICES</h3>
            <div style={{ height: 2, backgroundColor: '#0A0A0A', marginBottom: 16 }}></div>
            
-           <div style={{ position: 'relative' }}>
+           <div style={{ position: 'relative' }} className="overflow-x-auto hide-scrollbar">
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, position: 'relative', zIndex: 1, backgroundColor: 'transparent' }}>
                  <thead>
                     <tr style={{ backgroundColor: '#0A0A0A', color: '#fff' }}>
@@ -564,25 +567,8 @@ export default function InvoiceView() {
               Ph: +91 (23 367 7873 | E-mail: infi@detailingmasters.com
            </div>
         </div>
-
-        {/* Global Print Styles applied safely inside the element so Puppeteer keeps them */}
-        <style>{`
-          @keyframes spin { to { transform: rotate(360deg); } }
-          @media print {
-            @page { margin: 0; size: A4; }
-            html, body { height: 100%; margin: 0 !important; padding: 0 !important; overflow: hidden; }
-            .print\\:hidden { display: none !important; }
-            body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-            #invoice-print {
-              max-width: 100% !important;
-              margin: 0 !important;
-              box-shadow: none !important;
-              border-radius: 0 !important;
-              border: none !important;
-              overflow: hidden !important;
-            }
-          }
-        `}</style>
+        </div>
+      </ResponsiveDocumentWrapper>
       </div>
 
       {/* Running Cars Marquee */}

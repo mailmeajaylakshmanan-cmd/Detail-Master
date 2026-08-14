@@ -10,6 +10,7 @@ import api from '../api/axios.js';
 import toast from 'react-hot-toast';
 import brandLogo from '../assets/brand-logo-for-invoice.png';
 import goldenCar from '../assets/new-invoice-add.png';
+import ResponsiveDocumentWrapper from '../components/ResponsiveDocumentWrapper.jsx';
 
 function fmtDate(d) {
   if (!d) return null;
@@ -235,7 +236,9 @@ export default function VehicleServiceReport() {
         </div>
       </div>
 
-      <div id="report-print" style={doc.wrap}>
+      <div className="pb-8">
+      <ResponsiveDocumentWrapper documentWidth={820}>
+        <div id="invoice-print" style={doc.wrap}>
         
         <div style={{ position: 'relative', height: '115px', backgroundColor: '#EBEBED', width: '100%', WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>
           <div style={{ position: 'absolute', top: 0, left: 0, width: '100px', height: '100px', background: '#FFD700', zIndex: 1 }}></div>
@@ -474,23 +477,40 @@ export default function VehicleServiceReport() {
            </div>
         </div>
 
-        <style>{`
-          @keyframes spin { to { transform: rotate(360deg); } }
-        `}</style>
+        </div>
+
+      </ResponsiveDocumentWrapper>
       </div>
+
+      <style>{`
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        @media print {
+          .print\\:hidden { display: none !important; }
+          body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          #invoice-print {
+            max-width: 100% !important;
+            min-width: 100% !important;
+            margin: 0 !important;
+            box-shadow: none !important;
+            border-radius: 0 !important;
+            border: none !important;
+            overflow: hidden !important;
+          }
+        }
+        @keyframes scrollCars {
+          0% { transform: translateX(0); }
+          100% { transform: translateX(-50%); }
+        }
+        .car-track {
+          display: inline-block;
+          white-space: nowrap;
+          animation: scrollCars 25s linear infinite;
+        }
+      `}</style>
 
       {/* Running Cars Marquee */}
       <div className="print:hidden" style={{ overflow: 'hidden', whiteSpace: 'nowrap', width: '100%', marginTop: '40px', padding: '20px 0', opacity: 0.8, maxWidth: 820, margin: '40px auto 0' }}>
-        <style>{`
-          @keyframes scrollCars {
-            0% { transform: translateX(0); }
-            100% { transform: translateX(-50%); }
-          }
-          .car-track {
-            display: inline-block;
-            white-space: nowrap;
-            animation: scrollCars 25s linear infinite;
-          }
         `}</style>
         <div className="car-track">
            {[...Array(20)].map((_, i) => (

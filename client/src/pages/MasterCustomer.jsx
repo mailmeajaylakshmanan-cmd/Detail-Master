@@ -186,44 +186,51 @@ export default function MasterCustomer() {
       {/* ── Full Width: Customer List ── */}
       <div className="w-full flex flex-col h-full gap-4">
         {/* ── Toolbar ── */}
-        <div className="bg-white rounded-[20px] shadow-sm border border-gray-100 px-2 py-2 flex flex-wrap items-center justify-between gap-4 shrink-0">
-          <div className="flex gap-1 ml-2">
-            {['All Customers', 'VIP'].map(f => {
-              const filterValue = f === 'All Customers' ? 'All' : f;
-              return (
-                <button
-                  key={f}
-                  onClick={() => setActiveFilter(filterValue)}
-                  className={`text-[12px] font-bold px-4 py-2.5 rounded-[12px] transition-all capitalize ${activeFilter === filterValue
-                      ? 'bg-[#0F172A] text-white shadow-sm'
-                      : 'bg-transparent text-gray-500 hover:text-gray-900 hover:bg-gray-100'
-                    }`}
-                >
-                  {f}
-                </button>
-              );
-            })}
+        <div className="bg-white/60 backdrop-blur-2xl rounded-[24px] shadow-[0_8px_32px_rgba(0,0,0,0.06)] border border-white/80 p-3 flex flex-col lg:flex-row lg:items-center justify-between gap-4 shrink-0">
+          <div className="flex items-center justify-between gap-2 px-1 lg:px-0">
+            <div className="flex gap-1">
+              {['All Customers', 'VIP'].map(f => {
+                const filterValue = f === 'All Customers' ? 'All' : f;
+                return (
+                  <button
+                    key={f}
+                    onClick={() => setActiveFilter(filterValue)}
+                    className={`text-[12px] font-bold px-4 py-2.5 rounded-[12px] transition-all capitalize ${activeFilter === filterValue
+                        ? 'bg-gray-900 text-[#F6CB59] shadow-md'
+                        : 'bg-transparent text-gray-500 hover:text-gray-900 hover:bg-gray-100'
+                      }`}
+                  >
+                    {f}
+                  </button>
+                );
+              })}
+            </div>
+            
+            <button
+              onClick={handleAdd}
+              className="btn-primary whitespace-nowrap flex lg:hidden items-center gap-1.5 text-[11px] px-3 py-2 shrink-0"
+            >
+              <UserPlus size={13} strokeWidth={2.5} /> Add New
+            </button>
           </div>
 
-          <div className="flex items-center gap-3 pr-2">
-            <div className="relative">
+          <div className="flex items-center gap-2 lg:gap-3 px-1 lg:px-0">
+            <div className="relative flex-1 lg:flex-none">
               <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={14} strokeWidth={2.5} />
               <input
                 type="text"
                 placeholder="Search customers..."
                 value={search}
                 onChange={(e) => { setSearch(e.target.value); setLimit(50); }}
-                className="input pl-9 pr-4 py-2.5 text-[12px] font-medium w-[220px] border-gray-200 bg-gray-50 rounded-[12px]"
+                className="input pl-9 pr-4 py-2.5 text-[12px] font-medium w-full lg:w-[220px] rounded-[12px]"
               />
             </div>
-
-            <button className="w-10 h-10 rounded-[12px] border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-gray-50 transition-colors">
+            <button className="w-[42px] h-[42px] shrink-0 rounded-[12px] border border-white/80 bg-white/50 shadow-sm flex items-center justify-center text-gray-500 hover:bg-white/80 transition-colors">
               <Filter size={15} strokeWidth={2.5} />
             </button>
-
             <button
               onClick={handleAdd}
-              className="btn-primary whitespace-nowrap flex items-center gap-1.5"
+              className="btn-primary whitespace-nowrap hidden lg:flex items-center gap-1.5"
             >
               <UserPlus size={14} strokeWidth={2.5} /> Add New Customer
             </button>

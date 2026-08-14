@@ -134,7 +134,7 @@ export default function Dashboard() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           
           {/* ── Left Column: Today's Schedule ── */}
-          <div className="lg:col-span-1 bg-white/40 backdrop-blur-3xl border border-white/50 shadow-[0_8px_32px_rgba(0,0,0,0.05)] rounded-[32px] p-6 lg:p-8 flex flex-col h-[520px]">
+          <div className="lg:col-span-1 bg-white/40 backdrop-blur-3xl border border-white/50 shadow-[0_8px_32px_rgba(0,0,0,0.05)] rounded-[32px] p-6 lg:p-8 flex flex-col h-auto lg:h-[520px] max-h-[520px]">
             <div className="flex justify-between items-center mb-8">
               <h2 className="text-[18px] font-medium text-gray-900 tracking-tight">Schedule</h2>
               <div className="w-8 h-8 rounded-full bg-gray-50 border border-gray-200 flex items-center justify-center cursor-pointer">
@@ -188,7 +188,7 @@ export default function Dashboard() {
           </div>
 
           {/* ── Right Column: Services & Stats ── */}
-          <div className="lg:col-span-2 flex flex-col gap-6 h-[520px]">
+          <div className="lg:col-span-2 flex flex-col gap-6 h-auto lg:h-[520px]">
             
             {/* Services Table */}
             <div className="bg-white/40 backdrop-blur-3xl border border-white/50 shadow-[0_8px_32px_rgba(0,0,0,0.05)] rounded-[32px] p-6 lg:p-8 flex-1 flex flex-col min-h-0">
@@ -200,47 +200,86 @@ export default function Dashboard() {
                 </div>
               </div>
               <div className="flex-1 overflow-y-auto pr-1 custom-scrollbar">
-                <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr className="text-[11px] font-bold text-gray-800 uppercase tracking-wider border-b border-gray-400/30">
-                      <th className="pb-3 font-medium">Customer</th>
-                      <th className="pb-3 font-medium">Vehicle</th>
-                      <th className="pb-3 font-medium">Service</th>
-                      <th className="pb-3 font-medium">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {data?.activeServices && data.activeServices.length > 0 ? (
-                      data.activeServices.map((item, i) => {
-                        let statusColor = 'bg-gray-100 text-gray-500';
-                        if (item.status === 'in_progress') statusColor = 'bg-emerald-50 text-emerald-600';
-                        if (item.status === 'draft') statusColor = 'bg-[#fcdf4c]/20 text-[#D8A700]';
-                        if (item.status === 'pending') statusColor = 'bg-orange-50 text-orange-600';
-                        return (
-                          <tr key={item.id || i} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/50 transition-colors">
-                            <td className="py-3">
-                              <div className="flex items-center gap-3">
-                                <img src={`https://ui-avatars.com/api/?name=${encodeURIComponent(item.customer_name || 'Unknown')}&background=random&color=fff`} alt="" className="w-8 h-8 rounded-full" />
-                                <span className="text-[13px] font-medium text-gray-900">{item.customer_name}</span>
-                              </div>
-                            </td>
-                            <td className="py-3 text-[13px] text-gray-900 font-medium">{item.vehicle_name || 'N/A'}</td>
-                            <td className="py-3 text-[13px] text-gray-900 font-medium">{item.service_name || 'N/A'}</td>
-                            <td className="py-3">
-                              <span className={`px-2 py-1 rounded-md text-[10px] font-semibold ${statusColor} capitalize`}>
-                                • {item.status.replace('_', ' ')}
-                              </span>
-                            </td>
-                          </tr>
-                        );
-                      })
-                    ) : (
-                      <tr>
-                        <td colSpan="4" className="py-4 text-center text-sm font-medium text-gray-500">No active services</td>
+                {/* Desktop Table */}
+                <div className="hidden lg:block">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="text-[11px] font-bold text-gray-800 uppercase tracking-wider border-b border-gray-400/30">
+                        <th className="pb-3 font-medium">Customer</th>
+                        <th className="pb-3 font-medium">Vehicle</th>
+                        <th className="pb-3 font-medium">Service</th>
+                        <th className="pb-3 font-medium">Status</th>
                       </tr>
-                    )}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {data?.activeServices && data.activeServices.length > 0 ? (
+                        data.activeServices.map((item, i) => {
+                          let statusColor = 'bg-gray-100 text-gray-500';
+                          if (item.status === 'in_progress') statusColor = 'bg-emerald-50 text-emerald-600';
+                          if (item.status === 'draft') statusColor = 'bg-[#fcdf4c]/20 text-[#D8A700]';
+                          if (item.status === 'pending') statusColor = 'bg-orange-50 text-orange-600';
+                          return (
+                            <tr key={item.id || i} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/50 transition-colors">
+                              <td className="py-3">
+                                <div className="flex items-center gap-3">
+                                  <img src={`https://ui-avatars.com/api/?name=${encodeURIComponent(item.customer_name || 'Unknown')}&background=random&color=fff`} alt="" className="w-8 h-8 rounded-full" />
+                                  <span className="text-[13px] font-medium text-gray-900">{item.customer_name}</span>
+                                </div>
+                              </td>
+                              <td className="py-3 text-[13px] text-gray-900 font-medium">{item.vehicle_name || 'N/A'}</td>
+                              <td className="py-3 text-[13px] text-gray-900 font-medium">{item.service_name || 'N/A'}</td>
+                              <td className="py-3">
+                                <span className={`px-2 py-1 rounded-md text-[10px] font-semibold ${statusColor} capitalize`}>
+                                  • {item.status.replace('_', ' ')}
+                                </span>
+                              </td>
+                            </tr>
+                          );
+                        })
+                      ) : (
+                        <tr>
+                          <td colSpan="4" className="py-4 text-center text-sm font-medium text-gray-500">No active services</td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Mobile Carousel */}
+                <div className="flex lg:hidden overflow-x-auto snap-x gap-4 pb-2 hide-scrollbar">
+                  {data?.activeServices && data.activeServices.length > 0 ? (
+                    data.activeServices.map((item, i) => {
+                      let statusColor = 'bg-gray-100 text-gray-500';
+                      if (item.status === 'in_progress') statusColor = 'bg-emerald-50 text-emerald-600';
+                      if (item.status === 'draft') statusColor = 'bg-[#fcdf4c]/20 text-[#D8A700]';
+                      if (item.status === 'pending') statusColor = 'bg-orange-50 text-orange-600';
+                      
+                      return (
+                        <div key={item.id || i} className="snap-center shrink-0 w-[240px] bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex flex-col gap-3">
+                          <div className="flex justify-between items-start">
+                            <div className="flex items-center gap-2">
+                              <img src={`https://ui-avatars.com/api/?name=${encodeURIComponent(item.customer_name || 'Unknown')}&background=random&color=fff`} alt="" className="w-7 h-7 rounded-full" />
+                              <span className="text-[13px] font-bold text-gray-900 truncate max-w-[110px]">{item.customer_name}</span>
+                            </div>
+                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold capitalize ${statusColor}`}>
+                              {item.status.replace('_', ' ')}
+                            </span>
+                          </div>
+                          <div className="grid grid-cols-2 gap-2 bg-gray-50 p-2.5 rounded-xl">
+                            <div className="flex items-center gap-1.5 text-[11px] text-gray-700 font-medium">
+                              <Car size={12} className="text-gray-400 shrink-0" /> <span className="truncate">{item.vehicle_name || 'N/A'}</span>
+                            </div>
+                            <div className="flex items-center gap-1.5 text-[11px] text-gray-700 font-medium">
+                              <Sparkles size={12} className="text-gray-400 shrink-0" /> <span className="truncate">{item.service_name || 'N/A'}</span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <div className="w-full text-center text-sm font-medium text-gray-500 py-4">No active services</div>
+                  )}
+                </div>
               </div>
             </div>
 

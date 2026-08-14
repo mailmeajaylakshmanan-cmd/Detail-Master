@@ -1,69 +1,57 @@
 import { Calendar, IndianRupee, Car, History, Clock3, Award } from 'lucide-react';
 
-function StatCard({ icon: Icon, label, value, sub, accent }) {
-  return (
-    <div 
-      className="bg-white rounded-xl p-4 shadow-sm relative overflow-hidden flex flex-col justify-center min-h-[90px]" 
-      style={{ borderLeft: `4px solid ${accent}` }}
-    >
-      <div className="flex justify-between items-start w-full">
-        <span className="text-[10px] font-bold uppercase tracking-widest text-gray-900 mb-1">{label}</span>
-        <Icon size={14} style={{ color: accent }} className="opacity-80" />
-      </div>
-      <div className="text-2xl font-black text-gray-900 tracking-tight leading-none mt-1">{value}</div>
-      {sub && <div className="text-[9px] text-gray-800 font-bold mt-2 uppercase tracking-wide">{sub}</div>}
-    </div>
-  );
-}
+
 
 export default function StatsGrid({ totalVisits, totalSpend, activeVehicles, lastVisit, nextService, loyaltyPoints }) {
-  const stats = [
-    {
-      icon: History,
-      label: 'Total Visits',
-      value: totalVisits,
-      sub: lastVisit ? `Last: ${lastVisit}` : 'No visits yet',
-      accent: '#EAB308', // Yellow
-    },
-    {
-      icon: IndianRupee,
-      label: 'Total Spend',
-      value: `₹${totalSpend.toLocaleString('en-IN')}`,
-      sub: 'Top 20% Spender', // Placeholder sub text to match screenshot
-      accent: '#10B981', // Green
-    },
-    {
-      icon: Car,
-      label: 'Active Vehicles',
-      value: activeVehicles,
-      sub: 'Fleet Management',
-      accent: '#B45309', // Brown
-    },
-    {
-      icon: Calendar,
-      label: 'Last Visit',
-      value: lastVisit || 'N/A',
-      accent: '#F97316', // Orange
-    },
-    {
-      icon: Clock3,
-      label: 'Next Service',
-      value: nextService,
-      sub: 'Schedule Now',
-      accent: '#EF4444', // Red
-    },
-    {
-      icon: Award,
-      label: 'Loyalty Points',
-      value: loyaltyPoints.toLocaleString('en-IN'),
-      sub: 'Earned on spend',
-      accent: '#8B5CF6', // Purple
-    },
-  ];
-
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4 shrink-0">
-      {stats.map(s => <StatCard key={s.label} {...s} />)}
+    <div className="flex flex-col gap-3 shrink-0">
+      <div className="grid grid-cols-2 gap-3">
+        {/* Total Spend */}
+        <div className="bg-black p-4 lg:p-5 rounded-[20px] text-white shadow-md relative overflow-hidden flex flex-col justify-between min-h-[110px] hover:shadow-lg transition-shadow">
+          <IndianRupee className="absolute -right-4 -bottom-4 opacity-[0.07] text-white" size={100} />
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Total Spend</span>
+            <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center backdrop-blur-md border border-white/10">
+              <IndianRupee size={14} className="text-[#F6CB59]" />
+            </div>
+          </div>
+          <div className="mt-2 relative z-10">
+            <div className="text-[24px] lg:text-[28px] font-black tracking-tight leading-none">₹{totalSpend.toLocaleString('en-IN')}</div>
+            <div className="text-[9px] lg:text-[10px] font-bold text-gray-400 mt-1.5 uppercase tracking-wider">Top 20% Spender</div>
+          </div>
+        </div>
+
+        {/* Total Visits */}
+        <div className="bg-[#F6CB59] p-4 lg:p-5 rounded-[20px] text-black shadow-md relative overflow-hidden flex flex-col justify-between min-h-[110px] hover:shadow-lg transition-shadow">
+          <History className="absolute -right-4 -bottom-4 opacity-[0.07] text-black" size={100} />
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-black/60">Total Visits</span>
+            <div className="w-8 h-8 rounded-full bg-black/5 flex items-center justify-center backdrop-blur-md border border-black/10">
+              <History size={14} className="text-black" />
+            </div>
+          </div>
+          <div className="mt-2 relative z-10">
+            <div className="text-[24px] lg:text-[28px] font-black tracking-tight leading-none">{totalVisits}</div>
+            <div className="text-[9px] lg:text-[10px] font-bold text-black/60 mt-1.5 uppercase tracking-wider">{lastVisit ? `Last visit: ${lastVisit}` : 'No visits yet'}</div>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-3 gap-3">
+        {[
+          { label: 'Active Vehicles', value: activeVehicles, icon: Car },
+          { label: 'Last Visit', value: lastVisit || 'N/A', icon: Calendar },
+          { label: 'Next Service', value: nextService, icon: Clock3 },
+        ].map((s) => (
+          <div key={s.label} className="bg-white/80 backdrop-blur-xl border border-white/60 rounded-[16px] p-4 flex flex-col justify-center items-center text-center shadow-sm hover:scale-[1.02] transition-transform">
+            <div className={`w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center mb-2 shadow-inner border border-gray-200/50`}>
+              <s.icon size={16} className="text-gray-800" />
+            </div>
+            <div className="text-[16px] lg:text-[18px] font-black text-gray-900 leading-none mb-1">{s.value}</div>
+            <div className="text-[9px] lg:text-[10px] font-bold uppercase tracking-widest text-gray-500">{s.label}</div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
