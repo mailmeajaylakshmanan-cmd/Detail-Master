@@ -69,22 +69,32 @@
 @media print {
   @page {
     size: A4 portrait;
-    margin: 10mm;
+    margin: 0;
+  }
+
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
 
   body {
-    background: #fff !important;
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
+    background: white !important;
+    margin: 0 !important;
+    padding: 0 !important;
   }
 
-  /* Hide layout elements not needed for print */
+  /* Hide layout chrome */
   .print-hide,
   .print\:hidden {
     display: none !important;
   }
 
-  /* Reset layout containers so they don't squish the invoice */
+  /* Hide background decoration divs */
+  body::before {
+    display: none !important;
+  }
+
+  /* Collapse layout padding */
   .print-reset-layout {
     margin: 0 !important;
     padding: 0 !important;
@@ -95,6 +105,7 @@
     height: auto !important;
   }
 
+  /* Invoice print container */
   #invoice-print {
     max-width: 100% !important;
     width: 100% !important;
@@ -106,6 +117,31 @@
 
   #invoice-print table {
     page-break-inside: avoid;
+  }
+
+  /* Service report print container */
+  #report-print {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    border: none !important;
+    height: auto !important;
+    min-height: 100vh !important;
+    overflow: visible !important;
+  }
+
+  #report-print table {
+    page-break-inside: auto;
+  }
+  #report-print thead {
+    display: table-header-group;
+  }
+  #report-print tr {
+    page-break-inside: avoid;
+    page-break-after: auto;
   }
 }
 

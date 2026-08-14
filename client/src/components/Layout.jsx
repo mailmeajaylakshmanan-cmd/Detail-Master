@@ -230,6 +230,7 @@ export default function Layout() {
       {/* Sidebar — mobile drawer + desktop fixed */}
       <aside
         className={`
+          print:hidden
           fixed top-0 left-0 z-[70] h-full w-[260px]
           bg-transparent border-r border-gray-200/50
           flex flex-col lg:shadow-none
@@ -282,7 +283,7 @@ export default function Layout() {
       {/* Main column */}
       <div className={`flex-1 flex flex-col min-w-0 transition-all duration-300 ${isDesktopSidebarOpen ? 'lg:pl-[260px]' : 'lg:pl-0'} bg-transparent`}>
         <header
-          className={`sticky top-0 z-50 transition-all duration-200 bg-transparent ${
+          className={`print:hidden sticky top-0 z-50 transition-all duration-200 bg-transparent ${
             scrolled ? 'bg-white/40 backdrop-blur-xl border-b border-white/50 shadow-sm' : 'border-b border-transparent'
           }`}
         >
@@ -345,11 +346,11 @@ export default function Layout() {
           </div>
         </header>
 
-        <main className="flex-1 w-full mx-auto px-4 sm:px-6 py-6 sm:py-8 pb-20 max-w-[1600px] bg-transparent">
+        <main className="flex-1 w-full mx-auto px-4 sm:px-6 py-6 sm:py-8 pb-20 max-w-[1600px] bg-transparent print:p-0 print:max-w-none print:mx-0">
           <Outlet />
         </main>
 
-        <footer className="mt-auto border-t border-white/40 bg-white/40 backdrop-blur-xl">
+        <footer className="print:hidden mt-auto border-t border-white/40 bg-white/40 backdrop-blur-xl">
           <div className="px-4 sm:px-6 py-4 flex flex-col sm:flex-row items-center justify-between text-[11px] sm:text-xs font-bold text-gray-800 gap-2">
             <p>© {new Date().getFullYear()} Detailing Masters. All rights reserved.</p>
             <span className="flex items-center gap-1.5">

@@ -173,7 +173,7 @@ export default function ServiceHistoryTable({ history, customerPhone, isVIP }) {
                   <td className="px-5 py-4">
                     <PaymentStatusBadge status={inv.displayStatus || inv.status} />
                   </td>
-                  <td className="px-5 py-4 text-right">
+                  <td className="px-5 py-4 text-right flex justify-end gap-2 items-center">
                     <Link
                       to={`/invoices/${inv.id}`}
                       className="inline-flex items-center justify-center gap-1 text-[10px] font-bold text-[#475569]
@@ -181,6 +181,14 @@ export default function ServiceHistoryTable({ history, customerPhone, isVIP }) {
                       hover:bg-gray-50 transition-colors whitespace-nowrap"
                     >
                       <FileText size={12} /> View
+                    </Link>
+                    <Link
+                      to={`/invoices/${inv.id}/service-report`}
+                      className="inline-flex items-center justify-center gap-1 text-[10px] font-bold text-white
+                      bg-purple-600 px-3 py-1.5 rounded-md border border-purple-600 shadow-sm
+                      hover:bg-purple-700 transition-colors whitespace-nowrap hover:text-white"
+                    >
+                      <ClipboardList size={12} /> Report
                     </Link>
                   </td>
                 </tr>

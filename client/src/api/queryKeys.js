@@ -58,6 +58,7 @@ export function mapService(s) {
     price: Number(s.base_price ?? s.price ?? 0),
     description: s.category ?? s.description ?? '',
     isActive: s.is_active !== undefined ? !!s.is_active : s.isActive !== false,
+    estimateTime: s.estimate_time ?? s.estimateTime ?? '',
   };
 }
 

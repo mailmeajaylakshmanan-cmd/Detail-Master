@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { Plus, Search, Eye, Edit3, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Plus, Search, Eye, Edit3, X, ChevronLeft, ChevronRight, ClipboardList } from 'lucide-react';
 import { useInvoices } from '../hooks/useQueries.js';
 import { useDebouncedValue } from '../hooks/useDebouncedValue.js';
 import { parseSafeDate } from '../utils/dateFormatter.js';
@@ -185,6 +185,7 @@ export default function InvoiceList() {
                   <td className="px-5 py-3.5 text-right">
                     <div className="flex justify-end gap-1 opacity-50 group-hover:opacity-100 transition-opacity">
                       <Link to={`/invoices/${inv.id}`} className="p-1.5 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg" title="View"><Eye size={14}/></Link>
+                      <Link to={`/invoices/${inv.id}/service-report`} className="p-1.5 text-slate-500 hover:text-purple-600 hover:bg-purple-50 rounded-lg" title="Service Report"><ClipboardList size={14}/></Link>
                       <Link to={`/invoices/${inv.id}/edit`} className="p-1.5 text-slate-500 hover:text-orange-600 hover:bg-orange-50 rounded-lg" title="Edit"><Edit3 size={14}/></Link>
                     </div>
                   </td>
@@ -225,6 +226,7 @@ export default function InvoiceList() {
                 </button>
                 <div className="flex gap-1">
                   <Link to={`/invoices/${inv.id}`} className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg"><Eye size={15}/></Link>
+                  <Link to={`/invoices/${inv.id}/service-report`} className="p-2 text-slate-400 hover:text-purple-600 hover:bg-purple-50 rounded-lg"><ClipboardList size={15}/></Link>
                   <Link to={`/invoices/${inv.id}/edit`} className="p-2 text-slate-400 hover:text-orange-600 hover:bg-orange-50 rounded-lg"><Edit3 size={15}/></Link>
                 </div>
               </div>

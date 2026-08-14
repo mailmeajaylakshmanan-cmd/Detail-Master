@@ -861,4 +861,88 @@ router.get('/:id/pdf', async (req, res) => {
   }
 });
 
+// PDF Generation Endpoint for Service Report
+router.get('/:id/service-report/pdf', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const browser = await getBrowser();
+    const page = await browser.newPage();
+    
+    // Dynamically match the frontend's origin URL
+    const origin = req.get('Origin');
+    const referer = req.get('Referer');
+    let clientUrl = process.env.CLIENT_URL ? process.env.CLIENT_URL.split(',')[0] : 'http://localhost:5173';
+    
+    if (origin) {
+      clientUrl = origin;
+    } else if (referer) {
+      const url = new URL(referer);
+      clientUrl = `${url.protocol}//${url.host}`;
+    }
+    
+    console.log(`[PDF] Generating Service Report for Invoice ID: ${id}`);
+    console.log(`[PDF] Using Client URL: ${clientUrl}`);
+    
+    // Inject the authentication token so puppeteer isn't redirected to /login
+    const token = req.header('Authorization')?.replace('Bearer ', '');
+    if (token) {
+      await page.evaluateOnNewDocument((authToken) => {
+        localStorage.setItem('token', authToken);
+        localStorage.setItem('isAuthenticated', 'true');
+      }, token);
+    }
+    
+    // Navigate to the service report page
+    await page.goto(`${clientUrl}/invoices/${id}/service-report`, { waitUntil: 'networkidle0' });
+    
+    // Wait for the report to render
+    try {
+      await page.waitForSelector('#report-print', { timeout: 15000 });
+    } catch (err) {
+      const html = await page.content();
+      console.error("[PDF] Timeout waiting for #report-print. Page HTML snippet:", html.substring(0, 1500));
+      throw err;
+    }
+
+    // Force a single-page PDF that only contains the report
+    const { height, width } = await page.evaluate(() => {
+      const report = document.getElementById('report-print');
+      if (report) {
+        // Clear everything else from the DOM
+        document.body.innerHTML = '';
+        document.body.appendChild(report);
+        
+        // Remove all margins/paddings from body/html
+        document.body.style.margin = '0';
+        document.body.style.padding = '0';
+        document.body.style.background = '#fff';
+        document.documentElement.style.margin = '0';
+        document.documentElement.style.padding = '0';
+        document.documentElement.style.background = '#fff';
+        
+        // Remove print:hidden elements inside the report just in case
+        document.querySelectorAll('.print\\:hidden').forEach(e => e.remove());
+      }
+      
+      return {
+        height: document.body.scrollHeight || 1123,
+        width: document.body.scrollWidth || 794
+      };
+    });
+
+    const pdfBuffer = await page.pdf({ 
+      format: 'A4',
+      printBackground: true,
+      margin: { top: '0', bottom: '0', left: '0', right: '0' }
+    });
+    
+    await browser.close();
+    
+    res.json({ base64: Buffer.from(pdfBuffer).toString('base64') });
+  } catch (err) {
+    console.error('Service Report PDF Generation Error:', err);
+    res.status(500).json({ message: 'Error generating PDF' });
+  }
+});
+
 module.exports = router;

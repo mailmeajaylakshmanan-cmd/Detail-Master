@@ -55,6 +55,8 @@ const WebsiteBookings = lazy(() => import('./pages/WebsiteBookings.jsx'));
 const MenuAssignment = lazy(() => import('./pages/MenuAssignment.jsx'));
 const UserMenuAssignment = lazy(() => import('./pages/UserMenuAssignment.jsx'));
 const ServiceTimeManagement = lazy(() => import('./pages/ServiceTimeManagement.jsx'));
+const VehicleServiceReport = lazy(() => import('./pages/VehicleServiceReport.jsx'));
+
 
 function PrivateRoute({ children }) {
   const isAuthenticated = localStorage.getItem('isAuthenticated') === 'true';
@@ -91,6 +93,7 @@ export default function App() {
         <Route path="invoices/new" element={<LazyPage><NewInvoice /></LazyPage>} />
         <Route path="invoices/:id/edit" element={<LazyPage><EditInvoice /></LazyPage>} />
         <Route path="invoices/:id" element={<LazyPage><InvoiceView /></LazyPage>} />
+        <Route path="invoices/:id/service-report" element={<LazyPage><VehicleServiceReport /></LazyPage>} />
         <Route path="master-service" element={<LazyPage><MasterService /></LazyPage>} />
         <Route path="master-third-party-service" element={<LazyPage><MasterThirdPartyService /></LazyPage>} />
         <Route path="master-customer" element={<LazyPage><MasterCustomer /></LazyPage>} />

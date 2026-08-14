@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import api from '../api/axios.js';
 import toast from 'react-hot-toast';
-import { Plus, Edit3, X, Search, Sparkles } from 'lucide-react';
+import { Plus, Edit3, X, Search, Sparkles, Clock } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useServices } from '../hooks/useQueries.js';
 import { useDebouncedValue } from '../hooks/useDebouncedValue.js';
@@ -17,6 +17,7 @@ export default function MasterService() {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [price, setPrice] = useState('');
+  const [estimateTime, setEstimateTime] = useState('');
   const [editId, setEditId] = useState(null);
 
   const filteredServices = useMemo(() => {
@@ -36,7 +37,8 @@ export default function MasterService() {
       service_name: name,
       category: description || null,
       base_price: Number(price) || 0,
-      is_active: true
+      is_active: true,
+      estimate_time: estimateTime || null,
     };
 
     try {
@@ -63,6 +65,7 @@ export default function MasterService() {
     setName('');
     setDescription('');
     setPrice('');
+    setEstimateTime('');
     setIsModalOpen(true);
   }
 
@@ -71,6 +74,7 @@ export default function MasterService() {
     setName(srv.name);
     setDescription(srv.description || '');
     setPrice(srv.price || '');
+    setEstimateTime(srv.estimateTime || '');
     setIsModalOpen(true);
   }
 
@@ -79,6 +83,7 @@ export default function MasterService() {
     setName('');
     setDescription('');
     setPrice('');
+    setEstimateTime('');
     setIsModalOpen(false);
   }
 
@@ -91,7 +96,8 @@ export default function MasterService() {
         service_name: existing.name,
         category: existing.description || null,
         base_price: existing.price,
-        is_active: isActive
+        is_active: isActive,
+        estimate_time: existing.estimateTime || null,
       });
       toast.success(`Service marked ${newStatusStr}`);
       queryClient.invalidateQueries({ queryKey: queryKeys.services.all });
@@ -156,20 +162,27 @@ export default function MasterService() {
             </p>
 
             <div className="flex items-center justify-between mt-auto">
-              <div className="text-gray-900 font-bold text-[22px] tracking-tight">
-                ₹{Number(srv.price || 0).toLocaleString('en-IN')}
+                <div className="text-gray-900 font-bold text-[22px] tracking-tight">
+                  ₹{Number(srv.price || 0).toLocaleString('en-IN')}
+                </div>
+                <div className="flex flex-col items-end gap-1">
+                  {srv.estimateTime && (
+                    <span className="flex items-center gap-1 text-[10px] font-semibold text-blue-700 bg-blue-50 border border-blue-200 rounded-full px-2 py-0.5">
+                      <Clock size={10} /> {srv.estimateTime}
+                    </span>
+                  )}
+                  <button
+                    onClick={(e) => { e.stopPropagation(); handleStatusChange(srv.id, srv.isActive ? 'Inactive' : 'Active'); }}
+                    className={`text-[11px] font-bold uppercase rounded-full px-4 py-1.5 transition-all shadow-sm ${
+                      srv.isActive
+                        ? 'bg-yellow-400 text-yellow-900 hover:bg-yellow-500'
+                        : 'bg-rose-600 text-white hover:bg-rose-700'
+                    }`}
+                  >
+                    {srv.isActive ? 'Active' : 'Inactive'}
+                  </button>
+                </div>
               </div>
-              <button
-                onClick={(e) => { e.stopPropagation(); handleStatusChange(srv.id, srv.isActive ? 'Inactive' : 'Active'); }}
-                className={`text-[11px] font-bold uppercase rounded-full px-4 py-1.5 transition-all shadow-sm ${
-                  srv.isActive
-                    ? 'bg-yellow-400 text-yellow-900 hover:bg-yellow-500'
-                    : 'bg-rose-600 text-white hover:bg-rose-700'
-                }`}
-              >
-                {srv.isActive ? 'Active' : 'Inactive'}
-              </button>
-            </div>
           </div>
         ))}
         {filteredServices.length === 0 && (
@@ -195,9 +208,15 @@ export default function MasterService() {
                 <label className="block text-sm font-medium text-gray-500 mb-1.5">Service Name *</label>
                 <input required type="text" className="input" value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Ceramic Coating" />
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-500 mb-1.5">Base Price (₹) *</label>
-                <input required type="number" min="0" step="1" className="input" value={price} onChange={e => setPrice(e.target.value)} placeholder="0" />
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm font-medium text-gray-500 mb-1.5">Base Price (₹) *</label>
+                  <input required type="number" min="0" step="1" className="input" value={price} onChange={e => setPrice(e.target.value)} placeholder="0" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-500 mb-1.5 flex items-center gap-1"><Clock size={13} className="text-blue-500" /> Estimate Time</label>
+                  <input type="text" className="input" value={estimateTime} onChange={e => setEstimateTime(e.target.value)} placeholder="e.g. 2-3 hrs" />
+                </div>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-500 mb-1.5">Category / Description (Optional)</label>
