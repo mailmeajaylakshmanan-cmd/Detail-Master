@@ -260,16 +260,16 @@ router.post('/:id/convert', async (req, res) => {
         vehicleId = vehicleRes.rows[0].id;
       } else {
         const newVehicleRes = await client.query(
-          'INSERT INTO vehicles (client_id, make_model) VALUES ($1, $2) RETURNING id',
-          [clientId, makeModel]
+          'INSERT INTO vehicles (client_id, make_model, license_vin) VALUES ($1, $2, $3) RETURNING id',
+          [clientId, makeModel, 'TBD']
         );
         vehicleId = newVehicleRes.rows[0].id;
       }
     } else {
       // Create an "Unknown Vehicle" if nothing is provided so that FK constraints are satisfied if necessary
       const newVehicleRes = await client.query(
-        'INSERT INTO vehicles (client_id, make_model) VALUES ($1, $2) RETURNING id',
-        [clientId, 'Unknown Vehicle']
+        'INSERT INTO vehicles (client_id, make_model, license_vin) VALUES ($1, $2, $3) RETURNING id',
+        [clientId, 'Unknown Vehicle', 'TBD']
       );
       vehicleId = newVehicleRes.rows[0].id;
     }

@@ -436,22 +436,22 @@ export default function InvoiceView() {
         </div>
 
         {/* INFO SECTIONS */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '30px 40px', backgroundColor: 'transparent', position: 'relative', zIndex: 1 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', gap: '40px', padding: '20px 40px', backgroundColor: 'transparent', position: 'relative', zIndex: 1, fontFamily: "'Inter', 'Segoe UI', 'Roboto', sans-serif" }}>
            <div style={{ flex: 1 }}>
-              <h3 style={{ fontSize: 15, fontWeight: 700, margin: '0 0 12px 0', color: '#111', textTransform: 'uppercase' }}>INVOICE INFO</h3>
-              <div style={{ fontSize: 13, color: '#333', lineHeight: 1.8 }}>
-                 <div style={{ display: 'flex' }}><span style={{ width: 65, fontWeight: 600 }}>Address:</span> <span style={{ flex: 1 }}>Opposite KTM Bike Showroom, Kulasekharam, Kanyakumari</span></div>
-                 <div style={{ display: 'flex' }}><span style={{ width: 65, fontWeight: 600 }}>Phone:</span> <span>+91 9994122652</span></div>
-                 <div style={{ display: 'flex' }}><span style={{ width: 65, fontWeight: 600 }}>Email:</span> <span>detailingmasters@gmail.com</span></div>
+              <h3 style={{ fontSize: 13, fontWeight: 700, margin: '0 0 12px 0', color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.05em' }}>INVOICE INFO</h3>
+              <div style={{ fontSize: 14, color: '#111827', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                 <div style={{ display: 'flex', alignItems: 'flex-start' }}><span style={{ width: 85, color: '#6B7280', fontSize: 13, paddingTop: 1 }}>Address:</span> <span style={{ flex: 1, fontWeight: 500, lineHeight: 1.5 }}>Opposite KTM Bike Showroom, Kulasekharam, Kanyakumari</span></div>
+                 <div style={{ display: 'flex', alignItems: 'center' }}><span style={{ width: 85, color: '#6B7280', fontSize: 13 }}>Phone:</span> <span style={{ fontWeight: 500 }}>+91 9994122652</span></div>
+                 <div style={{ display: 'flex', alignItems: 'center' }}><span style={{ width: 85, color: '#6B7280', fontSize: 13 }}>Email:</span> <span style={{ fontWeight: 500 }}>detailingmasters@gmail.com</span></div>
               </div>
            </div>
-           <div style={{ flex: 1, paddingLeft: 40 }}>
-              <h3 style={{ fontSize: 15, fontWeight: 700, margin: '0 0 12px 0', color: '#111', textTransform: 'uppercase' }}>CLIENT INFO</h3>
-              <div style={{ fontSize: 13, color: '#333', lineHeight: 1.8 }}>
-                 <div style={{ display: 'flex' }}><span style={{ width: 75, fontWeight: 600 }}>Name:</span> <span>{invoice.customer?.name || 'John Doe'}</span></div>
-                 <div style={{ display: 'flex' }}><span style={{ width: 75, fontWeight: 600 }}>Car Make:</span> <span>{invoice.carMake || 'Porsche 911 GT3'}</span></div>
-                 <div style={{ display: 'flex' }}><span style={{ width: 75, fontWeight: 600 }}>Plate:</span> <span>{invoice.licensePlate || 'DL-XX-YYYY'}</span></div>
-                 <div style={{ display: 'flex' }}><span style={{ width: 75, fontWeight: 600 }}>Date:</span> <span>{dateStr || '26 Oct 2023'}</span></div>
+           <div style={{ flex: 1 }}>
+              <h3 style={{ fontSize: 13, fontWeight: 700, margin: '0 0 12px 0', color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.05em' }}>CLIENT INFO</h3>
+              <div style={{ fontSize: 14, color: '#111827', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                 <div style={{ display: 'flex', alignItems: 'center' }}><span style={{ width: 85, color: '#6B7280', fontSize: 13 }}>Name:</span> <span style={{ fontWeight: 500 }}>{invoice.customer?.name || 'John Doe'}</span></div>
+                 <div style={{ display: 'flex', alignItems: 'center' }}><span style={{ width: 85, color: '#6B7280', fontSize: 13 }}>Car Make:</span> <span style={{ fontWeight: 500 }}>{invoice.carMake || 'Porsche 911 GT3'}</span></div>
+                 <div style={{ display: 'flex', alignItems: 'center' }}><span style={{ width: 85, color: '#6B7280', fontSize: 13 }}>Vehicle No:</span> <span style={{ fontWeight: 500 }}>{invoice.licensePlate || 'DL-XX-YYYY'}</span></div>
+                 <div style={{ display: 'flex', alignItems: 'center' }}><span style={{ width: 85, color: '#6B7280', fontSize: 13 }}>Date:</span> <span style={{ fontWeight: 500 }}>{dateStr || '26 Oct 2023'}</span></div>
               </div>
            </div>
         </div>
@@ -542,23 +542,23 @@ export default function InvoiceView() {
               </table>
            </div>
         </div>
-
-        {/* PAYMENT DETAILS */}
-        <div style={{ padding: '20px 40px', marginTop: 20 }}>
-           <h3 style={{ fontSize: 15, fontWeight: 700, margin: '0 0 10px 0', color: '#111', textTransform: 'uppercase' }}>PAYMENT DETAILS</h3>
-           <div style={{ fontSize: 13, color: '#333', lineHeight: 1.6 }}>
-              <div>+91 1234567890</div>
-              <div>contact@detailingmasters.com</div>
-              {invoice.showTerms && invoice.termsAndConditions && (
-                 <div style={{ marginTop: 12, fontSize: 11, color: '#666', maxWidth: '70%' }}>
-                    <strong>Terms:</strong> {invoice.termsAndConditions}
-                 </div>
-              )}
+        {/* BOTTOM SECTION (PAYMENT + FOOTER) */}
+        <div style={{ position: 'relative', width: '100%', marginTop: 'auto', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+           {/* PAYMENT DETAILS */}
+           <div style={{ padding: '5px 40px', marginBottom: '20px' }}>
+              <h3 style={{ fontSize: 15, fontWeight: 700, margin: '0 0 6px 0', color: '#111', textTransform: 'uppercase' }}>PAYMENT DETAILS</h3>
+              <div style={{ fontSize: 13, color: '#333', lineHeight: 1.6 }}>
+                 <div>+91 1234567890</div>
+                 <div>contact@detailingmasters.com</div>
+                 {invoice.showTerms && invoice.termsAndConditions && (
+                    <div style={{ marginTop: 12, fontSize: 11, color: '#666', maxWidth: '70%' }}>
+                       <strong>Terms:</strong> {invoice.termsAndConditions}
+                    </div>
+                 )}
+              </div>
            </div>
-        </div>
 
-        {/* FOOTER */}
-        <div style={{ position: 'relative', width: '100%', marginTop: 'auto', overflow: 'hidden' }}>
+           {/* FOOTER */}
            <div style={{ margin: '0 40px', borderTop: '1.5px solid #111', paddingTop: '15px', paddingBottom: '30px', textAlign: 'center', fontSize: 13, color: '#111', zIndex: 10, position: 'relative' }}>
               <strong>Detailing Masters</strong>, 123 High Street, Opp. KTM Bike Showroom, Bengaluru, India.<br/>
               Ph: +91 (23 367 7873 | E-mail: infi@detailingmasters.com

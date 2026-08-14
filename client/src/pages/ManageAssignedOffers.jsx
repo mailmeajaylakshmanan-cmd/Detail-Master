@@ -73,15 +73,15 @@ export default function ManageAssignedOffers() {
           <table className="w-full text-left text-[13px] whitespace-nowrap">
             <thead>
               <tr className="border-b border-gray-100 bg-gray-50/50 text-gray-500">
-                <th className="px-5 py-3 font-semibold w-24">Offer No</th>
-                <th className="px-5 py-3 font-semibold">Date</th>
-                <th className="px-5 py-3 font-semibold">Customer</th>
-                <th className="px-5 py-3 font-semibold">Package Name</th>
-                <th className="px-5 py-3 font-semibold text-right">Price</th>
-                <th className="px-5 py-3 font-semibold text-center">Washes (Bal/Total)</th>
-                <th className="px-5 py-3 font-semibold text-center">Free (Bal/Total)</th>
-                <th className="px-5 py-3 font-semibold">Status</th>
-                <th className="px-5 py-3 font-semibold text-right w-16">Action</th>
+                <th className="px-3 py-3 font-semibold w-24">Offer No</th>
+                <th className="px-3 py-3 font-semibold">Date</th>
+                <th className="px-3 py-3 font-semibold">Customer</th>
+                <th className="px-3 py-3 font-semibold">Package Name</th>
+                <th className="px-3 py-3 font-semibold text-right">Price</th>
+                <th className="px-3 py-3 font-semibold text-center">Washes (Bal/Total)</th>
+                <th className="px-3 py-3 font-semibold text-center">Free (Bal/Total)</th>
+                <th className="px-3 py-3 font-semibold">Status</th>
+                <th className="px-3 py-3 font-semibold text-right w-16">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100/70">
@@ -100,28 +100,28 @@ export default function ManageAssignedOffers() {
                   
                   return (
                     <tr key={offer.id} className="hover:bg-blue-50/30 transition-colors group">
-                      <td className="px-5 py-3 font-bold text-gray-900">{offer.offerNo}</td>
-                      <td className="px-5 py-3 text-gray-500">{formatDate(offer.date)}</td>
-                      <td className="px-5 py-3">
+                      <td className="px-3 py-3 font-bold text-gray-900">{offer.offerNo}</td>
+                      <td className="px-3 py-3 text-gray-500">{formatDate(offer.date)}</td>
+                      <td className="px-3 py-3">
                         <div className="font-semibold text-gray-900">{offer.customer?.name}</div>
                         <div className="text-[11px] text-gray-500">{offer.customer?.phone}</div>
                       </td>
-                      <td className="px-5 py-3">
-                        <div className="font-semibold text-gray-700">{offer.packageName}</div>
-                        <div className="text-[11px] text-gray-400">Valid till: {formatDate(offer.validityDate)}</div>
+                      <td className="px-3 py-3 whitespace-normal break-words max-w-[180px]">
+                        <div className="font-semibold text-gray-700 leading-tight">{offer.packageName}</div>
+                        <div className="text-[11px] text-gray-400 mt-0.5">Valid till: {formatDate(offer.validityDate)}</div>
                       </td>
-                      <td className="px-5 py-3 text-right font-bold text-gray-900">{fmt(offer.price)}</td>
-                      <td className="px-5 py-3 text-center">
+                      <td className="px-3 py-3 text-right font-bold text-gray-900">{fmt(offer.price)}</td>
+                      <td className="px-3 py-3 text-center">
                         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-blue-50 text-blue-700 font-bold border border-blue-100">
                           {washBal} <span className="text-blue-400 font-normal">/ {offer.totalWashes || 0}</span>
                         </span>
                       </td>
-                      <td className="px-5 py-3 text-center">
+                      <td className="px-3 py-3 text-center">
                         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-emerald-50 text-emerald-700 font-bold border border-emerald-100">
                           {freeBal} <span className="text-emerald-400 font-normal">/ {offer.freeWashes || 0}</span>
                         </span>
                       </td>
-                      <td className="px-5 py-3">
+                      <td className="px-3 py-3">
                         <span className={`px-2 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider ${
                           offer.status === 'active' || !offer.status ? 'bg-emerald-100 text-emerald-700' :
                           offer.status === 'expired' ? 'bg-rose-100 text-rose-700' :
@@ -130,10 +130,10 @@ export default function ManageAssignedOffers() {
                           {offer.status || 'Active'}
                         </span>
                       </td>
-                      <td className="px-5 py-3 text-right">
+                      <td className="px-3 py-3 text-right">
                         <Link 
                           to={`/offers/${offer.id}`} 
-                          className="w-8 h-8 inline-flex items-center justify-center rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                          className="w-8 h-8 inline-flex items-center justify-center rounded-lg text-gray-400 hover:text-blue-600 hover:bg-white transition-colors border border-transparent hover:border-blue-100 shadow-sm"
                         >
                           <Eye size={16} />
                         </Link>
