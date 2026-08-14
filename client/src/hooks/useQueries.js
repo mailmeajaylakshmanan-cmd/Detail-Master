@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { keepPreviousData } from '@tanstack/react-query';
 import api from '../api/axios.js';
-import { queryKeys, mapClient, mapService, mapInvoice, mapOrganization, mapThirdPartyService } from '../api/queryKeys.js';
+import { queryKeys, mapClient, mapService, mapVehicleType, mapInvoice, mapOrganization, mapThirdPartyService } from '../api/queryKeys.js';
 
 // Master data (services, organizations, third-party) changes rarely — cache long
 // enough that navigating between pages never re-downloads them.
@@ -79,6 +79,18 @@ export function useServices() {
       const res = await api.get('/services');
       const rows = Array.isArray(res.data) ? res.data : [];
       return rows.map(mapService);
+    },
+  });
+}
+
+export function useVehicleTypes() {
+  return useQuery({
+    queryKey: queryKeys.vehicleTypes.list(),
+    staleTime: MASTER_STALE,
+    queryFn: async () => {
+      const res = await api.get('/vehicle_types');
+      const rows = Array.isArray(res.data) ? res.data : [];
+      return rows.map(mapVehicleType);
     },
   });
 }

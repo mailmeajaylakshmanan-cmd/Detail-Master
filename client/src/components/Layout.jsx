@@ -16,6 +16,7 @@ const iconMap = {
   'sparkle': Sparkles,
   'briefcase': Briefcase,
   'shield': Shield,
+  'car': Car,
 };
 
 function buildNavItems(menus) {

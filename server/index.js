@@ -43,6 +43,7 @@ app.use('/api/offerMaster', require('./routes/master_offers'));
 app.use('/api/offers', require('./routes/assigned_offers'));
 app.use('/api/reports', require('./routes/reports'));
 app.use('/api/service-time', require('./routes/service_time'));
+app.use('/api/vehicle_types', require('./routes/vehicle_types'));
 app.use('/api/dashboard', require('./routes/dashboard'));
 
 // Health check

@@ -15,6 +15,8 @@ router.get('/', protect, async (req, res) => {
               'id', v.id,
               'make_model', v.make_model,
               'license_vin', v.license_vin,
+              'vehicle_type_id', v.vehicle_type_id,
+              'vehicle_type', vt.name,
               'is_active', v.is_active
             )
             ORDER BY v.id DESC
@@ -23,6 +25,7 @@ router.get('/', protect, async (req, res) => {
         ) AS vehicles_json
       FROM organizations o
       LEFT JOIN vehicles v ON v.organization_id = o.id
+      LEFT JOIN vehicle_types vt ON v.vehicle_type_id = vt.id
       GROUP BY o.id
       ORDER BY o.org_name ASC
     `);
@@ -34,8 +37,6 @@ router.get('/', protect, async (req, res) => {
       const { vehicles_json, ...rest } = org;
       return {
         ...rest,
-        // Managed sub-list — add/edit/deactivate via /api/vehicles, never bulk
-        // replaced from here (that was the old destructive pattern).
         vehicles: vehiclesJson.map(v => {
           const parts = v.make_model ? v.make_model.split(' ') : [''];
           return {
@@ -43,6 +44,8 @@ router.get('/', protect, async (req, res) => {
             make: parts[0] || '',
             model: parts.slice(1).join(' ') || '',
             plate: v.license_vin || '',
+            vehicle_type_id: v.vehicle_type_id || null,
+            type: v.vehicle_type || '',
             isActive: v.is_active !== false,
           };
         })
@@ -128,10 +131,7 @@ router.put('/:id', protect, async (req, res) => {
   }
 });
 
-// Billing audit trail for one organization — invoices in a date range plus
-// revenue/profit summary. Read-only report over existing invoice data, no new
-// tables. Internal services count as 100% profit (no cost tracked for them
-// yet); third-party items are selling_price minus service_cost/labour_charge.
+// Billing audit trail for one organization
 router.get('/:id/invoices', protect, async (req, res) => {
   try {
     const { id } = req.params;

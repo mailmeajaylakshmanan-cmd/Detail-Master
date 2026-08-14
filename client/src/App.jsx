@@ -41,6 +41,7 @@ const EditInvoice = lazy(() => import('./pages/EditInvoice.jsx'));
 const InvoiceView = lazy(() => import('./pages/InvoiceView.jsx'));
 const MasterService = lazy(() => import('./pages/MasterService.jsx'));
 const MasterThirdPartyService = lazy(() => import('./pages/MasterThirdPartyService.jsx'));
+const MasterVehicleType = lazy(() => import('./pages/MasterVehicleType.jsx'));
 const MasterCustomer = lazy(() => import('./pages/MasterCustomer.jsx'));
 const MasterOrganization = lazy(() => import('./pages/MasterOrganization.jsx'));
 const OrganizationBilling = lazy(() => import('./pages/OrganizationBilling.jsx'));
@@ -96,6 +97,7 @@ export default function App() {
         <Route path="invoices/:id/service-report" element={<LazyPage><VehicleServiceReport /></LazyPage>} />
         <Route path="master-service" element={<LazyPage><MasterService /></LazyPage>} />
         <Route path="master-third-party-service" element={<LazyPage><MasterThirdPartyService /></LazyPage>} />
+        <Route path="master-vehicle-type" element={<LazyPage><MasterVehicleType /></LazyPage>} />
         <Route path="master-customer" element={<LazyPage><MasterCustomer /></LazyPage>} />
         <Route path="master-customer/:phone" element={<LazyPage><CustomerProfile /></LazyPage>} />
         <Route path="master-organization" element={<LazyPage><MasterOrganization /></LazyPage>} />

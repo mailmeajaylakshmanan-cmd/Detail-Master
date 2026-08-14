@@ -12,6 +12,7 @@ function mapVehicleRow(v) {
     model: parts.slice(1).join(' ') || '',
     plate: v.license_vin || '',
     type: v.vehicle_type || '',
+    vehicle_type_id: v.vehicle_type_id || null,
     isActive: v.is_active !== false,
   };
 }
@@ -29,7 +30,7 @@ function parseClientRow(c) {
 // Normalize an API vehicle payload into a row for the vehicles table.
 function vehicleRowToInsert(clientId, v) {
   const make_model = `${v.make || ''} ${v.model || ''}`.trim() || 'Unknown';
-  return [clientId, make_model, v.plate || '', v.type || 'Sedan'];
+  return [clientId, make_model, v.plate || '', v.type || 'Sedan', v.vehicle_type_id || null];
 }
 
 // GET /clients/options — lightweight list for dropdowns (no vehicles).
@@ -63,6 +64,7 @@ router.get('/lookup', async (req, res) => {
                'make_model', v.make_model,
                'license_vin', v.license_vin,
                'vehicle_type', v.vehicle_type,
+               'vehicle_type_id', v.vehicle_type_id,
                'is_active', v.is_active
              )
              ORDER BY v.id
@@ -87,8 +89,6 @@ router.get('/lookup', async (req, res) => {
 });
 
 // GET all clients with their vehicles.
-// ?search=full_name/phone  ?page=&limit=  → { clients, pagination }
-// (no page/limit) → legacy array of all clients
 router.get('/', async (req, res) => {
   try {
     const search = (req.query.search || '').trim();
@@ -114,6 +114,7 @@ router.get('/', async (req, res) => {
               'make_model', v.make_model,
               'license_vin', v.license_vin,
               'vehicle_type', v.vehicle_type,
+              'vehicle_type_id', v.vehicle_type_id,
               'is_active', v.is_active
             )
             ORDER BY v.id
@@ -195,7 +196,7 @@ router.post('/', async (req, res) => {
       : [];
     if (validVehicles.length > 0) {
       const insertRows = validVehicles.map(v => vehicleRowToInsert(newClient.id, v));
-      const q = buildBulkInsert('vehicles', ['client_id', 'make_model', 'license_vin', 'vehicle_type'], insertRows);
+      const q = buildBulkInsert('vehicles', ['client_id', 'make_model', 'license_vin', 'vehicle_type', 'vehicle_type_id'], insertRows);
       const vRes = await client.query(q.text, q.params);
       newClient.vehicles = vRes.rows;
     }
@@ -211,7 +212,7 @@ router.post('/', async (req, res) => {
   }
 });
 
-// UPDATE a client (+ vehicles) — batched inserts, one UPDATE per existing vehicle.
+// UPDATE a client (+ vehicles)
 router.put('/:id', async (req, res) => {
   const client = await db.pool.connect();
   try {
@@ -263,15 +264,15 @@ router.put('/:id', async (req, res) => {
       for (const v of toUpdate) {
         const make_model = `${v.make || ''} ${v.model || ''}`.trim() || 'Unknown';
         const vRows = await client.query(
-          'UPDATE vehicles SET make_model = $1, license_vin = $2, vehicle_type = $3 WHERE id = $4 AND client_id = $5 RETURNING *',
-          [make_model, v.plate || '', v.type || 'Sedan', v.id, id]
+          'UPDATE vehicles SET make_model = $1, license_vin = $2, vehicle_type = $3, vehicle_type_id = $4 WHERE id = $5 AND client_id = $6 RETURNING *',
+          [make_model, v.plate || '', v.type || 'Sedan', v.vehicle_type_id || null, v.id, id]
         );
         if (vRows.rows.length > 0) updatedClient.vehicles.push(vRows.rows[0]);
       }
 
       if (toInsert.length > 0) {
         const insertRows = toInsert.map(v => vehicleRowToInsert(id, v));
-        const q = buildBulkInsert('vehicles', ['client_id', 'make_model', 'license_vin', 'vehicle_type'], insertRows);
+        const q = buildBulkInsert('vehicles', ['client_id', 'make_model', 'license_vin', 'vehicle_type', 'vehicle_type_id'], insertRows);
         const vRes = await client.query(q.text, q.params);
         updatedClient.vehicles.push(...vRes.rows);
       }

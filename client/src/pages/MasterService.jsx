@@ -1,23 +1,28 @@
 import { useState, useMemo } from 'react';
 import api from '../api/axios.js';
 import toast from 'react-hot-toast';
-import { Plus, Edit3, X, Search, Sparkles, Clock, Trash2, AlertTriangle, Loader2 } from 'lucide-react';
+import { Plus, Edit3, X, Search, Sparkles, Clock, Trash2, AlertTriangle, Loader2, Car } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
-import { useServices } from '../hooks/useQueries.js';
+import { useServices, useVehicleTypes } from '../hooks/useQueries.js';
 import { useDebouncedValue } from '../hooks/useDebouncedValue.js';
 import { queryKeys } from '../api/queryKeys.js';
 
 export default function MasterService() {
   const queryClient = useQueryClient();
   const { data: services = [], isLoading: loading } = useServices();
+  const { data: vehicleTypes = [] } = useVehicleTypes();
+
+  const activeVehicleTypes = useMemo(() => {
+    return vehicleTypes.filter(vt => vt.isActive);
+  }, [vehicleTypes]);
 
   const [searchQuery, setSearchQuery] = useState('');
   const debouncedSearch = useDebouncedValue(searchQuery, 250);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
-  const [price, setPrice] = useState('');
   const [estimateTime, setEstimateTime] = useState('');
+  const [vehiclePrices, setVehiclePrices] = useState({});
   const [editId, setEditId] = useState(null);
 
   const [deleteServiceId, setDeleteServiceId] = useState(null);
@@ -34,16 +39,36 @@ export default function MasterService() {
     );
   }, [services, debouncedSearch]);
 
+  function handleVehiclePriceChange(vtId, val) {
+    setVehiclePrices(prev => ({
+      ...prev,
+      [vtId]: val,
+    }));
+  }
+
   async function handleSubmit(e) {
     e.preventDefault();
-    if (!name) return toast.error('Name is required');
+    if (!name) return toast.error('Service Name is required');
+
+    const vpPayload = activeVehicleTypes.map(vt => ({
+      vehicle_type_id: vt.id,
+      price: Number(vehiclePrices[vt.id]) || 0,
+    }));
+
+    const validPrices = vpPayload.map(v => v.price).filter(p => p > 0);
+    if (validPrices.length === 0) {
+      return toast.error('Please enter a price for at least one vehicle type');
+    }
+
+    const computedBasePrice = Math.min(...validPrices);
 
     const payload = {
       service_name: name,
       category: description || null,
-      base_price: Number(price) || 0,
+      base_price: computedBasePrice,
       is_active: true,
       estimate_time: estimateTime || null,
+      vehicle_prices: vpPayload,
     };
 
     try {
@@ -69,8 +94,8 @@ export default function MasterService() {
     setEditId(null);
     setName('');
     setDescription('');
-    setPrice('');
     setEstimateTime('');
+    setVehiclePrices({});
     setIsModalOpen(true);
   }
 
@@ -78,8 +103,15 @@ export default function MasterService() {
     setEditId(srv.id);
     setName(srv.name);
     setDescription(srv.description || '');
-    setPrice(srv.price || '');
     setEstimateTime(srv.estimateTime || '');
+
+    const vpMap = {};
+    if (Array.isArray(srv.vehiclePrices)) {
+      srv.vehiclePrices.forEach(vp => {
+        vpMap[vp.vehicle_type_id] = vp.price;
+      });
+    }
+    setVehiclePrices(vpMap);
     setIsModalOpen(true);
   }
 
@@ -87,40 +119,41 @@ export default function MasterService() {
     setEditId(null);
     setName('');
     setDescription('');
-    setPrice('');
     setEstimateTime('');
+    setVehiclePrices({});
     setIsModalOpen(false);
   }
 
-  async function handleStatusChange(id, newStatusStr) {
-    const isActive = newStatusStr === 'Active';
-    const existing = services.find(s => s.id === id);
-    if (!existing) return;
+  async function handleToggleStatus(srv) {
     try {
-      await api.put(`/services/${id}`, {
-        service_name: existing.name,
-        category: existing.description || null,
-        base_price: existing.price,
-        is_active: isActive,
-        estimate_time: existing.estimateTime || null,
+      const vpPayload = (srv.vehiclePrices || []).map(vp => ({
+        vehicle_type_id: vp.vehicle_type_id,
+        price: Number(vp.price) || 0
+      }));
+
+      await api.put('/services/' + srv.id, {
+        service_name: srv.name,
+        category: srv.description || null,
+        base_price: srv.price || 0,
+        is_active: !srv.isActive,
+        estimate_time: srv.estimateTime || null,
+        vehicle_prices: vpPayload
       });
-      toast.success(`Service marked ${newStatusStr}`);
+      toast.success(`Marked ${!srv.isActive ? 'Active' : 'Inactive'}`);
       queryClient.invalidateQueries({ queryKey: queryKeys.services.all });
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Error updating status');
+      toast.error(err.response?.data?.message || 'Error toggling service status');
     }
   }
 
-  async function handleDeleteClick(e, id) {
-    e.stopPropagation();
+  async function onRequestDelete(id) {
     setDeleteServiceId(id);
     setCheckingDependencies(true);
-    setDeleteDependencies(null);
     try {
       const res = await api.get(`/services/${id}/dependencies`);
       setDeleteDependencies(res.data);
     } catch (err) {
-      toast.error('Failed to check dependencies');
+      toast.error('Failed to check service usage');
       setDeleteServiceId(null);
     } finally {
       setCheckingDependencies(false);
@@ -128,36 +161,38 @@ export default function MasterService() {
   }
 
   async function confirmDelete() {
+    if (!deleteServiceId) return;
     setDeleting(true);
     try {
       await api.delete(`/services/${deleteServiceId}`);
       toast.success('Service deleted successfully');
-      queryClient.invalidateQueries({ queryKey: queryKeys.services.all });
       setDeleteServiceId(null);
       setDeleteDependencies(null);
+      queryClient.invalidateQueries({ queryKey: queryKeys.services.all });
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to delete service');
+      toast.error(err.response?.data?.message || 'Error deleting service');
     } finally {
       setDeleting(false);
     }
   }
 
-  if (loading) return <div className="p-8 text-center text-gray-500">Loading Services...</div>;
+  if (loading) return <div className="p-8 text-center text-gray-500">Loading Master Services...</div>;
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
+      {/* Header */}
       <div className="card p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-            <Sparkles className="text-gray-900" /> Service Master
+            <Sparkles className="text-amber-500" /> Master Services & Rates
           </h1>
-          <p className="text-gray-500 text-sm mt-1">Manage detailing services, packages, and pricing.</p>
+          <p className="text-gray-500 text-sm mt-1">Configure service catalog and pricing rates per vehicle type.</p>
         </div>
 
         <div className="flex w-full md:w-auto gap-3">
           <div className="relative flex-1 md:w-80">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <Search size={18} className="text-gray-500" />
+              <Search size={18} className="text-gray-400" />
             </div>
             <input
               type="text"
@@ -168,106 +203,135 @@ export default function MasterService() {
             />
           </div>
           <button onClick={handleAdd} className="btn-primary whitespace-nowrap flex items-center gap-2">
-            <Plus size={18} /> Add Service
+            <Plus size={18} /> Add New Service
           </button>
         </div>
       </div>
 
+      {/* Services Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredServices.map(srv => (
+        {filteredServices.map((srv) => (
           <div key={srv.id} onClick={() => handleEdit(srv)} className="card p-5 relative overflow-hidden flex flex-col cursor-pointer group hover:-translate-y-1 transition-all duration-300">
             <div className="flex justify-between items-start mb-2">
-              <h3 className="text-lg font-bold text-gray-900 pr-24 group-hover:text-blue-600 transition-colors">{srv.name}</h3>
-              <div className="absolute top-5 right-5 flex flex-col items-end">
-                <span className="text-[10px] font-bold text-gray-500 tracking-tight mb-1">Popularity Trend</span>
-                <svg width="64" height="24" viewBox="0 0 64 24" className="opacity-90">
-                  <defs>
-                    <linearGradient id={`grad-${srv.id}`} x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor={srv.isActive ? '#FBBF24' : '#9CA3AF'} stopOpacity="0.4" />
-                      <stop offset="100%" stopColor={srv.isActive ? '#FBBF24' : '#9CA3AF'} stopOpacity="0" />
-                    </linearGradient>
-                  </defs>
-                  <path d="M0,18 Q8,8 16,14 T32,10 T48,16 T64,6" fill="none" stroke={srv.isActive ? '#F59E0B' : '#9CA3AF'} strokeWidth="1.5" />
-                  <path d="M0,18 Q8,8 16,14 T32,10 T48,16 T64,6 L64,24 L0,24 Z" fill={`url(#grad-${srv.id})`} />
-                </svg>
+              <h3 className="text-lg font-bold text-gray-900 group-hover:text-blue-600 transition-colors flex items-center gap-2">
+                {srv.name}
+              </h3>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); onRequestDelete(srv.id); }}
+                  className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                  title="Delete Service"
+                >
+                  <Trash2 size={16} />
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); handleToggleStatus(srv); }}
+                  className={`text-[10px] font-bold uppercase rounded-full px-3 py-1 transition-all shadow-sm ${
+                    srv.isActive
+                      ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200'
+                      : 'bg-rose-100 text-rose-800 hover:bg-rose-200'
+                  }`}
+                >
+                  {srv.isActive ? 'Active' : 'Inactive'}
+                </button>
               </div>
             </div>
 
-            <p className="text-[13px] text-gray-500 mb-6 flex-1 pr-12 line-clamp-2">
-              {srv.description || <span className="italic text-gray-400">No description provided</span>}
+            <p className="text-xs text-gray-500 line-clamp-2 mb-3 min-h-[32px]">
+              {srv.description || <span className="italic text-gray-400">No category description</span>}
             </p>
 
-            <div className="flex items-center justify-between mt-auto">
-                <div className="text-gray-900 font-bold text-[22px] tracking-tight">
+            {/* Per Vehicle Type Pricing List */}
+            <div className="mb-4 bg-slate-50/80 p-3 rounded-xl border border-slate-100/80 space-y-1.5">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Pricing By Vehicle Type</span>
+              {srv.vehiclePrices && srv.vehiclePrices.length > 0 ? (
+                <div className="grid grid-cols-2 gap-1.5">
+                  {srv.vehiclePrices.map(vp => (
+                    <div key={vp.vehicle_type_id} className="text-xs font-semibold text-slate-700 flex justify-between bg-white px-2.5 py-1 rounded-md border border-slate-200/60 shadow-2xs">
+                      <span className="flex items-center gap-1 text-slate-500 font-medium">
+                        <Car size={11} className="text-blue-500" /> {vp.vehicle_type_name}:
+                      </span>
+                      <span className="font-bold text-gray-900">₹{Number(vp.price).toLocaleString('en-IN')}</span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-xs font-bold text-gray-900">
                   ₹{Number(srv.price || 0).toLocaleString('en-IN')}
                 </div>
-                <div className="flex flex-col items-end gap-1">
-                  {srv.estimateTime && (
-                    <span className="flex items-center gap-1 text-[10px] font-semibold text-blue-700 bg-blue-50 border border-blue-200 rounded-full px-2 py-0.5">
-                      <Clock size={10} /> {srv.estimateTime}
-                    </span>
-                  )}
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={(e) => { e.stopPropagation(); handleStatusChange(srv.id, srv.isActive ? 'Inactive' : 'Active'); }}
-                      className={`text-[11px] font-bold uppercase rounded-full px-4 py-1.5 transition-all shadow-sm ${
-                        srv.isActive
-                          ? 'bg-yellow-400 text-yellow-900 hover:bg-yellow-500'
-                          : 'bg-rose-600 text-white hover:bg-rose-700'
-                      }`}
-                    >
-                      {srv.isActive ? 'Active' : 'Inactive'}
-                    </button>
-                    <button
-                      onClick={(e) => handleDeleteClick(e, srv.id)}
-                      className="w-7 h-7 rounded-full bg-red-50 text-red-600 flex items-center justify-center hover:bg-red-100 transition-colors"
-                      title="Delete Service"
-                    >
-                      <Trash2 size={14} />
-                    </button>
-                  </div>
-                </div>
-              </div>
+              )}
+            </div>
+
+            <div className="flex items-center justify-between mt-auto pt-2 border-t border-gray-100/80">
+              <span className="text-xs font-medium text-gray-500 flex items-center gap-1.5">
+                <Clock size={13} className="text-blue-500" />
+                {srv.estimateTime ? srv.estimateTime : 'Est. time not set'}
+              </span>
+              <span className="text-xs font-bold text-blue-600 group-hover:translate-x-1 transition-transform flex items-center gap-1">
+                Edit Rates →
+              </span>
+            </div>
           </div>
         ))}
-        {filteredServices.length === 0 && (
-          <div className="col-span-full py-12 text-center border-2 border-dashed border-white/50 rounded-2xl bg-white/30 backdrop-blur-sm">
-            <Sparkles size={32} className="mx-auto text-gray-500 mb-3" />
-            <h3 className="text-lg font-medium text-gray-500">No services found</h3>
-            <p className="text-gray-500 mt-1">Try adjusting your search or add a new service.</p>
-          </div>
-        )}
       </div>
 
+      {/* Add / Edit Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/20 backdrop-blur-md flex items-center justify-center z-50 p-4">
-          <div className="card w-full max-w-md overflow-hidden">
-            <div className="flex justify-between items-center p-5 border-b border-white/50">
-              <h3 className="text-lg font-bold text-gray-900">{editId ? 'Edit Service' : 'Add New Service'}</h3>
+          <div className="card w-full max-w-lg overflow-hidden max-h-[90vh] flex flex-col">
+            <div className="flex justify-between items-center p-5 border-b border-white/50 shrink-0">
+              <h3 className="text-lg font-bold text-gray-900">{editId ? 'Edit Service Rates' : 'Add New Service'}</h3>
               <button onClick={handleCancelEdit} className="text-gray-500 hover:text-white transition-colors">
                 <X size={20} />
               </button>
             </div>
-            <form onSubmit={handleSubmit} className="p-5 space-y-4">
+            <form onSubmit={handleSubmit} className="p-5 space-y-4 overflow-y-auto flex-1">
               <div>
                 <label className="block text-sm font-medium text-gray-500 mb-1.5">Service Name *</label>
-                <input required type="text" className="input" value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Ceramic Coating" />
+                <input required type="text" className="input" value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Premium Foam Wash" />
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-sm font-medium text-gray-500 mb-1.5">Base Price (₹) *</label>
-                  <input required type="number" min="0" step="1" className="input" value={price} onChange={e => setPrice(e.target.value)} placeholder="0" />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-500 mb-1.5 flex items-center gap-1"><Clock size={13} className="text-blue-500" /> Estimate Time</label>
-                  <input type="text" className="input" value={estimateTime} onChange={e => setEstimateTime(e.target.value)} placeholder="e.g. 2-3 hrs" />
-                </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-500 mb-1.5 flex items-center gap-1"><Clock size={13} className="text-blue-500" /> Estimate Time</label>
+                <input type="text" className="input" value={estimateTime} onChange={e => setEstimateTime(e.target.value)} placeholder="e.g. 2-3 hrs" />
               </div>
+
+              {/* Per Vehicle Type Pricing Inputs */}
+              {activeVehicleTypes.length > 0 && (
+                <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+                      <Car size={14} className="text-blue-600" /> Vehicle Type Service Prices (₹) *
+                    </label>
+                    <span className="text-[11px] text-slate-500 font-medium">Enter rate for each vehicle category</span>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    {activeVehicleTypes.map(vt => (
+                      <div key={vt.id}>
+                        <label className="block text-xs font-semibold text-slate-600 mb-1">{vt.name} (₹)</label>
+                        <input
+                          type="number"
+                          min="0"
+                          step="1"
+                          className="input bg-white py-1.5 text-xs font-semibold"
+                          placeholder="0"
+                          value={vehiclePrices[vt.id] !== undefined ? vehiclePrices[vt.id] : ''}
+                          onChange={e => handleVehiclePriceChange(vt.id, e.target.value)}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <div>
                 <label className="block text-sm font-medium text-gray-500 mb-1.5">Category / Description (Optional)</label>
                 <textarea className="input min-h-[80px] resize-none" value={description} onChange={e => setDescription(e.target.value)} placeholder="Service details..." />
               </div>
-              <div className="pt-4 flex justify-end gap-3 border-t border-gray-100 mt-6">
+              <div className="pt-4 flex justify-end gap-3 border-t border-gray-100 mt-6 shrink-0">
                 <button type="button" onClick={handleCancelEdit} className="btn-secondary">Cancel</button>
                 <button type="submit" className="btn-primary">Save Service</button>
               </div>
