@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
-import { Plus, Search, Filter, ArrowUpDown, ChevronLeft, ChevronRight, Eye, Pencil } from 'lucide-react';
+import { Plus, Search, Filter, ArrowUpDown, ChevronLeft, ChevronRight, Eye, Pencil, ClipboardList } from 'lucide-react';
 import { useInvoices } from '../hooks/useQueries.js';
 import { useDebouncedValue } from '../hooks/useDebouncedValue.js';
 import { parseSafeDate } from '../utils/dateFormatter.js';
@@ -211,6 +211,9 @@ export default function InvoiceList() {
                       <div className="flex items-center justify-center gap-2">
                         <button onClick={() => navigate(`/invoices/${inv.id}`)} title="View Invoice" className="p-1.5 text-blue-600 bg-blue-50 hover:bg-blue-100 hover:text-blue-700 rounded-lg transition-colors inline-flex">
                           <Eye size={18} />
+                        </button>
+                        <button onClick={() => navigate(`/invoices/${inv.id}/service-report`)} title="Service Report" className="p-1.5 text-slate-700 bg-slate-100 hover:bg-yellow-100 hover:text-yellow-800 rounded-lg transition-colors inline-flex">
+                          <ClipboardList size={18} />
                         </button>
                         <button onClick={() => navigate(`/invoices/${inv.id}/edit`)} title="Edit Invoice" className="p-1.5 text-amber-600 bg-amber-50 hover:bg-amber-100 hover:text-amber-700 rounded-lg transition-colors inline-flex">
                           <Pencil size={18} />
