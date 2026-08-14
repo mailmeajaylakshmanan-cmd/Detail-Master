@@ -195,9 +195,10 @@ router.get('/', protect, async (req, res) => {
 router.get('/:id', protect, async (req, res) => {
   try {
     const result = await pool.query(
-      `SELECT o.*, c.full_name as "customer_name", c.phone as "customer_phone", mo.service_ids, mo.third_party_service_ids
+      `SELECT o.*, c.full_name as "customer_name", c.phone as "customer_phone", mo.service_ids, mo.third_party_service_ids, v.make_model as "vehicle_make", v.license_vin
        FROM assigned_offers o
        JOIN clients c ON o.client_id = c.id
+       LEFT JOIN vehicles v ON o.vehicle_id = v.id
        LEFT JOIN master_offers mo ON o.master_offer_id = mo.id
        WHERE o.id = $1`,
       [req.params.id]

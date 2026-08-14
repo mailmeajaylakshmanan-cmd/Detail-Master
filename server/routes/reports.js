@@ -142,7 +142,7 @@ router.get('/services-pdf', async (req, res) => {
 
     let logoBase64 = '';
     try {
-      const logoPath = path.join(__dirname, '../../client/src/assets/brand_logo.png');
+      const logoPath = path.join(__dirname, '../../client/src/assets/brand-logo-for-invoice.png');
       const logoFile = fs.readFileSync(logoPath);
       logoBase64 = `data:image/png;base64,${logoFile.toString('base64')}`;
     } catch (e) {
@@ -176,8 +176,7 @@ router.get('/services-pdf', async (req, res) => {
             <p>${timeframe.charAt(0).toUpperCase() + timeframe.slice(1)} · Generated ${new Date().toLocaleDateString('en-GB')}</p>
           </div>
           <div style="display: flex; align-items: center; gap: 16px;">
-            <div class="badge">Detailing Masters</div>
-            ${logoBase64 ? `<img src="${logoBase64}" alt="Detailing Masters" style="height: 44px; width: auto; object-fit: contain;" />` : ''}
+            ${logoBase64 ? `<img src="${logoBase64}" alt="Detailing Masters" style="height: 44px; width: auto; object-fit: contain;" />` : '<div class="badge">Detailing Masters</div>'}
           </div>
         </div>
 

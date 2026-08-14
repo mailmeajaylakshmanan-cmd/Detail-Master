@@ -35,7 +35,7 @@ export default function VehicleTable({ vehicles, selectedIdx, onSelect }) {
             <thead>
               <tr className="bg-gray-50 border-b border-gray-100">
                 <th className="px-6 py-4 text-[10px] font-extrabold text-gray-900 uppercase tracking-wider w-[25%]">Vehicle</th>
-                <th className="px-6 py-4 text-[10px] font-extrabold text-gray-900 uppercase tracking-wider">License Plate</th>
+                <th className="px-6 py-4 text-[10px] font-extrabold text-gray-900 uppercase tracking-wider">Vehicle Number</th>
                 <th className="px-6 py-4 text-[10px] font-extrabold text-gray-900 uppercase tracking-wider">Vehicle Type</th>
                 <th className="px-6 py-4 text-[10px] font-extrabold text-gray-900 uppercase tracking-wider text-center">Visits</th>
                 <th className="px-6 py-4 text-[10px] font-extrabold text-gray-900 uppercase tracking-wider text-right">Total Spend</th>
