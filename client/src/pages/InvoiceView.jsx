@@ -3,7 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import {
   ArrowLeft, Printer, MessageCircle, Pencil,
   ChevronDown, FileText, X, Plus, IndianRupee,
-  Car, Shield, Droplets, Sparkles, Wrench, CircleDashed
+  Car, Shield, Droplets, Sparkles, Wrench, CircleDashed, ClipboardList
 } from 'lucide-react';
 import { parseSafeDate } from '../utils/dateFormatter.js';
 import api from '../api/axios.js';
@@ -307,6 +307,10 @@ export default function InvoiceView() {
             <Printer size={14} />
             Print
           </button>
+          <Link to={`/invoices/${id}/service-report`} style={{ ...bar.btn, background: '#1e293b', color: '#FBD904', borderColor: '#1e293b', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            <ClipboardList size={14} />
+            Service Report
+          </Link>
           <Link to={`/invoices/${id}/edit`} style={{ ...bar.btn, background: '#111827', color: '#fff', borderColor: '#111827', textDecoration: 'none' }}>
             <Pencil size={14} />
             Edit
