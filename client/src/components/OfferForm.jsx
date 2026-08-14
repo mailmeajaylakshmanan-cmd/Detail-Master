@@ -5,7 +5,7 @@ import {
 } from 'lucide-react';
 import Select from 'react-select';
 import toast from 'react-hot-toast';
-import { useClients } from '../hooks/useQueries.js';
+import { useClients, useServices, useThirdPartyServices } from '../hooks/useQueries.js';
 import { useDebouncedValue } from '../hooks/useDebouncedValue.js';
 
 const EMPTY_ARRAY = [];
@@ -14,7 +14,7 @@ const EMPTY_ARRAY = [];
 const selectStyles = () => ({
   control: (b, s) => ({
     ...b,
-    borderColor: s.isFocused ? '#FBD904' : 'rgba(255,255,255,0.4)',
+    borderColor: s.isFocused ? '#F6CB59' : 'rgba(255,255,255,0.4)',
     borderRadius: '0.75rem',
     boxShadow: s.isFocused ? '0 0 0 3px rgba(251,217,4,.15)' : 'inset 0 2px 4px rgba(0,0,0,0.02)',
     minHeight: '42px',
@@ -23,7 +23,7 @@ const selectStyles = () => ({
     backdropFilter: 'blur(12px)',
     color: '#111827',
     transition: 'all .2s',
-    '&:hover': { borderColor: '#FBD904', backgroundColor: 'rgba(255,255,255,0.8)' },
+    '&:hover': { borderColor: '#F6CB59', backgroundColor: 'rgba(255,255,255,0.8)' },
   }),
   menuPortal: b => ({ ...b, zIndex: 9999 }),
   menu: b => ({
@@ -41,7 +41,7 @@ const selectStyles = () => ({
     fontSize: '13px',
     borderRadius: '0.5rem',
     padding: '8px 12px',
-    backgroundColor: s.isSelected ? '#FBD904' : s.isFocused ? 'rgba(0,0,0,0.03)' : 'transparent',
+    backgroundColor: s.isSelected ? '#F6CB59' : s.isFocused ? 'rgba(0,0,0,0.03)' : 'transparent',
     color: '#111827',
     cursor: 'pointer',
     fontWeight: s.isSelected ? '600' : '500',
@@ -51,7 +51,7 @@ const selectStyles = () => ({
   singleValue: b => ({ ...b, color: '#111827', fontWeight: '500' }),
 });
 
-const customInputCls = 'input focus:ring-[#FBD904]/40 focus:border-[#FBD904] font-medium';
+const customInputCls = 'input focus:ring-[#F6CB59]/40 focus:border-[#F6CB59] font-medium';
 
 function Field({ label, required, children, invisibleLabel }) {
   return (
@@ -71,13 +71,16 @@ function Field({ label, required, children, invisibleLabel }) {
 
 export default function OfferForm({ initial, onSubmit, loading, onCustomerSelect }) {
   const { data: clientData } = useClients();
+  const { data: serviceOptions = [] } = useServices();
+  const { data: thirdPartyOptions = [] } = useThirdPartyServices();
   const customers = clientData?.clients || EMPTY_ARRAY;
   const [form, setForm] = useState(() => {
     const base = {
       customer: { name: '', phone: '', address: '' },
       vehicleId: '', carMake: '', carModel: '', licensePlate: '',
       masterOfferId: '', packageName: '', description: '',
-      price: '', validityDate: '', totalWashes: '', freeWashes: '', terms: '', status: 'active'
+      price: '', validityDate: '', totalWashes: '', freeWashes: '', terms: '', status: 'active',
+      services: [], thirdPartyItems: []
     };
     if (!initial) return base;
     return { ...base, ...initial, customer: initial.customer || base.customer };
@@ -107,11 +110,23 @@ export default function OfferForm({ initial, onSubmit, loading, onCustomerSelect
 
   const handlePackageSelect = (masterOfferId) => {
     if (form.masterOfferId === masterOfferId) {
-      setForm(f => ({ ...f, masterOfferId: '', packageName: '', description: '', price: '', validityDate: '', totalWashes: '', freeWashes: '', terms: '' }));
+      setForm(f => ({ ...f, masterOfferId: '', packageName: '', description: '', price: '', validityDate: '', totalWashes: '', freeWashes: '', terms: '', services: [], thirdPartyItems: [] }));
       return;
     }
     const selectedPackage = offerTemplates.find(o => o.id === masterOfferId);
     if (selectedPackage) {
+      // Map standard services
+      const selectedServices = (selectedPackage.serviceIds || []).map(id => {
+        const s = serviceOptions.find(opt => opt.id === id);
+        return s ? { service_id: s.id, service: s.name } : null;
+      }).filter(Boolean);
+
+      // Map third-party services
+      const selectedThirdParty = (selectedPackage.thirdPartyServiceIds || []).map(id => {
+        const t = thirdPartyOptions.find(opt => opt.id === id);
+        return t ? { third_party_service_id: t.id, service_name: t.name } : null;
+      }).filter(Boolean);
+
       setForm(f => ({
         ...f,
         masterOfferId: selectedPackage.id,
@@ -121,9 +136,51 @@ export default function OfferForm({ initial, onSubmit, loading, onCustomerSelect
         totalWashes: selectedPackage.totalWashes || 0,
         freeWashes: selectedPackage.freeWashes || 0,
         terms: selectedPackage.terms,
-        validityDate: calculateExpiry(selectedPackage.defaultValidityDays)
+        validityDate: calculateExpiry(selectedPackage.defaultValidityDays),
+        services: selectedServices,
+        thirdPartyItems: selectedThirdParty
       }));
     }
+  };
+
+  const toggleService = (opt, checked) => {
+    if (checked) {
+      setForm(f => ({
+        ...f,
+        services: [...f.services, {
+          service_id: opt.id,
+          service: opt.name,
+          description: opt.description || '',
+          price: opt.price || 0,
+          total: opt.price || 0,
+        }]
+      }));
+    } else {
+      setForm(f => ({
+        ...f,
+        services: f.services.filter(s => s.service_id !== opt.id)
+      }));
+    }
+  };
+
+  const addThirdPartyItem = (catalogId) => {
+    const opt = thirdPartyOptions.find(t => t.id === Number(catalogId));
+    setForm(f => ({
+      ...f,
+      thirdPartyItems: [...f.thirdPartyItems, {
+        third_party_service_id: opt?.id || null,
+        service_name: opt?.name || 'Custom Third-Party Service',
+        vendor_name: opt?.vendorName || '',
+        labour_count: opt?.labourCount ?? 1,
+        labour_charge: opt?.labourCharge ?? 0,
+        service_cost: opt?.serviceCost ?? 0,
+        selling_price: opt?.sellingPrice ?? 0,
+      }],
+    }));
+  };
+
+  const removeThirdPartyItem = (idx) => {
+    setForm(f => ({ ...f, thirdPartyItems: f.thirdPartyItems.filter((_, i) => i !== idx) }));
   };
 
   function handleSubmit(e) {
@@ -301,10 +358,10 @@ export default function OfferForm({ initial, onSubmit, loading, onCustomerSelect
                     <div 
                       key={opt.id}
                       onClick={() => handlePackageSelect(opt.id)}
-                      className={`relative cursor-pointer rounded-2xl p-4 transition-all duration-200 flex items-center justify-between overflow-hidden group border ${isSelected ? 'bg-amber-50/70 border-[#FBD904] shadow-md' : 'bg-white/60 border-white/60 hover:bg-white/90 hover:shadow-sm'}`}
+                      className={`relative cursor-pointer rounded-2xl p-4 transition-all duration-200 flex items-center justify-between overflow-hidden group border ${isSelected ? 'bg-amber-50/70 border-[#F6CB59] shadow-md' : 'bg-white/60 border-white/60 hover:bg-white/90 hover:shadow-sm'}`}
                     >
                       {isSelected && (
-                        <div className="absolute top-0 right-0 bg-[#FBD904] text-[#020029] text-[9px] font-black px-2.5 py-1 rounded-bl-lg uppercase tracking-widest shadow-sm">
+                        <div className="absolute top-0 right-0 bg-[#F6CB59] text-[#886D52] text-[9px] font-black px-2.5 py-1 rounded-bl-lg uppercase tracking-widest shadow-sm">
                           Suggested
                         </div>
                       )}
@@ -362,23 +419,90 @@ export default function OfferForm({ initial, onSubmit, loading, onCustomerSelect
               </div>
 
             </div>
-
-            {/* Save Button */}
-            <div className="mt-8 flex justify-end">
-              <button
-                type="submit"
-                disabled={loading}
-                className={`px-8 py-3.5 rounded-xl text-[13px] font-bold tracking-widest text-[#020029] bg-[#FBD904] hover:bg-[#e6c700] shadow-lg shadow-amber-200/40 flex items-center justify-center gap-2 transition-all uppercase ${loading ? 'opacity-70 pointer-events-none' : 'hover:-translate-y-0.5'}`}
-              >
-                {loading ? (
-                  <div className="w-4 h-4 border-2 border-[#020029]/30 border-t-[#020029] rounded-full animate-spin" />
-                ) : null}
-                Save and Continue
-              </button>
-            </div>
           </div>
         </div>
+      </div>
 
+      {/* ── BOTTOM ROW: Step 4 (Services Included) ── */}
+      <div className="w-full mt-6">
+        <div className="card p-6 md:p-8 flex flex-col gap-6 relative">
+          <div className="hidden lg:block absolute left-[30px] -top-6 h-6 w-0.5 bg-white/40 -z-10"></div>
+          
+          <h3 className="text-[18px] font-bold text-gray-900 flex items-center gap-2">
+            <span className="text-gray-400 font-medium text-[16px]">4 |</span> Services Included in Package
+          </h3>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="space-y-4">
+              <Field label="STANDARD SERVICES">
+                <Select
+                  isClearable
+                  isSearchable
+                  placeholder="Select standard service..."
+                  styles={selectStyles()}
+                  menuPortalTarget={document.body}
+                  menuPosition="fixed"
+                  options={serviceOptions.map(s => ({ value: s.id, label: s.name, opt: s }))}
+                  value={null}
+                  onChange={sel => sel && toggleService(sel.opt, true)}
+                />
+              </Field>
+              <div className="flex flex-wrap gap-2 mt-3">
+                {form.services.map(s => (
+                  <div key={s.service_id} className="flex items-center gap-2 px-3 py-1.5 bg-gray-900 text-white rounded-lg text-[13px] font-bold shadow-sm">
+                    {s.service}
+                    <button type="button" onClick={() => toggleService({ id: s.service_id }, false)} className="hover:text-rose-400">
+                      ×
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <Field label="THIRD-PARTY / CUSTOM SERVICES">
+                <Select
+                  isClearable
+                  isSearchable
+                  placeholder="Select third-party service..."
+                  styles={selectStyles()}
+                  menuPortalTarget={document.body}
+                  menuPosition="fixed"
+                  options={[
+                    { label: '-- Add Custom Service --', value: 'custom' },
+                    ...thirdPartyOptions.map(t => ({ value: t.id, label: t.name }))
+                  ]}
+                  value={null}
+                  onChange={sel => sel && addThirdPartyItem(sel.value)}
+                />
+              </Field>
+              <div className="flex flex-wrap gap-2 mt-3">
+                {form.thirdPartyItems.map((t, idx) => (
+                  <div key={idx} className="flex items-center gap-2 px-3 py-1.5 bg-amber-500 text-white rounded-lg text-[13px] font-bold shadow-sm">
+                    {t.service_name}
+                    <button type="button" onClick={() => removeThirdPartyItem(idx)} className="hover:text-rose-200">
+                      ×
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Save Button */}
+          <div className="mt-8 flex justify-end">
+            <button
+              type="submit"
+              disabled={loading}
+              className={`px-8 py-3.5 rounded-xl text-[13px] font-bold tracking-widest text-[#886D52] bg-[#F6CB59] hover:bg-[#e6c700] shadow-lg shadow-amber-200/40 flex items-center justify-center gap-2 transition-all uppercase ${loading ? 'opacity-70 pointer-events-none' : 'hover:-translate-y-0.5'}`}
+            >
+              {loading ? (
+                <div className="w-4 h-4 border-2 border-[#886D52]/30 border-t-[#886D52] rounded-full animate-spin" />
+              ) : null}
+              Save and Continue
+            </button>
+          </div>
+        </div>
       </div>
     </form>
   );

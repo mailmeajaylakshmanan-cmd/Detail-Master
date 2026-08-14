@@ -6,7 +6,7 @@ const db = require('../db');
 // browser never downloads whole tables just to show a few numbers.
 router.get('/stats', async (req, res) => {
   try {
-    const [revRes, cntRes, todayRes, clientRes, orgRes, recentRes] = await Promise.all([
+    const [revRes, cntRes, todayRes, clientRes, orgRes, recentRes, mixRes, scheduleRes] = await Promise.all([
       db.query(`
         SELECT
           COALESCE(SUM(amount_paid), 0)::numeric AS revenue,
@@ -28,12 +28,37 @@ router.get('/stats', async (req, res) => {
       db.query('SELECT COUNT(*)::int AS total FROM clients'),
       db.query('SELECT COUNT(*)::int AS total FROM organizations'),
       db.query(`
-        SELECT i.id, i.invoice_number, i.status, i.grand_total, i.balance_due, i.created_at,
-               COALESCE(c.full_name, o.org_name) AS customer_name
+        SELECT 
+          i.id, i.status, i.grand_total, i.balance_due, i.created_at,
+          COALESCE(c.full_name, o.org_name) AS customer_name,
+          v.make_model AS vehicle_name,
+          (SELECT s.service_name FROM invoice_services iso JOIN services s ON iso.service_id = s.id WHERE iso.invoice_order_id = i.id LIMIT 1) AS service_name
         FROM invoices i
         LEFT JOIN clients c ON i.client_id = c.id
         LEFT JOIN organizations o ON i.organization_id = o.id
+        LEFT JOIN vehicles v ON i.vehicle_id = v.id
+        WHERE i.status NOT IN ('completed', 'cancelled')
         ORDER BY i.created_at DESC
+        LIMIT 10
+      `),
+      db.query(`
+        SELECT 
+          s.service_name, 
+          COUNT(*)::int as count 
+        FROM invoice_services iso 
+        JOIN services s ON iso.service_id = s.id 
+        GROUP BY s.service_name 
+        ORDER BY count DESC 
+        LIMIT 5
+      `),
+      db.query(`
+        SELECT 
+          w.booking_id, w.full_name, w.vehicle_brand, w.vehicle_model, w.preferred_date, w.allocated_time,
+          s.service_name
+        FROM web_bookings w
+        LEFT JOIN services s ON w.service_id = s.id
+        WHERE w.status NOT IN ('cancelled', 'completed')
+        ORDER BY w.preferred_date ASC, w.allocated_time ASC
         LIMIT 10
       `),
     ]);
@@ -47,7 +72,9 @@ router.get('/stats', async (req, res) => {
       todayInvoices: todayRes.rows[0]?.today_invoices || 0,
       totalCustomers: clientRes.rows[0]?.total || 0,
       totalOrganizations: orgRes.rows[0]?.total || 0,
-      recent: recentRes.rows,
+      activeServices: recentRes.rows,
+      serviceMix: mixRes.rows,
+      schedule: scheduleRes.rows,
     });
   } catch (err) {
     console.error(err);

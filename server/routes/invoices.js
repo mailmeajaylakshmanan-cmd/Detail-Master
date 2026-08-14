@@ -129,7 +129,8 @@ router.get('/:id', async (req, res) => {
          i.*,
          c.full_name AS client_name, c.phone AS client_phone, c.email AS client_email, c.address AS client_address,
          o.org_name AS organization_name, o.phone AS organization_phone, o.email AS organization_email, o.address AS organization_address,
-         v.make_model AS vehicle_name, v.license_vin, v.vehicle_type
+         v.make_model AS vehicle_name, v.license_vin, v.vehicle_type,
+         EXISTS(SELECT 1 FROM assigned_offers ao WHERE ao.purchase_invoice_order_id = i.id) AS is_offer_purchase
        FROM invoices i
        LEFT JOIN clients c ON i.client_id = c.id
        LEFT JOIN organizations o ON i.organization_id = o.id
@@ -459,7 +460,12 @@ router.post('/', async (req, res) => {
     
     // Insert usages after invoice_services
     if (usageUsagesToInsert.length > 0) {
+      const uniqueUsagesMap = new Map();
       for (const usage of usageUsagesToInsert) {
+        uniqueUsagesMap.set(usage.offer_id, usage);
+      }
+      const uniqueUsages = Array.from(uniqueUsagesMap.values());
+      for (const usage of uniqueUsages) {
         await client.query(
           `INSERT INTO assigned_offer_usages (assigned_offer_id, invoice_order_id, usage_type)
            VALUES ($1, $2, $3)`,
@@ -646,7 +652,12 @@ router.put('/:id', async (req, res) => {
       
       // Insert usages after invoice_services
       if (usageUsagesToInsert.length > 0) {
+        const uniqueUsagesMap = new Map();
         for (const usage of usageUsagesToInsert) {
+          uniqueUsagesMap.set(usage.offer_id, usage);
+        }
+        const uniqueUsages = Array.from(uniqueUsagesMap.values());
+        for (const usage of uniqueUsages) {
           await client.query(
             `INSERT INTO assigned_offer_usages (assigned_offer_id, invoice_order_id, usage_type)
              VALUES ($1, $2, $3)`,

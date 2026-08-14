@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useMemo, memo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import api from '../api/axios.js';
 import {
@@ -25,7 +26,7 @@ const selectStyles = () => ({
     fontSize: '13px',
     fontWeight: '500',
     backgroundColor: '#ffffff',
-    color: '#020029',
+    color: '#886D52',
     transition: 'all .15s',
     '&:hover': { borderColor: 'rgba(251, 217, 4, 0.4)' },
   }),
@@ -46,19 +47,19 @@ const selectStyles = () => ({
     borderRadius: '0.5rem',
     padding: '8px 12px',
     backgroundColor: s.isSelected ? 'rgba(251, 217, 4, 0.2)' : s.isFocused ? '#f8fafc' : 'transparent',
-    color: '#020029',
+    color: '#886D52',
     cursor: 'pointer',
     marginBottom: '2px'
   }),
   placeholder: b => ({ ...b, color: '#64748b', fontSize: '13px', fontWeight: '500' }),
-  input: b => ({ ...b, fontSize: '13px', color: '#020029' }),
-  singleValue: b => ({ ...b, color: '#020029', fontWeight: '600' }),
+  input: b => ({ ...b, fontSize: '13px', color: '#886D52' }),
+  singleValue: b => ({ ...b, color: '#886D52', fontWeight: '600' }),
 });
 
 const inputCls = [
   'input block w-full px-4 py-2 text-[13px] font-medium text-gray-900',
   'placeholder:text-gray-400 placeholder:font-medium',
-  'bg-white focus:outline-none focus:ring-2 focus:ring-[#FBD904]/40 focus:border-transparent',
+  'bg-white focus:outline-none focus:ring-2 focus:ring-[#F6CB59]/40 focus:border-transparent',
   'transition-all duration-200'
 ].join(' ');
 
@@ -193,7 +194,7 @@ const ServiceVehicleModal = memo(function ServiceVehicleModal({ isOpen, onClose,
     <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-gray-900/40 backdrop-blur-sm">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden flex flex-col">
         <div className="flex items-center justify-between p-4 border-b border-gray-100 bg-gray-50/50">
-          <h3 className="font-bold text-gray-900 text-lg">Apply <span className="text-[#FBD904]">{serviceName}</span> to...</h3>
+          <h3 className="font-bold text-gray-900 text-lg">Apply <span className="text-[#F6CB59]">{serviceName}</span> to...</h3>
           <button type="button" onClick={onClose} className="text-gray-400 hover:text-gray-900 transition-colors"><X size={20} /></button>
         </div>
         <div className="p-4 max-h-[60vh] overflow-y-auto flex flex-col gap-2">
@@ -215,7 +216,7 @@ const ServiceVehicleModal = memo(function ServiceVehicleModal({ isOpen, onClose,
         </div>
         <div className="p-4 border-t border-gray-100 flex justify-end gap-3 bg-white">
           <button type="button" onClick={onClose} className="px-5 py-2.5 text-[13px] font-bold text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-xl transition-colors">Cancel</button>
-          <button type="button" onClick={() => onConfirm(selected)} className="px-6 py-2.5 text-[13px] font-bold text-gray-900 bg-[#FBD904] hover:bg-[#FBD904]/90 rounded-xl transition-colors shadow-sm">Confirm ({selected.length})</button>
+          <button type="button" onClick={() => onConfirm(selected)} className="px-6 py-2.5 text-[13px] font-bold text-gray-900 bg-[#F6CB59] hover:bg-[#F6CB59]/90 rounded-xl transition-colors shadow-sm">Confirm ({selected.length})</button>
         </div>
       </div>
     </div>
@@ -329,7 +330,7 @@ const VehicleVisitRow = memo(function VehicleVisitRow({ label, meta, onField, on
   );
 });
 
-const SelectedServiceRow = memo(function SelectedServiceRow({ cur, onDesc, vehicleOptions, onVehiclesChange, assignedOffers, onRedeemPackage }) {
+const SelectedServiceRow = memo(function SelectedServiceRow({ cur, onDesc, vehicleOptions, onVehiclesChange, assignedOffers, onRedeemPackage, readOnly }) {
   return (
     <div className="flex flex-col sm:flex-row sm:items-center gap-4 bg-gray-50 p-4 rounded-xl border border-gray-100">
       <div className="sm:w-2/5 font-bold text-[14px] text-gray-900 flex items-center gap-2">
@@ -337,12 +338,13 @@ const SelectedServiceRow = memo(function SelectedServiceRow({ cur, onDesc, vehic
       </div>
       <div className="flex-1 flex flex-col gap-2">
         <input
-          className={`${inputCls} bg-white shadow-sm border-gray-200`}
+          className={`${inputCls} bg-white shadow-sm border-gray-200 ${readOnly ? 'pointer-events-none opacity-80' : ''}`}
           placeholder="Detail instructions / description"
           value={cur.description || ''}
           onChange={onDesc}
+          readOnly={readOnly}
         />
-        {assignedOffers && assignedOffers.length > 0 && (
+        {!readOnly && assignedOffers && assignedOffers.length > 0 && (
           <select 
             className={`${inputCls} bg-white shadow-sm border-gray-200 text-xs py-1.5`}
             value={cur.assigned_offer_id || ''}
@@ -370,16 +372,18 @@ const SelectedServiceRow = memo(function SelectedServiceRow({ cur, onDesc, vehic
   );
 });
 
-const ThirdPartyServiceRow = memo(function ThirdPartyServiceRow({ item, onField, onRemove, vehicleOptions, onVehiclesChange }) {
+const ThirdPartyServiceRow = memo(function ThirdPartyServiceRow({ item, onField, onRemove, vehicleOptions, onVehiclesChange, readOnly }) {
   return (
     <div className="flex flex-col gap-3 bg-amber-50/50 p-4 rounded-xl border border-amber-100 relative">
-      <button
-        type="button"
-        onClick={onRemove}
-        className="absolute -top-2.5 -right-2.5 w-6 h-6 rounded-full bg-white shadow-sm border border-gray-100 flex items-center justify-center text-gray-400 hover:text-rose-500 hover:border-rose-200 transition-all"
-      >
-        <Trash2 size={12} />
-      </button>
+      {!readOnly && (
+        <button
+          type="button"
+          onClick={onRemove}
+          className="absolute -top-2.5 -right-2.5 w-6 h-6 rounded-full bg-white shadow-sm border border-gray-100 flex items-center justify-center text-gray-400 hover:text-rose-500 hover:border-rose-200 transition-all"
+        >
+          <Trash2 size={12} />
+        </button>
+      )}
       <div className="flex items-center gap-2 text-[14px] font-bold text-gray-900">
         <Truck size={14} className="text-amber-500 shrink-0" />
         {item.service_name}
@@ -394,26 +398,41 @@ const ThirdPartyServiceRow = memo(function ThirdPartyServiceRow({ item, onField,
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <Field label="Labour Count">
           <input
-            type="number" min="1" className={`${inputCls} text-right`}
+            type="number" min="1" className={`${inputCls} text-right ${readOnly ? 'pointer-events-none opacity-80' : ''}`}
             value={item.labour_count}
             onChange={e => onField('labour_count', e.target.value)}
+            readOnly={readOnly}
           />
         </Field>
-        <Field label="Labour Charge (₹)">
-          <MoneyInput value={item.labour_charge} onChange={e => onField('labour_charge', e.target.value)} />
+        <Field label="Labour Rate">
+          <MoneyInput 
+            value={item.labour_charge} 
+            onChange={v => onField('labour_charge', v)} 
+            disabled={readOnly}
+          />
         </Field>
-        <Field label="Vendor Cost (₹)">
-          <MoneyInput value={item.service_cost} onChange={e => onField('service_cost', e.target.value)} />
+        <Field label="Service Cost">
+          <MoneyInput 
+            value={item.service_cost} 
+            onChange={v => onField('service_cost', v)} 
+            disabled={readOnly}
+          />
         </Field>
-        <Field label="Selling Price (₹)">
-          <MoneyInput value={item.selling_price} onChange={e => onField('selling_price', e.target.value)} />
+        <Field label="Selling Price">
+          <MoneyInput 
+            value={item.selling_price} 
+            onChange={v => onField('selling_price', v)} 
+            disabled={readOnly}
+          />
         </Field>
       </div>
     </div>
   );
 });
 
-export default function InvoiceForm({ initial, onSubmit, loading, onCustomerSelect }) {
+export default function InvoiceForm({ initial, onSubmit, loading }) {
+  const isOfferPurchase = initial?.is_offer_purchase === true;
+  const navigate = useNavigate();
   const today = new Date().toISOString().slice(0, 10);
   const { data: clientData } = useClients();
   const customers = clientData?.clients || EMPTY_ARRAY;
@@ -572,6 +591,45 @@ export default function InvoiceForm({ initial, onSubmit, loading, onCustomerSele
       : balance < total
         ? 'partial'
         : 'pending';
+
+  const handleRedeemPackage = useCallback((offer, vid) => {
+    const mappedServices = (offer.serviceIds || []).map(id => {
+      const s = serviceOptions.find(opt => opt.id === id);
+      if (!s) return null;
+      return {
+        service_id: s.id,
+        service: s.name,
+        description: s.description || '',
+        price: 0,
+        total: 0,
+        vehicle_ids: [vid],
+        assigned_offer_id: offer.id
+      };
+    }).filter(Boolean);
+
+    const mappedThirdParty = (offer.thirdPartyServiceIds || []).map(id => {
+      const t = thirdPartyOptions.find(opt => opt.id === id);
+      if (!t) return null;
+      return {
+        third_party_service_id: t.id,
+        service_name: t.name,
+        vendor_name: t.vendorName || '',
+        labour_count: t.labourCount ?? 1,
+        labour_charge: 0,
+        service_cost: 0,
+        selling_price: 0,
+        vehicle_ids: [vid],
+        assigned_offer_id: offer.id
+      };
+    }).filter(Boolean);
+
+    setForm(f => ({
+      ...f,
+      services: [...f.services, ...mappedServices],
+      thirdPartyItems: [...f.thirdPartyItems, ...mappedThirdParty]
+    }));
+    toast.success(`Redeemed "${offer.packageName}" package for this vehicle.`);
+  }, [serviceOptions, thirdPartyOptions]);
 
   const toggleService = useCallback((opt, checked) => {
     if (checked) {
@@ -1071,6 +1129,18 @@ export default function InvoiceForm({ initial, onSubmit, loading, onCustomerSele
                         onField={(field, val) => updateVehicleVisitField(form.vehicleId, field, val)}
                         showCopyToAll={false}
                       />
+                      {assignedOffers.filter(o => o.vehicleId === form.vehicleId).map(offer => (
+                        <div key={offer.id} className="bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-100 p-4 rounded-xl flex items-center justify-between shadow-sm">
+                          <div className="flex flex-col">
+                            <span className="text-[12px] font-bold text-emerald-700 uppercase tracking-wider flex items-center gap-1.5"><Sparkles size={12}/> Active Package</span>
+                            <span className="text-[15px] font-bold text-gray-900 mt-0.5">{offer.packageName}</span>
+                            <span className="text-[12px] font-medium text-emerald-600 mt-0.5">{offer.completedWashes} of {offer.totalWashes} washes used</span>
+                          </div>
+                          <button type="button" onClick={() => handleRedeemPackage(offer, form.vehicleId)} className="bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold px-4 py-2 rounded-lg transition-colors shadow-sm">
+                            Redeem Wash
+                          </button>
+                        </div>
+                      ))}
                     </div>
                   )}
                 </>
@@ -1125,23 +1195,26 @@ export default function InvoiceForm({ initial, onSubmit, loading, onCustomerSele
                   {isStep3Complete ? <CheckCircle2 size={14} className="fill-emerald-50" /> : <span className="text-[10px] font-bold">3</span>}
                 </div>
                 <h2 className="text-[15px] font-bold text-gray-900 tracking-tight">Services Grid</h2>
+                {isOfferPurchase && <span className="text-[11px] font-medium text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">(Offer Purchase - Read Only)</span>}
               </div>
               <div>
-                <div className="flex flex-wrap gap-2.5">
-                  {serviceOptions.filter(o => o.isActive !== false).map(opt => (
-                    <ServiceChip
-                      key={opt.id}
-                      opt={opt}
-                      checked={selectedServiceIds.has(opt.id) || selectedServiceNames.has(opt.name)}
-                      onToggle={toggleService}
-                    />
-                  ))}
-                  {serviceOptions.length === 0 && (
-                    <div className="text-[13px] font-medium text-gray-500 p-4 border border-dashed border-gray-300 rounded-xl bg-gray-50">
-                      No services available.
-                    </div>
-                  )}
-                </div>
+                {!isOfferPurchase && (
+                  <div className="flex flex-wrap gap-2.5">
+                    {serviceOptions.filter(o => o.isActive !== false).map(opt => (
+                      <ServiceChip
+                        key={opt.id}
+                        opt={opt}
+                        checked={selectedServiceIds.has(opt.id) || selectedServiceNames.has(opt.name)}
+                        onToggle={toggleService}
+                      />
+                    ))}
+                    {serviceOptions.length === 0 && (
+                      <div className="text-[13px] font-medium text-gray-500 p-4 border border-dashed border-gray-300 rounded-xl bg-gray-50">
+                        No services available.
+                      </div>
+                    )}
+                  </div>
+                )}
                 {form.services.length > 0 && (
                   <div className="mt-6 flex flex-col gap-3">
                     {form.services.map(cur => (
@@ -1153,6 +1226,7 @@ export default function InvoiceForm({ initial, onSubmit, loading, onCustomerSele
                         onVehiclesChange={() => setServiceModal({ isOpen: true, type: 'edit_standard', opt: cur, selectedVehicleIds: cur.vehicle_ids })}
                         assignedOffers={assignedOffers}
                         onRedeemPackage={id => updateServiceField(cur.service, 'assigned_offer_id', id)}
+                        readOnly={isOfferPurchase}
                       />
                     ))}
                   </div>
@@ -1169,21 +1243,23 @@ export default function InvoiceForm({ initial, onSubmit, loading, onCustomerSele
                 <span className="text-[11px] font-medium text-gray-400">(Optional — vendor-provided work)</span>
               </div>
               <div>
-                <div className="flex flex-wrap gap-2.5">
-                  {thirdPartyOptions.filter(t => t.isActive !== false).map(opt => (
-                    <ThirdPartyServiceChip
-                      key={opt.id}
-                      opt={opt}
-                      checked={selectedThirdPartyIds.has(opt.id)}
-                      onToggle={toggleThirdPartyItem}
-                    />
-                  ))}
-                  {thirdPartyOptions.length === 0 && (
-                    <div className="text-[13px] font-medium text-gray-500 p-4 border border-dashed border-gray-300 rounded-xl bg-gray-50">
-                      No vendor services available.
-                    </div>
-                  )}
-                </div>
+                {!isOfferPurchase && (
+                  <div className="flex flex-wrap gap-2.5">
+                    {thirdPartyOptions.filter(t => t.isActive !== false).map(opt => (
+                      <ThirdPartyServiceChip
+                        key={opt.id}
+                        opt={opt}
+                        checked={selectedThirdPartyIds.has(opt.id)}
+                        onToggle={toggleThirdPartyItem}
+                      />
+                    ))}
+                    {thirdPartyOptions.length === 0 && (
+                      <div className="text-[13px] font-medium text-gray-500 p-4 border border-dashed border-gray-300 rounded-xl bg-gray-50">
+                        No vendor services available.
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {form.thirdPartyItems.length > 0 && (
                   <div className="mt-6 flex flex-col gap-3">
@@ -1195,6 +1271,7 @@ export default function InvoiceForm({ initial, onSubmit, loading, onCustomerSele
                         vehicleOptions={clientType === 'organization' && activeVehicleIds.length > 1 ? vehicleOptions.filter(v => activeVehicleIds.includes(v.value)) : null}
                         onVehiclesChange={() => setServiceModal({ isOpen: true, type: 'edit_third_party', opt: { ...item, idx }, selectedVehicleIds: item.vehicle_ids })}
                         onRemove={() => removeThirdPartyItem(idx)}
+                        readOnly={isOfferPurchase}
                       />
                     ))}
                   </div>
@@ -1340,7 +1417,7 @@ export default function InvoiceForm({ initial, onSubmit, loading, onCustomerSele
               <button
                 type="submit"
                 disabled={loading || checkingConflicts}
-                className={`w-full py-5 text-[15px] font-black tracking-widest uppercase text-slate-900 bg-[#FBD904] hover:bg-[#e5c603] flex items-center justify-center gap-2 transition-colors ${(loading || checkingConflicts) ? 'opacity-70 pointer-events-none' : ''}`}
+                className={`w-full py-5 text-[15px] font-black tracking-widest uppercase text-slate-900 bg-[#F6CB59] hover:bg-[#e5c603] flex items-center justify-center gap-2 transition-colors ${(loading || checkingConflicts) ? 'opacity-70 pointer-events-none' : ''}`}
               >
                 {(loading || checkingConflicts) ? (
                   <div className="w-5 h-5 border-2 border-slate-900/30 border-t-slate-900 rounded-full animate-spin" />

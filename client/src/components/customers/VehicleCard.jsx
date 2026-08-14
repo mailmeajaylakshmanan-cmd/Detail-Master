@@ -6,13 +6,13 @@ export default function VehicleTable({ vehicles, selectedIdx, onSelect }) {
       <div className="w-full flex flex-col gap-4">
         <div className="flex justify-between items-center px-1">
           <h3 className="text-[14px] font-bold text-gray-900 uppercase tracking-wide">
-            Vehicles <span className="text-gray-400 ml-1">(0)</span>
+            Vehicles <span className="text-gray-900 ml-1">(0)</span>
           </h3>
           <button className="text-[12px] font-bold text-[#B45309] hover:text-[#92400e] uppercase tracking-wider flex items-center gap-1.5 transition-colors bg-[#FEF3C7] px-4 py-2 rounded-xl">
             <Plus size={14} strokeWidth={2.5} /> Add Vehicle
           </button>
         </div>
-        <div className="bg-white rounded-[20px] p-10 text-center text-sm text-gray-400 italic shadow-sm border border-gray-100">
+        <div className="bg-white rounded-[20px] p-10 text-center text-sm text-gray-800 italic shadow-sm border border-gray-100">
           No vehicles on file for this customer yet.
         </div>
       </div>
@@ -34,11 +34,11 @@ export default function VehicleTable({ vehicles, selectedIdx, onSelect }) {
           <table className="w-full text-left border-collapse min-w-[800px]">
             <thead>
               <tr className="bg-gray-50 border-b border-gray-100">
-                <th className="px-6 py-4 text-[10px] font-extrabold text-gray-400 uppercase tracking-wider w-[25%]">Vehicle</th>
-                <th className="px-6 py-4 text-[10px] font-extrabold text-gray-400 uppercase tracking-wider">License Plate</th>
-                <th className="px-6 py-4 text-[10px] font-extrabold text-gray-400 uppercase tracking-wider">Vehicle Type</th>
-                <th className="px-6 py-4 text-[10px] font-extrabold text-gray-400 uppercase tracking-wider text-center">Visits</th>
-                <th className="px-6 py-4 text-[10px] font-extrabold text-gray-400 uppercase tracking-wider text-right">Total Spend</th>
+                <th className="px-6 py-4 text-[10px] font-extrabold text-gray-900 uppercase tracking-wider w-[25%]">Vehicle</th>
+                <th className="px-6 py-4 text-[10px] font-extrabold text-gray-900 uppercase tracking-wider">License Plate</th>
+                <th className="px-6 py-4 text-[10px] font-extrabold text-gray-900 uppercase tracking-wider">Vehicle Type</th>
+                <th className="px-6 py-4 text-[10px] font-extrabold text-gray-900 uppercase tracking-wider text-center">Visits</th>
+                <th className="px-6 py-4 text-[10px] font-extrabold text-gray-900 uppercase tracking-wider text-right">Total Spend</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
@@ -63,15 +63,15 @@ export default function VehicleTable({ vehicles, selectedIdx, onSelect }) {
                       </div>
                     </td>
                     <td className="px-6 py-4 align-middle">
-                      <span className="inline-flex items-center px-2.5 py-1 rounded-md bg-gray-100 text-gray-600 font-mono text-[11px] font-bold tracking-widest uppercase border border-gray-200">
+                      <span className="inline-flex items-center px-2.5 py-1 rounded-md bg-gray-100 text-gray-900 font-mono text-[11px] font-bold tracking-widest uppercase border border-gray-200">
                         {v.plate || 'N/A'}
                       </span>
                     </td>
                     <td className="px-6 py-4 align-middle">
-                      <div className="text-[12px] font-semibold text-gray-700 capitalize">{v.type || '--'}</div>
+                      <div className="text-[12px] font-semibold text-gray-900 capitalize">{v.type || '--'}</div>
                     </td>
                     <td className="px-6 py-4 align-middle text-center">
-                      <span className="inline-flex items-center justify-center min-w-[24px] h-[24px] rounded-full bg-gray-100 text-[11px] font-bold text-gray-700">
+                      <span className="inline-flex items-center justify-center min-w-[24px] h-[24px] rounded-full bg-gray-100 text-[11px] font-bold text-gray-900">
                         {v.totalVisits || 0}
                       </span>
                     </td>
