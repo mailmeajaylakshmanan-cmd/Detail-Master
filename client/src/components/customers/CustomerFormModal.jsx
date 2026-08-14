@@ -1,4 +1,5 @@
 import { X, Plus, UserSearch, Trash2 } from 'lucide-react';
+import { useVehicleTypes } from '../../hooks/useQueries.js';
 
 export default function CustomerFormModal({
   isOpen, editId, customers,
@@ -6,6 +7,8 @@ export default function CustomerFormModal({
   formVehicles, setFormVehicles,
   onSubmit, onCancel, onQuickSelect, isSaving
 }) {
+  const { data: vehicleTypes = [] } = useVehicleTypes();
+
   if (!isOpen) return null;
 
   return (
@@ -59,30 +62,48 @@ export default function CustomerFormModal({
             <div className="pt-2">
               <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Vehicles</label>
               <div className="space-y-3">
-                {formVehicles.map((v, idx) => (
-                  <div key={idx} className="flex flex-col gap-2 bg-slate-50/50 p-4 rounded-2xl border border-slate-100/80 shadow-sm relative group">
-                    <button type="button" onClick={() => {
-                        const newV = formVehicles.filter((_, i) => i !== idx);
-                        setFormVehicles(newV.length ? newV : [{ make: '', model: '', plate: '' }]);
-                      }} className="absolute top-3 right-3 p-1.5 rounded-md text-gray-400 hover:text-red-500 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-all">
-                      <Trash2 size={15} />
-                    </button>
-                    
-                    <div className="grid grid-cols-4 gap-3 pr-8">
-                      <input type="text" className="input bg-white text-xs py-2 px-3 border-gray-200/50 shadow-sm" placeholder="Make (e.g. BMW)" value={v.make} onChange={e => { const newV = [...formVehicles]; newV[idx].make = e.target.value; setFormVehicles(newV); }} />
-                      <input type="text" className="input bg-white text-xs py-2 px-3 border-gray-200/50 shadow-sm" placeholder="Model" value={v.model} onChange={e => { const newV = [...formVehicles]; newV[idx].model = e.target.value; setFormVehicles(newV); }} />
-                      <input type="text" className="input bg-white text-xs py-2 px-3 border-gray-200/50 shadow-sm uppercase placeholder-normal" placeholder="Plate No." value={v.plate} onChange={e => { const newV = [...formVehicles]; newV[idx].plate = e.target.value; setFormVehicles(newV); }} />
-                      <select className="input bg-white text-xs py-2 px-3 border-gray-200/50 shadow-sm" value={v.type || 'Sedan'} onChange={e => { const newV = [...formVehicles]; newV[idx].type = e.target.value; setFormVehicles(newV); }}>
-                        <option value="Sedan">Sedan</option>
-                        <option value="SUV">SUV</option>
-                        <option value="Hatchback">Hatchback</option>
-                        <option value="Bike">Bike</option>
-                        <option value="Truck">Truck</option>
-                        <option value="Van">Van</option>
-                      </select>
+                {formVehicles.map((v, idx) => {
+                  const matchedVt = vehicleTypes.find(vt =>
+                    vt.id === v.vehicle_type_id ||
+                    vt.name.trim().toLowerCase() === (v.type || '').trim().toLowerCase()
+                  );
+                  const selectedVal = v.vehicle_type_id || (matchedVt ? matchedVt.id : '');
+
+                  return (
+                    <div key={idx} className="flex flex-col gap-2 bg-slate-50/50 p-4 rounded-2xl border border-slate-100/80 shadow-sm relative group">
+                      <button type="button" onClick={() => {
+                          const newV = formVehicles.filter((_, i) => i !== idx);
+                          setFormVehicles(newV.length ? newV : [{ make: '', model: '', plate: '' }]);
+                        }} className="absolute top-3 right-3 p-1.5 rounded-md text-gray-400 hover:text-red-500 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-all">
+                        <Trash2 size={15} />
+                      </button>
+                      
+                      <div className="grid grid-cols-4 gap-3 pr-8">
+                        <input type="text" className="input bg-white text-xs py-2 px-3 border-gray-200/50 shadow-sm" placeholder="Make (e.g. BMW)" value={v.make} onChange={e => { const newV = [...formVehicles]; newV[idx].make = e.target.value; setFormVehicles(newV); }} />
+                        <input type="text" className="input bg-white text-xs py-2 px-3 border-gray-200/50 shadow-sm" placeholder="Model" value={v.model} onChange={e => { const newV = [...formVehicles]; newV[idx].model = e.target.value; setFormVehicles(newV); }} />
+                        <input type="text" className="input bg-white text-xs py-2 px-3 border-gray-200/50 shadow-sm uppercase placeholder-normal" placeholder="Plate No." value={v.plate} onChange={e => { const newV = [...formVehicles]; newV[idx].plate = e.target.value; setFormVehicles(newV); }} />
+                        <select
+                          className="input bg-white text-xs py-2 px-3 border-gray-200/50 shadow-sm"
+                          value={selectedVal}
+                          onChange={e => {
+                            const rawVal = e.target.value;
+                            const selectedId = rawVal ? Number(rawVal) : null;
+                            const matched = vehicleTypes.find(vt => vt.id === selectedId);
+                            const newV = [...formVehicles];
+                            newV[idx].vehicle_type_id = selectedId;
+                            newV[idx].type = matched ? matched.name : '';
+                            setFormVehicles(newV);
+                          }}
+                        >
+                          <option value="">-- Select Vehicle --</option>
+                          {vehicleTypes.filter(vt => vt.isActive).map(vt => (
+                            <option key={vt.id} value={vt.id}>{vt.name}</option>
+                          ))}
+                        </select>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
                 <button type="button" onClick={() => setFormVehicles([...formVehicles, { make: '', model: '', plate: '' }])} className="text-[11px] font-bold text-blue-600 flex items-center gap-1 hover:text-blue-700 hover:bg-blue-50 px-3 py-1.5 rounded-lg transition-colors mt-2 inline-flex">
                   <Plus size={14} /> Add Another Vehicle
                 </button>

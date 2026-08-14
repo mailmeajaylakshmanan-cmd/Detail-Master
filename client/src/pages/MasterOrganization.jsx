@@ -66,10 +66,26 @@ export default function MasterOrganization() {
       for (const v of formVehicles) {
         if (!v.make && !v.model && !v.plate) continue;
         const make_model = `${v.make || ''} ${v.model || ''}`.trim();
+        const vtId = v.vehicle_type_id || null;
+        const vtName = v.type || null;
         if (v.id) {
-          await api.put('/vehicles/' + v.id, { organization_id: orgId, make_model, license_vin: v.plate, is_active: true });
+          await api.put('/vehicles/' + v.id, {
+            organization_id: orgId,
+            make_model,
+            license_vin: v.plate,
+            vehicle_type_id: vtId,
+            vehicle_type: vtName,
+            is_active: true
+          });
         } else {
-          await api.post('/vehicles', { organization_id: orgId, make_model, license_vin: v.plate, is_active: true });
+          await api.post('/vehicles', {
+            organization_id: orgId,
+            make_model,
+            license_vin: v.plate,
+            vehicle_type_id: vtId,
+            vehicle_type: vtName,
+            is_active: true
+          });
         }
       }
 
@@ -77,7 +93,7 @@ export default function MasterOrganization() {
       handleCancelEdit();
       queryClient.invalidateQueries({ queryKey: queryKeys.organizations.all });
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Error saving organization');
+      toast.error(err.response?.data?.message || err.response?.data?.error || 'Error saving organization');
     } finally {
       setIsSaving(false);
     }

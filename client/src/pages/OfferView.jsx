@@ -402,7 +402,7 @@ export default function OfferView() {
         {/* Bottom address bar */}
         <div style={{ borderTop: `1px solid ${borderCol}`, padding: '16px 40px', textAlign: 'center', backgroundColor: '#f9fafb' }}>
           <p style={{ margin: 0, fontSize: 12, color: textDark, fontWeight: 500 }}>
-            <strong>Detailing Masters</strong>, Opposite KTM Bike Showroom, Kulasekharam, Kanyakumari.
+            <strong>Detailing Masters</strong>, Opposite KTM Bike Showroom, Chankai, Marthandam, Tamil Nadu 629155.
           </p>
           <p style={{ margin: '4px 0 0', fontSize: 11, color: textMuted }}>
             Ph: +91 9994122652 | E-mail: detailingmasters@gmail.com

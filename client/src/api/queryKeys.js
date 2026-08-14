@@ -13,6 +13,10 @@ export const queryKeys = {
     all: ['services'],
     list: () => [...queryKeys.services.all, 'list'],
   },
+  vehicleTypes: {
+    all: ['vehicleTypes'],
+    list: () => [...queryKeys.vehicleTypes.all, 'list'],
+  },
   invoices: {
     all: ['invoices'],
     list: (filters = {}) => [...queryKeys.invoices.all, 'list', filters],
@@ -51,6 +55,14 @@ export function mapOrganization(o) {
 }
 
 export function mapService(s) {
+  const vpArray = Array.isArray(s.vehicle_prices) ? s.vehicle_prices : [];
+  const vpMap = {};
+  vpArray.forEach(item => {
+    if (item.vehicle_type_id) {
+      vpMap[item.vehicle_type_id] = Number(item.price);
+    }
+  });
+
   return {
     ...s,
     id: s.id,
@@ -59,10 +71,29 @@ export function mapService(s) {
     description: s.category ?? s.description ?? '',
     isActive: s.is_active !== undefined ? !!s.is_active : s.isActive !== false,
     estimateTime: s.estimate_time ?? s.estimateTime ?? '',
+    vehiclePrices: vpArray,
+    vehiclePricesMap: vpMap,
+  };
+}
+
+export function mapVehicleType(vt) {
+  return {
+    ...vt,
+    id: vt.id,
+    name: vt.name ?? '',
+    isActive: vt.is_active !== false,
   };
 }
 
 export function mapThirdPartyService(t) {
+  const vpArray = Array.isArray(t.vehicle_prices) ? t.vehicle_prices : [];
+  const vpMap = {};
+  vpArray.forEach(item => {
+    if (item.vehicle_type_id) {
+      vpMap[item.vehicle_type_id] = Number(item.selling_price);
+    }
+  });
+
   return {
     ...t,
     id: t.id,
@@ -73,6 +104,8 @@ export function mapThirdPartyService(t) {
     serviceCost: Number(t.service_cost ?? 0),
     sellingPrice: Number(t.selling_price ?? 0),
     isActive: t.is_active !== undefined ? !!t.is_active : true,
+    vehiclePrices: vpArray,
+    vehiclePricesMap: vpMap,
   };
 }
 
