@@ -207,24 +207,25 @@ export default function MasterService() {
                       <Clock size={10} /> {srv.estimateTime}
                     </span>
                   )}
-                  <button
-                    onClick={(e) => { e.stopPropagation(); handleStatusChange(srv.id, srv.isActive ? 'Inactive' : 'Active'); }}
-                    className={`text-[11px] font-bold uppercase rounded-full px-4 py-1.5 transition-all shadow-sm ${
-                      srv.isActive
-                        ? 'bg-yellow-400 text-yellow-900 hover:bg-yellow-500'
-                        : 'bg-rose-600 text-white hover:bg-rose-700'
-                    }`}
-                  >
-                    {srv.isActive ? 'Active' : 'Inactive'}
-                  </button>
-                </div>
-                  <button
-                    onClick={(e) => handleDeleteClick(e, srv.id)}
-                    className="w-7 h-7 rounded-full bg-red-50 text-red-600 flex items-center justify-center hover:bg-red-100 transition-colors"
-                    title="Delete Service"
-                  >
-                    <Trash2 size={14} />
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleStatusChange(srv.id, srv.isActive ? 'Inactive' : 'Active'); }}
+                      className={`text-[11px] font-bold uppercase rounded-full px-4 py-1.5 transition-all shadow-sm ${
+                        srv.isActive
+                          ? 'bg-yellow-400 text-yellow-900 hover:bg-yellow-500'
+                          : 'bg-rose-600 text-white hover:bg-rose-700'
+                      }`}
+                    >
+                      {srv.isActive ? 'Active' : 'Inactive'}
+                    </button>
+                    <button
+                      onClick={(e) => handleDeleteClick(e, srv.id)}
+                      className="w-7 h-7 rounded-full bg-red-50 text-red-600 flex items-center justify-center hover:bg-red-100 transition-colors"
+                      title="Delete Service"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
                 </div>
               </div>
           </div>
