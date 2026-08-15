@@ -3,13 +3,14 @@ import api from '../api/axios.js';
 import toast from 'react-hot-toast';
 import { Plus, Edit3, X, Search, Sparkles, Clock, Trash2, AlertTriangle, Loader2 } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
-import { useServices } from '../hooks/useQueries.js';
+import { useServices, useVehicleTypes } from '../hooks/useQueries.js';
 import { useDebouncedValue } from '../hooks/useDebouncedValue.js';
 import { queryKeys } from '../api/queryKeys.js';
 
 export default function MasterService() {
   const queryClient = useQueryClient();
   const { data: services = [], isLoading: loading } = useServices();
+  const { data: vehicleTypes = [] } = useVehicleTypes();
 
   const [searchQuery, setSearchQuery] = useState('');
   const debouncedSearch = useDebouncedValue(searchQuery, 250);
@@ -18,6 +19,7 @@ export default function MasterService() {
   const [description, setDescription] = useState('');
   const [price, setPrice] = useState('');
   const [estimateTime, setEstimateTime] = useState('');
+  const [vehiclePrices, setVehiclePrices] = useState({});
   const [editId, setEditId] = useState(null);
 
   const [deleteServiceId, setDeleteServiceId] = useState(null);
@@ -38,12 +40,20 @@ export default function MasterService() {
     e.preventDefault();
     if (!name) return toast.error('Name is required');
 
+    const formattedVehiclePrices = Object.entries(vehiclePrices)
+      .filter(([vtId, p]) => p !== '' && p !== null)
+      .map(([vtId, p]) => ({
+        vehicle_type_id: Number(vtId),
+        price: Number(p)
+      }));
+
     const payload = {
       service_name: name,
       category: description || null,
       base_price: Number(price) || 0,
       is_active: true,
       estimate_time: estimateTime || null,
+      vehicle_prices: formattedVehiclePrices,
     };
 
     try {
@@ -71,6 +81,7 @@ export default function MasterService() {
     setDescription('');
     setPrice('');
     setEstimateTime('');
+    setVehiclePrices({});
     setIsModalOpen(true);
   }
 
@@ -80,6 +91,7 @@ export default function MasterService() {
     setDescription(srv.description || '');
     setPrice(srv.price || '');
     setEstimateTime(srv.estimateTime || '');
+    setVehiclePrices(srv.vehiclePricesMap || {});
     setIsModalOpen(true);
   }
 
@@ -89,6 +101,7 @@ export default function MasterService() {
     setDescription('');
     setPrice('');
     setEstimateTime('');
+    setVehiclePrices({});
     setIsModalOpen(false);
   }
 
@@ -268,6 +281,27 @@ export default function MasterService() {
                   <input type="text" className="input" value={estimateTime} onChange={e => setEstimateTime(e.target.value)} placeholder="e.g. 2-3 hrs" />
                 </div>
               </div>
+              {vehicleTypes.length > 0 && (
+                <div className="pt-2">
+                  <label className="block text-sm font-medium text-gray-500 mb-2">Vehicle Type Specific Pricing (Optional)</label>
+                  <div className="grid grid-cols-2 gap-3 bg-gray-50/50 p-3 rounded-xl border border-gray-100">
+                    {vehicleTypes.filter(vt => vt.isActive).map(vt => (
+                      <div key={vt.id} className="flex items-center justify-between gap-2">
+                        <span className="text-sm text-gray-700">{vt.name}</span>
+                        <input
+                          type="number"
+                          min="0"
+                          step="1"
+                          className="input !py-1.5 !px-3 w-24 text-right"
+                          placeholder={price || "Base"}
+                          value={vehiclePrices[vt.id] !== undefined ? vehiclePrices[vt.id] : ''}
+                          onChange={(e) => setVehiclePrices({ ...vehiclePrices, [vt.id]: e.target.value })}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
               <div>
                 <label className="block text-sm font-medium text-gray-500 mb-1.5">Category / Description (Optional)</label>
                 <textarea className="input min-h-[80px] resize-none" value={description} onChange={e => setDescription(e.target.value)} placeholder="Service details..." />
