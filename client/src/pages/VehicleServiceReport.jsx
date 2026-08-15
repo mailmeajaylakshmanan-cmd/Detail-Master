@@ -511,7 +511,6 @@ export default function VehicleServiceReport() {
 
       {/* Running Cars Marquee */}
       <div className="print:hidden" style={{ overflow: 'hidden', whiteSpace: 'nowrap', width: '100%', marginTop: '40px', padding: '20px 0', opacity: 0.8, maxWidth: 820, margin: '40px auto 0' }}>
-        `}</style>
         <div className="car-track">
            {[...Array(20)].map((_, i) => (
              <img key={i} src={goldenCar} alt="Running Car" style={{ height: '40px', objectFit: 'contain', marginRight: '100px', display: 'inline-block', filter: 'drop-shadow(0 2px 5px rgba(0,0,0,0.1))' }} />
