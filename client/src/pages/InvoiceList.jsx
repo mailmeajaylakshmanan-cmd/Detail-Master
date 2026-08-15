@@ -17,10 +17,10 @@ function formatDate(dateStr) {
 }
 
 const TABS = [
-  { id: 'All', label: 'All Invoices', count: 157 },
-  { id: 'draft', label: 'Draft', count: 5 },
-  { id: 'completed', label: 'Paid', count: 120 },
-  { id: 'open', label: 'Due', count: 17 },
+  { id: 'All', label: 'All Invoices' },
+  { id: 'draft', label: 'Draft' },
+  { id: 'completed', label: 'Paid' },
+  { id: 'open', label: 'Due' },
 ];
 
 const PAGE_SIZE = 15;
@@ -101,11 +101,11 @@ export default function InvoiceList() {
                 }`}
               >
                 {tab.label}
-                <span className={`px-2 py-0.5 rounded-full text-[11px] font-bold ${
-                  isActive ? 'bg-[#F6CB59]/20 text-gray-900' : 'bg-slate-100 text-slate-600'
-                }`}>
-                  {tab.count}
-                </span>
+                {isActive && (
+                  <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-blue-100 text-blue-700">
+                    {totalResults}
+                  </span>
+                )}
               </button>
             );
           })}
@@ -137,7 +137,7 @@ export default function InvoiceList() {
             />
           </div>
           <div className="text-sm text-slate-500 font-medium">
-            Showing <select className="bg-transparent font-semibold text-slate-700 cursor-pointer focus:outline-none" value={PAGE_SIZE} readOnly><option>{PAGE_SIZE}</option></select> of {totalResults} results
+            Showing <span className="font-semibold text-slate-700">{totalResults === 0 ? 0 : `${(page - 1) * PAGE_SIZE + 1}–${Math.min(page * PAGE_SIZE, totalResults)}`}</span> of <span className="font-semibold text-slate-700">{totalResults}</span> results
           </div>
         </div>
 

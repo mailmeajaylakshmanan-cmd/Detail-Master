@@ -4,14 +4,13 @@ import toast from 'react-hot-toast';
 import api from '../api/axios.js';
 import {
   User, Phone, MapPin, Plus, Trash2, Sparkles,
-  CheckCircle2, AlertCircle, Calendar, IndianRupee, Hash, Receipt, Settings, Truck, X,
-  ChevronDown, ChevronUp, Car
+  CheckCircle2, AlertCircle, Calendar, IndianRupee, Hash, Receipt, Settings, Truck, X, Car
 } from 'lucide-react';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import { format, parseISO } from 'date-fns';
 import Select from 'react-select';
-import { useClients, useServices, useOrganizations, useThirdPartyServices, useAssignedOffers } from '../hooks/useQueries.js';
+import { useClients, useServices, useOrganizations, useThirdPartyServices, useAssignedOffers, useVehicleTypes } from '../hooks/useQueries.js';
 
 function fmt(n) { return Number(n || 0).toLocaleString('en-IN'); }
 
@@ -23,8 +22,8 @@ const selectStyles = () => ({
     borderColor: 'transparent',
     borderRadius: '0.75rem',
     boxShadow: 'inset 0 2px 4px 0 rgba(0, 0, 0, 0.05)',
-    minHeight: window.innerWidth < 1024 ? '48px' : '44px',
-    fontSize: window.innerWidth < 1024 ? '14px' : '13px',
+    minHeight: '44px',
+    fontSize: '13px',
     fontWeight: '500',
     backgroundColor: '#ffffff',
     color: '#886D52',
@@ -43,25 +42,25 @@ const selectStyles = () => ({
   menuList: b => ({ ...b, maxHeight: '220px', padding: '6px' }),
   option: (b, s) => ({
     ...b,
-    fontSize: window.innerWidth < 1024 ? '14px' : '13px',
+    fontSize: '13px',
     fontWeight: '500',
     borderRadius: '0.5rem',
-    padding: window.innerWidth < 1024 ? '12px 16px' : '8px 12px',
+    padding: '8px 12px',
     backgroundColor: s.isSelected ? 'rgba(251, 217, 4, 0.2)' : s.isFocused ? '#f8fafc' : 'transparent',
     color: '#886D52',
     cursor: 'pointer',
     marginBottom: '2px'
   }),
-  placeholder: b => ({ ...b, color: '#64748b', fontSize: window.innerWidth < 1024 ? '14px' : '13px', fontWeight: '500' }),
-  input: b => ({ ...b, fontSize: window.innerWidth < 1024 ? '14px' : '13px', color: '#886D52' }),
+  placeholder: b => ({ ...b, color: '#64748b', fontSize: '13px', fontWeight: '500' }),
+  input: b => ({ ...b, fontSize: '13px', color: '#886D52' }),
   singleValue: b => ({ ...b, color: '#886D52', fontWeight: '600' }),
 });
 
 const inputCls = [
-  'input block w-full px-4 py-3 lg:py-2 text-[14px] lg:text-[13px] font-medium text-gray-900',
+  'input block w-full px-4 py-2 text-[13px] font-medium text-gray-900',
   'placeholder:text-gray-400 placeholder:font-medium',
   'bg-white focus:outline-none focus:ring-2 focus:ring-[#F6CB59]/40 focus:border-transparent',
-  'transition-all duration-200 rounded-xl lg:rounded-md'
+  'transition-all duration-200'
 ].join(' ');
 
 function Field({ label, required, children, invisibleLabel }) {
@@ -150,32 +149,6 @@ const PaymentRow = memo(function PaymentRow({
   );
 });
 
-function AccordionSection({ title, icon: Icon, isComplete, isOpen, onToggle, children, summary }) {
-  return (
-    <div className="bg-white/60 backdrop-blur-xl rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-white/50 overflow-hidden flex flex-col transition-all duration-300">
-      <button type="button" onClick={onToggle} className="w-full flex items-center gap-3 p-5 hover:bg-white/40 transition-colors text-left focus:outline-none">
-        <div className={`w-6 h-6 shrink-0 rounded-full flex items-center justify-center border-2 transition-colors ${isComplete ? 'border-emerald-500 text-emerald-500 bg-emerald-50' : 'border-[#F6CB59] text-amber-600 bg-amber-50'}`}>
-          {isComplete ? <CheckCircle2 size={14} className="fill-emerald-50" /> : <Icon size={12} />}
-        </div>
-        <div className="flex-1">
-          <h2 className="text-[15px] font-bold text-gray-900 tracking-tight">{title}</h2>
-          {!isOpen && summary && <p className="text-[12px] text-gray-500 font-medium mt-0.5 truncate">{summary}</p>}
-        </div>
-        <div className="text-gray-400">
-          {isOpen ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
-        </div>
-      </button>
-      <div className={`grid transition-[grid-template-rows] duration-300 ease-in-out ${isOpen ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
-        <div className="overflow-hidden">
-          <div className="p-5 pt-0 border-t border-gray-100/50 mt-2">
-            {children}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 const ScheduleConflictModal = memo(function ScheduleConflictModal({ isOpen, conflicts, onCancel, onProceed }) {
   if (!isOpen) return null;
   return (
@@ -208,9 +181,9 @@ const ScheduleConflictModal = memo(function ScheduleConflictModal({ isOpen, conf
   );
 });
 
-const ServiceVehicleModal = memo(function ServiceVehicleModal({ isOpen, onClose, onConfirm, serviceName, vehicleOptions, initialSelection }) {
+const ServiceVehicleModal = memo(function ServiceVehicleModal({ isOpen, onClose, onConfirm, serviceName, vehicleOptions, initialSelection, allVehicles, serviceOption }) {
   const [selected, setSelected] = useState([]);
-  
+
   React.useEffect(() => {
     if (isOpen) setSelected(initialSelection || []);
   }, [isOpen, initialSelection]);
@@ -221,42 +194,106 @@ const ServiceVehicleModal = memo(function ServiceVehicleModal({ isOpen, onClose,
     <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-gray-900/40 backdrop-blur-sm">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden flex flex-col">
         <div className="flex items-center justify-between p-4 border-b border-gray-100 bg-gray-50/50">
-          <h3 className="font-bold text-gray-900 text-lg">Apply <span className="text-[#F6CB59]">{serviceName}</span> to...</h3>
+          <h3 className="font-bold text-gray-900 text-lg">Apply <span className="text-blue-600">{serviceName}</span> to...</h3>
           <button type="button" onClick={onClose} className="text-gray-400 hover:text-gray-900 transition-colors"><X size={20} /></button>
         </div>
         <div className="p-4 max-h-[60vh] overflow-y-auto flex flex-col gap-2">
-           {vehicleOptions.map(v => (
-             <label key={v.value} className="flex items-center gap-3 p-3 border border-gray-100 rounded-xl cursor-pointer hover:bg-gray-50 transition-colors">
-               <input 
-                 type="checkbox" 
-                 checked={selected.includes(v.value)}
-                 onChange={e => {
-                   if (e.target.checked) setSelected(s => [...s, v.value]);
-                   else setSelected(s => s.filter(id => id !== v.value));
-                 }}
-                 className="w-4 h-4 text-gray-900 border-gray-300 rounded focus:ring-gray-900"
-               />
-               <span className="text-[13px] font-bold text-gray-700">{v.label}</span>
-             </label>
-           ))}
-           {vehicleOptions.length === 0 && <p className="text-sm font-medium text-gray-500">No vehicles available.</p>}
+          {vehicleOptions.map(v => {
+            const vehObj = (allVehicles || []).find(veh => veh.id === v.value);
+            const vtId = vehObj?.vehicle_type_id;
+            let vPrice = Number(serviceOption?.price || serviceOption?.sellingPrice || 0);
+            if (vtId && serviceOption?.vehiclePricesMap && serviceOption.vehiclePricesMap[vtId] !== undefined) {
+              vPrice = Number(serviceOption.vehiclePricesMap[vtId]);
+            }
+            return (
+              <label key={v.value} className={`flex items-center justify-between p-3 border rounded-xl cursor-pointer transition-colors ${selected.includes(v.value) ? 'bg-blue-50/60 border-blue-200' : 'border-gray-100 hover:bg-gray-50'}`}>
+                <div className="flex items-center gap-3">
+                  <input
+                    type="checkbox"
+                    checked={selected.includes(v.value)}
+                    onChange={e => {
+                      if (e.target.checked) setSelected(s => [...s, v.value]);
+                      else setSelected(s => s.filter(id => id !== v.value));
+                    }}
+                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-600"
+                  />
+                  <div className="flex flex-col">
+                    <span className="text-[13px] font-bold text-gray-800">{v.label}</span>
+                    {vehObj?.type && <span className="text-[10px] font-extrabold text-blue-600 uppercase tracking-wider">{vehObj.type}</span>}
+                  </div>
+                </div>
+                {vPrice > 0 && <span className="font-mono text-xs font-bold text-gray-900 bg-white px-2 py-1 rounded-md border border-gray-200 shadow-2xs">₹{vPrice.toLocaleString('en-IN')}</span>}
+              </label>
+            );
+          })}
+          {vehicleOptions.length === 0 && <p className="text-sm font-medium text-gray-500">No vehicles available.</p>}
         </div>
         <div className="p-4 border-t border-gray-100 flex justify-end gap-3 bg-white">
           <button type="button" onClick={onClose} className="px-5 py-2.5 text-[13px] font-bold text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-xl transition-colors">Cancel</button>
-          <button type="button" onClick={() => onConfirm(selected)} className="px-6 py-2.5 text-[13px] font-bold text-gray-900 bg-[#F6CB59] hover:bg-[#F6CB59]/90 rounded-xl transition-colors shadow-sm">Confirm ({selected.length})</button>
+          <button type="button" onClick={() => onConfirm(selected)} className="px-6 py-2.5 text-[13px] font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-colors shadow-sm">Confirm ({selected.length} Vehicles)</button>
         </div>
       </div>
     </div>
   );
 });
 
+const ServiceChip = memo(function ServiceChip({ opt, checked, onToggle, resolvedPrice, vehicleTypeName }) {
+  let displayPrice = resolvedPrice;
+  let labelSuffix = vehicleTypeName ? ` (${vehicleTypeName})` : '';
+  if (!vehicleTypeName && opt.vehiclePrices && opt.vehiclePrices.length > 0) {
+    const minP = Math.min(...opt.vehiclePrices.map(vp => Number(vp.price)).filter(p => p > 0));
+    if (isFinite(minP)) {
+      displayPrice = minP;
+      labelSuffix = ' (From)';
+    }
+  }
+  return (
+    <label className={`flex items-center gap-2 cursor-pointer px-4 py-2.5 rounded-xl text-[13px] font-bold transition-all border ${checked
+        ? 'bg-gray-900 text-white border-gray-900 shadow-md shadow-gray-900/20'
+        : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50 hover:border-gray-300'
+      }`}>
+      <input type="checkbox" checked={checked} onChange={e => onToggle(opt, e.target.checked)} className="sr-only" />
+      <span>{opt.name}</span>
+      <span className={`text-[11px] font-bold px-2 py-0.5 rounded-md ${checked ? 'bg-gray-800 text-[#FFD700]' : 'bg-slate-100 text-slate-700'}`}>
+        ₹{Number(displayPrice || opt.price || 0).toLocaleString('en-IN')}{labelSuffix}
+      </span>
+    </label>
+  );
+});
+
+const ThirdPartyServiceChip = memo(function ThirdPartyServiceChip({ opt, checked, onToggle, resolvedPrice, vehicleTypeName }) {
+  let displayPrice = resolvedPrice;
+  let labelSuffix = vehicleTypeName ? ` (${vehicleTypeName})` : '';
+  if (!vehicleTypeName && opt.vehiclePrices && opt.vehiclePrices.length > 0) {
+    const minP = Math.min(...opt.vehiclePrices.map(vp => Number(vp.selling_price)).filter(p => p > 0));
+    if (isFinite(minP)) {
+      displayPrice = minP;
+      labelSuffix = ' (From)';
+    }
+  }
+  return (
+    <label className={`flex flex-col gap-0.5 cursor-pointer px-4 py-2.5 rounded-xl text-[13px] font-bold transition-all border ${checked
+        ? 'bg-amber-500 text-white border-amber-500 shadow-md shadow-amber-500/20'
+        : 'bg-white text-gray-600 border-gray-200 hover:bg-amber-50 hover:border-amber-200'
+      }`}>
+      <input type="checkbox" checked={checked} onChange={e => onToggle(opt, e.target.checked)} className="sr-only" />
+      <span className="flex items-center gap-1.5">
+        <Truck size={12} className={checked ? 'text-white' : 'text-amber-500'} />
+        {opt.name}
+      </span>
+      <span className={`text-[11px] font-medium ${checked ? 'text-amber-50' : 'text-gray-500'}`}>
+        {opt.vendorName ? `${opt.vendorName} · ` : ''}₹{Number(displayPrice || opt.sellingPrice || 0).toLocaleString('en-IN')}{labelSuffix}
+      </span>
+    </label>
+  );
+});
+
 const VehicleChip = memo(function VehicleChip({ opt, checked, onToggle }) {
   return (
-    <label className={`flex items-center gap-2 cursor-pointer px-4 py-2.5 rounded-xl text-[13px] font-bold transition-all border ${
-      checked
+    <label className={`flex items-center gap-2 cursor-pointer px-4 py-2.5 rounded-xl text-[13px] font-bold transition-all border ${checked
         ? 'bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-600/20'
         : 'bg-white text-gray-600 border-gray-200 hover:bg-blue-50 hover:border-blue-200'
-    }`}>
+      }`}>
       <input type="checkbox" checked={checked} onChange={e => onToggle(opt, e.target.checked)} className="sr-only" />
       {opt.label}
     </label>
@@ -325,111 +362,144 @@ const VehicleVisitRow = memo(function VehicleVisitRow({ label, meta, onField, on
   );
 });
 
-const SelectedServiceRow = memo(function SelectedServiceRow({ cur, onDesc, vehicleOptions, onVehiclesChange, assignedOffers, onRedeemPackage, readOnly, onRemove }) {
+const SelectedServiceRow = memo(function SelectedServiceRow({ cur, onDesc, onPrice, vehicleOptions, onVehiclesChange, assignedOffers, onRedeemPackage, readOnly, allVehicles, serviceOption }) {
+  const appliedVehicles = useMemo(() => {
+    if (!cur.vehicle_ids || cur.vehicle_ids.length === 0) return [];
+    return (allVehicles || []).filter(v => cur.vehicle_ids.includes(v.id));
+  }, [cur.vehicle_ids, allVehicles]);
+
   return (
-    <div className="flex flex-col sm:flex-row sm:items-center gap-4 bg-white/40 p-4 rounded-xl border border-white/60 shadow-sm relative group">
-      {!readOnly && (
-        <button
-          type="button"
-          onClick={onRemove}
-          className="absolute -top-2.5 -right-2.5 w-6 h-6 rounded-full bg-white shadow-[0_2px_10px_rgba(0,0,0,0.08)] border border-gray-100 flex items-center justify-center text-gray-400 hover:text-rose-500 hover:border-rose-200 transition-all opacity-0 group-hover:opacity-100 z-10"
-        >
-          <Trash2 size={12} />
-        </button>
+    <div className="flex flex-col gap-3 bg-gray-50 p-4 rounded-xl border border-gray-200/80 shadow-2xs">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="sm:w-2/5 font-bold text-[14px] text-gray-900 flex items-center gap-2">
+          <CheckCircle2 size={14} className="text-emerald-500 shrink-0" />
+          <span>{cur.service}</span>
+        </div>
+
+        <div className="flex-1 flex flex-col gap-2">
+          <input
+            className={`${inputCls} bg-white shadow-sm border-gray-200 ${readOnly ? 'pointer-events-none opacity-80' : ''}`}
+            placeholder="Detail instructions / description"
+            value={cur.description || ''}
+            onChange={onDesc}
+            readOnly={readOnly}
+          />
+          {!readOnly && assignedOffers && assignedOffers.length > 0 && (
+            <select
+              className={`${inputCls} bg-white shadow-sm border-gray-200 text-xs py-1.5`}
+              value={cur.assigned_offer_id || ''}
+              onChange={e => onRedeemPackage(e.target.value)}
+            >
+              <option value="">-- Don't redeem from package --</option>
+              {assignedOffers.map(offer => (
+                <option key={offer.id} value={offer.id}>
+                  Redeem from: {offer.packageName} ({offer.totalWashes - offer.completedWashes} left)
+                </option>
+              ))}
+            </select>
+          )}
+        </div>
+
+        <div className="sm:w-36 flex flex-col gap-1 items-end">
+          <MoneyInput value={cur.price || cur.total || ''} onChange={val => onPrice && onPrice(val)} disabled={readOnly} />
+          {vehicleOptions && vehicleOptions.length > 1 && (
+            <button type="button" onClick={onVehiclesChange} className="text-blue-600 font-bold text-[11px] hover:underline flex items-center gap-1">
+              Edit Vehicles ({(cur?.vehicle_ids || []).length})
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Per-Vehicle Price Breakdown Pill List */}
+      {appliedVehicles.length > 0 && (
+        <div className="flex flex-wrap gap-1.5 pt-2 border-t border-gray-200/50">
+          {appliedVehicles.map(v => {
+            const vtId = v.vehicle_type_id;
+            let vPrice = Number(serviceOption?.price || cur.price || 0);
+            if (isNaN(vPrice)) vPrice = 0;
+            if (vtId && serviceOption?.vehiclePricesMap && serviceOption.vehiclePricesMap[vtId] !== undefined) {
+              const mapped = Number(serviceOption.vehiclePricesMap[vtId]);
+              if (!isNaN(mapped) && mapped > 0) vPrice = mapped;
+            }
+            return (
+              <span key={v.id} className="text-[11px] font-bold bg-white text-gray-700 border border-gray-200 rounded-lg px-2.5 py-1 flex items-center gap-1.5 shadow-2xs">
+                <Car size={11} className="text-blue-500 shrink-0" />
+                <span>{[v.make, v.model].filter(Boolean).join(' ') || 'Vehicle'}{v.plate ? ` (${v.plate})` : ''}</span>
+                {v.type && <span className="text-[10px] bg-blue-50 text-blue-700 px-1.5 py-0.2 rounded font-extrabold uppercase">{v.type}</span>}
+                <span className="font-mono text-gray-900 font-bold">₹{vPrice.toLocaleString('en-IN')}</span>
+              </span>
+            );
+          })}
+        </div>
       )}
-      <div className="sm:w-2/5 font-bold text-[14px] text-gray-900 flex items-center gap-2">
-        <CheckCircle2 size={14} className="text-emerald-500" /> {cur.service}
-      </div>
-      <div className="flex-1 flex flex-col gap-2">
-        <input
-          className={`${inputCls} bg-white shadow-sm border-gray-200 ${readOnly ? 'pointer-events-none opacity-80' : ''}`}
-          placeholder="Detail instructions / description"
-          value={cur.description || ''}
-          onChange={onDesc}
-          readOnly={readOnly}
-        />
-        {!readOnly && assignedOffers && assignedOffers.length > 0 && (
-          <select 
-            className={`${inputCls} bg-white shadow-sm border-gray-200 text-xs py-1.5`}
-            value={cur.assigned_offer_id || ''}
-            onChange={e => onRedeemPackage(e.target.value)}
-          >
-            <option value="">-- Don't redeem from package --</option>
-            {assignedOffers.map(offer => (
-              <option key={offer.id} value={offer.id}>
-                Redeem from: {offer.packageName} ({offer.totalWashes - offer.completedWashes} left)
-              </option>
-            ))}
-          </select>
-        )}
-      </div>
-      <div className="sm:w-36 flex flex-col gap-2">
-        <MoneyInput value={cur.price || ''} onChange={() => {}} disabled />
-        {vehicleOptions && vehicleOptions.length > 1 && (
-          <div className="flex items-center justify-between bg-gray-50/80 px-3 py-2 rounded-xl border border-gray-200/60 mt-1">
-            <span className="text-[11px] font-bold text-gray-600 tracking-wide uppercase">{(cur?.vehicle_ids || []).length} Vehicles Applied</span>
-            <button type="button" onClick={onVehiclesChange} className="text-[#e2c100] font-bold text-[12px] hover:underline">Edit</button>
-          </div>
-        )}
-      </div>
     </div>
   );
 });
 
-const ThirdPartyServiceRow = memo(function ThirdPartyServiceRow({ item, onField, onRemove, vehicleOptions, onVehiclesChange, readOnly }) {
+const ThirdPartyServiceRow = memo(function ThirdPartyServiceRow({ item, onField, onRemove, vehicleOptions, onVehiclesChange, readOnly, allVehicles, thirdPartyOption }) {
+  const appliedVehicles = useMemo(() => {
+    if (!item.vehicle_ids || item.vehicle_ids.length === 0) return [];
+    return (allVehicles || []).filter(v => item.vehicle_ids.includes(v.id));
+  }, [item.vehicle_ids, allVehicles]);
+
   return (
-    <div className="flex flex-col gap-3 bg-white/40 p-4 rounded-xl border border-white/60 shadow-sm relative group">
-      {!readOnly && (
-        <button
-          type="button"
-          onClick={onRemove}
-          className="absolute -top-2.5 -right-2.5 w-6 h-6 rounded-full bg-white shadow-[0_2px_10px_rgba(0,0,0,0.08)] border border-gray-100 flex items-center justify-center text-gray-400 hover:text-rose-500 hover:border-rose-200 transition-all opacity-0 group-hover:opacity-100 z-10"
-        >
-          <Trash2 size={12} />
-        </button>
-      )}
-      <div className="flex items-center gap-2 text-[14px] font-bold text-gray-900">
-        <Truck size={14} className="text-amber-500 shrink-0" />
-        {item.service_name}
-        {item.vendor_name && <span className="text-[12px] font-medium text-gray-400">— {item.vendor_name}</span>}
-      </div>
-      {vehicleOptions && vehicleOptions.length > 1 && (
-          <div className="flex items-center justify-between bg-gray-50/80 px-3 py-2 rounded-xl border border-gray-200/60 mb-2">
-            <span className="text-[11px] font-bold text-gray-600 tracking-wide uppercase">{(item?.vehicle_ids || []).length} Vehicles Applied</span>
-            <button type="button" onClick={onVehiclesChange} className="text-[#e2c100] font-bold text-[12px] hover:underline">Edit</button>
-          </div>
-      )}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <Field label="Labour Count">
+    <div className="flex flex-col gap-3 bg-amber-50/40 p-4 rounded-xl border border-amber-200/60 shadow-2xs">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="sm:w-2/5 font-bold text-[14px] text-amber-950 flex items-center gap-2">
+          <Truck size={15} className="text-amber-600 shrink-0" />
+          <span>{item.service_name}</span>
+          {item.vendor_name && <span className="text-[11px] font-medium text-amber-700 bg-amber-100/60 px-2 py-0.5 rounded-md">({item.vendor_name})</span>}
+        </div>
+
+        <div className="flex-1">
           <input
-            type="number" min="1" className={`${inputCls} text-right ${readOnly ? 'pointer-events-none opacity-80' : ''}`}
-            value={item.labour_count}
-            onChange={e => onField('labour_count', e.target.value)}
+            className={`${inputCls} bg-white shadow-sm border-gray-200 text-xs ${readOnly ? 'pointer-events-none opacity-80' : ''}`}
+            placeholder="Work instructions / vendor notes"
+            value={item.description || ''}
+            onChange={e => onField('description', e.target.value)}
             readOnly={readOnly}
           />
-        </Field>
-        <Field label="Labour Rate">
-          <MoneyInput 
-            value={item.labour_charge} 
-            onChange={v => onField('labour_charge', v)} 
-            disabled={readOnly}
-          />
-        </Field>
-        <Field label="Service Cost">
-          <MoneyInput 
-            value={item.service_cost} 
-            onChange={v => onField('service_cost', v)} 
-            disabled={readOnly}
-          />
-        </Field>
-        <Field label="Selling Price">
-          <MoneyInput 
-            value={item.selling_price} 
-            onChange={v => onField('selling_price', v)} 
-            disabled={readOnly}
-          />
-        </Field>
+        </div>
+
+        <div className="sm:w-36 flex flex-col gap-1 items-end">
+          <MoneyInput value={item.selling_price || ''} onChange={val => onField('selling_price', val)} disabled={readOnly} />
+          <div className="flex items-center gap-2">
+            {vehicleOptions && vehicleOptions.length > 1 && (
+              <button type="button" onClick={onVehiclesChange} className="text-amber-700 font-bold text-[11px] hover:underline">
+                Edit Vehicles ({(item?.vehicle_ids || []).length})
+              </button>
+            )}
+            {!readOnly && (
+              <button type="button" onClick={onRemove} className="text-rose-500 hover:text-rose-700 font-bold text-[11px]">
+                Remove
+              </button>
+            )}
+          </div>
+        </div>
       </div>
+
+      {/* Per-Vehicle Price Breakdown Pill List */}
+      {appliedVehicles.length > 0 && (
+        <div className="flex flex-wrap gap-1.5 pt-2 border-t border-amber-200/40">
+          {appliedVehicles.map(v => {
+            const vtId = v.vehicle_type_id;
+            let vPrice = Number(thirdPartyOption?.sellingPrice || item.selling_price || 0);
+            if (isNaN(vPrice)) vPrice = 0;
+            if (vtId && thirdPartyOption?.vehiclePricesMap && thirdPartyOption.vehiclePricesMap[vtId] !== undefined) {
+              const mapped = Number(thirdPartyOption.vehiclePricesMap[vtId]);
+              if (!isNaN(mapped) && mapped > 0) vPrice = mapped;
+            }
+            return (
+              <span key={v.id} className="text-[11px] font-bold bg-white text-amber-950 border border-amber-200 rounded-lg px-2.5 py-1 flex items-center gap-1.5 shadow-2xs">
+                <Car size={11} className="text-amber-600 shrink-0" />
+                <span>{[v.make, v.model].filter(Boolean).join(' ') || 'Vehicle'}{v.plate ? ` (${v.plate})` : ''}</span>
+                {v.type && <span className="text-[10px] bg-amber-100 text-amber-800 px-1.5 py-0.2 rounded font-extrabold uppercase">{v.type}</span>}
+                <span className="font-mono text-amber-900 font-bold">₹{vPrice.toLocaleString('en-IN')}</span>
+              </span>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 });
@@ -443,20 +513,12 @@ export default function InvoiceForm({ initial, onSubmit, loading }) {
   const { data: organizations = [] } = useOrganizations();
   const { data: serviceOptions = [] } = useServices();
   const { data: thirdPartyOptions = [] } = useThirdPartyServices();
-  
+  const { data: vehicleTypes = [] } = useVehicleTypes();
+
   const [clientType, setClientType] = useState(initial?.organizationId || initial?.organization_id ? 'organization' : 'individual');
   const [serviceModal, setServiceModal] = useState({ isOpen: false, type: null, opt: null, selectedVehicleIds: [] });
   const [conflictModal, setConflictModal] = useState({ isOpen: false, conflicts: [] });
   const [checkingConflicts, setCheckingConflicts] = useState(false);
-  
-  const [accordions, setAccordions] = useState({
-    client: true,
-    vehicle: true,
-    services: true,
-    vendors: true,
-    notes: true
-  });
-  const toggleAccordion = useCallback((key) => setAccordions(a => ({ ...a, [key]: !a[key] })), []);
 
   const [form, setForm] = useState(() => {
     const base = {
@@ -492,7 +554,7 @@ export default function InvoiceForm({ initial, onSubmit, loading }) {
       services: initial.services || [],
       thirdPartyItems: (initial.thirdPartyServices || []).map(t => ({
         third_party_service_id: t.third_party_service_id || null,
-      vehicle_ids: t.vehicle_ids || [],
+        vehicle_ids: t.vehicle_ids || [],
         service_name: t.service_name,
         vendor_name: t.vendor_name || '',
         labour_count: t.labour_count ?? 1,
@@ -643,6 +705,119 @@ export default function InvoiceForm({ initial, onSubmit, loading }) {
     }));
     toast.success(`Redeemed "${offer.packageName}" package for this vehicle.`);
   }, [serviceOptions, thirdPartyOptions]);
+  const getVehicleTypeId = useCallback((vid) => {
+    if (!vid) return null;
+    const veh = (form.customer?.vehicles || []).find(v => v.id === vid);
+    if (!veh) return null;
+    // Use stored numeric FK first
+    if (veh.vehicle_type_id) return veh.vehicle_type_id;
+    // Fall back: match by text name against master vehicle types list
+    if (veh.type && vehicleTypes.length > 0) {
+      const match = vehicleTypes.find(vt => vt.name.toLowerCase() === String(veh.type).trim().toLowerCase());
+      if (match) return match.id;
+    }
+    return null;
+  }, [form.customer, vehicleTypes]);
+
+  const resolveServicePrice = useCallback((opt, vid) => {
+    if (!opt) return 0;
+    const baseP = Number(opt.price || 0);
+    const vtId = getVehicleTypeId(vid);
+    if (vtId && opt.vehiclePricesMap && opt.vehiclePricesMap[vtId] !== undefined) {
+      const p = Number(opt.vehiclePricesMap[vtId]);
+      if (!isNaN(p) && p > 0) return p;
+    }
+    return !isNaN(baseP) ? baseP : 0;
+  }, [getVehicleTypeId]);
+
+  const calculateServiceTotalForVehicles = useCallback((opt, vehicleIds) => {
+    if (!opt || !vehicleIds || vehicleIds.length === 0) return 0;
+    return vehicleIds.reduce((sum, vid) => sum + resolveServicePrice(opt, vid), 0);
+  }, [resolveServicePrice]);
+
+  const resolveThirdPartyPrice = useCallback((opt, vid) => {
+    if (!opt) return 0;
+    const baseP = Number(opt.sellingPrice || 0);
+    const vtId = getVehicleTypeId(vid);
+    if (vtId && opt.vehiclePricesMap && opt.vehiclePricesMap[vtId] !== undefined) {
+      const p = Number(opt.vehiclePricesMap[vtId]);
+      if (!isNaN(p) && p > 0) return p;
+    }
+    return !isNaN(baseP) ? baseP : 0;
+  }, [getVehicleTypeId]);
+
+  const calculateThirdPartyTotalForVehicles = useCallback((opt, vehicleIds) => {
+    if (!opt || !vehicleIds || vehicleIds.length === 0) return 0;
+    return vehicleIds.reduce((sum, vid) => sum + resolveThirdPartyPrice(opt, vid), 0);
+  }, [resolveThirdPartyPrice]);
+
+  const getServiceBadgeInfo = useCallback((opt, vehicleIds) => {
+    if (!vehicleIds || vehicleIds.length === 0) {
+      if (opt.vehiclePrices && opt.vehiclePrices.length > 0) {
+        const prices = opt.vehiclePrices.map(vp => Number(vp.price)).filter(p => p > 0);
+        const minP = Math.min(...prices);
+        if (isFinite(minP)) {
+          return { priceStr: `₹${minP.toLocaleString('en-IN')}`, suffix: ' (From)' };
+        }
+      }
+      return { priceStr: `₹${Number(opt.price || 0).toLocaleString('en-IN')}`, suffix: '' };
+    }
+
+    const allVehicles = form.customer?.vehicles || [];
+    const selectedVehs = allVehicles.filter(v => vehicleIds.includes(v.id));
+
+    if (vehicleIds.length === 1 && selectedVehs.length === 1) {
+      const v = selectedVehs[0];
+      const resPrice = resolveServicePrice(opt, v.id);
+      const safePrice = isNaN(resPrice) ? 0 : resPrice;
+      return { priceStr: `₹${safePrice.toLocaleString('en-IN')}`, suffix: v.type ? ` (${v.type})` : '' };
+    }
+
+    const totalP = calculateServiceTotalForVehicles(opt, vehicleIds);
+    const safeTotalP = isNaN(totalP) ? 0 : Number(totalP);
+    const types = Array.from(new Set(selectedVehs.map(v => v.type).filter(Boolean)));
+    const typeLabel = types.length > 0 ? ` (${types.join(' + ')})` : ` (${vehicleIds.length} Veh)`;
+
+    return { priceStr: `₹${safeTotalP.toLocaleString('en-IN')}`, suffix: typeLabel };
+  }, [form.customer, resolveServicePrice, calculateServiceTotalForVehicles]);
+
+  const getThirdPartyBadgeInfo = useCallback((opt, vehicleIds) => {
+    if (!vehicleIds || vehicleIds.length === 0) {
+      if (opt.vehiclePrices && opt.vehiclePrices.length > 0) {
+        const prices = opt.vehiclePrices.map(vp => Number(vp.selling_price)).filter(p => p > 0);
+        const minP = Math.min(...prices);
+        if (isFinite(minP)) {
+          return { priceStr: `₹${minP.toLocaleString('en-IN')}`, suffix: ' (From)' };
+        }
+      }
+      return { priceStr: `₹${Number(opt.sellingPrice || 0).toLocaleString('en-IN')}`, suffix: '' };
+    }
+
+    const allVehicles = form.customer?.vehicles || [];
+    const selectedVehs = allVehicles.filter(v => vehicleIds.includes(v.id));
+
+    if (vehicleIds.length === 1 && selectedVehs.length === 1) {
+      const v = selectedVehs[0];
+      const resPrice = resolveThirdPartyPrice(opt, v.id);
+      const safePrice = isNaN(resPrice) ? 0 : resPrice;
+      return { priceStr: `₹${safePrice.toLocaleString('en-IN')}`, suffix: v.type ? ` (${v.type})` : '' };
+    }
+
+    const totalP = calculateThirdPartyTotalForVehicles(opt, vehicleIds);
+    const safeTotalP = isNaN(totalP) ? 0 : Number(totalP);
+    const types = Array.from(new Set(selectedVehs.map(v => v.type).filter(Boolean)));
+    const typeLabel = types.length > 0 ? ` (${types.join(' + ')})` : ` (${vehicleIds.length} Veh)`;
+
+    return { priceStr: `₹${safeTotalP.toLocaleString('en-IN')}`, suffix: typeLabel };
+  }, [form.customer, resolveThirdPartyPrice, calculateThirdPartyTotalForVehicles]);
+
+  const activeVehicleTypeInfo = useMemo(() => {
+    if (!activeVehicleIds.length) return null;
+    const vid = activeVehicleIds[0];
+    const veh = (form.customer?.vehicles || []).find(v => v.id === vid);
+    if (veh) return { id: veh.vehicle_type_id, name: veh.type };
+    return null;
+  }, [activeVehicleIds, form.customer]);
 
   const toggleService = useCallback((opt, checked) => {
     if (checked) {
@@ -650,19 +825,19 @@ export default function InvoiceForm({ initial, onSubmit, loading }) {
         setServiceModal({ isOpen: true, type: 'standard', opt, selectedVehicleIds: activeVehicleIds });
         return;
       }
+      const initialTotal = calculateServiceTotalForVehicles(opt, activeVehicleIds);
       setForm(f => {
         const newServices = [...f.services, {
           service_id: opt.id,
           service: opt.name,
           description: opt.description || '',
-          price: opt.price || 0,
-          total: opt.price || 0,
+          price: initialTotal,
+          total: initialTotal,
           vehicle_ids: activeVehicleIds
         }];
         return {
           ...f,
           services: newServices,
-          subTotal: newServices.reduce((acc, s) => acc + (Number(s.total) || 0) * (s.vehicle_ids?.length || 1), 0)
         };
       });
     } else {
@@ -671,35 +846,39 @@ export default function InvoiceForm({ initial, onSubmit, loading }) {
         return {
           ...f,
           services: newServices,
-          subTotal: newServices.reduce((acc, s) => acc + (Number(s.total) || 0) * (s.vehicle_ids?.length || 1), 0)
         };
       });
     }
-  }, [clientType, activeVehicleIds]);
+  }, [clientType, activeVehicleIds, calculateServiceTotalForVehicles]);
 
   const updateServiceField = useCallback((name, field, val) => {
-    // Price is not editable directly
-    if (field === 'price') return;
     setForm(f => {
       const newServices = f.services.map(s => {
         if (s.service !== name) return s;
+        if (field === 'price') {
+          const numPrice = Number(val) || 0;
+          return { ...s, price: numPrice, total: numPrice, isManualPrice: true };
+        }
         if (field === 'assigned_offer_id') {
-          const originalPrice = serviceOptions.find(opt => opt.name === s.service)?.price || 0;
+          const originalPrice = resolveServicePrice(
+            serviceOptions.find(opt => opt.name === s.service),
+            s.vehicle_ids?.[0]
+          );
           const newPrice = val ? 0 : originalPrice;
-          return { ...s, assigned_offer_id: val, price: newPrice, total: newPrice };
+          return { ...s, assigned_offer_id: val, price: newPrice, total: newPrice, isManualPrice: !val };
         }
         return { ...s, [field]: val };
       });
-      return { 
-        ...f, 
+      return {
+        ...f,
         services: newServices,
-        subTotal: newServices.reduce((acc, s) => acc + (Number(s.total) || 0) * (s.vehicle_ids?.length || 1), 0)
       };
     });
-  }, [serviceOptions]);
+  }, [serviceOptions, resolveServicePrice]);
 
   const addThirdPartyItem = useCallback((catalogId, vehicle_ids) => {
     const opt = thirdPartyOptions.find(t => t.id === Number(catalogId));
+    const initialTotal = calculateThirdPartyTotalForVehicles(opt, vehicle_ids);
     setForm(f => ({
       ...f,
       thirdPartyItems: [...f.thirdPartyItems, {
@@ -709,10 +888,10 @@ export default function InvoiceForm({ initial, onSubmit, loading }) {
         labour_count: opt?.labourCount ?? 1,
         labour_charge: opt?.labourCharge ?? 0,
         service_cost: opt?.serviceCost ?? 0,
-        selling_price: opt?.sellingPrice ?? 0,
+        selling_price: initialTotal,
       }],
     }));
-  }, [thirdPartyOptions]);
+  }, [thirdPartyOptions, calculateThirdPartyTotalForVehicles]);
 
   const toggleThirdPartyItem = useCallback((opt, checked) => {
     if (checked) {
@@ -724,7 +903,7 @@ export default function InvoiceForm({ initial, onSubmit, loading }) {
     } else {
       setForm(f => ({
         ...f,
-        thirdPartyItems: f.thirdPartyItems.filter(t => t.third_party_service_id !== opt.id),
+        thirdPartyItems: f.thirdPartyItems.filter(t => t.third_party_service_id !== opt.id && t.service_name !== opt.name),
       }));
     }
   }, [clientType, activeVehicleIds, addThirdPartyItem]);
@@ -805,6 +984,7 @@ export default function InvoiceForm({ initial, onSubmit, loading }) {
     const service_items = form.services.map(s => ({
       service_id: Number(s.service_id || s.serviceId),
       vehicle_ids: s.vehicle_ids || [],
+      price: Number(s.price) || 0,
       assigned_offer_id: s.assigned_offer_id || null,
     }));
 
@@ -824,22 +1004,22 @@ export default function InvoiceForm({ initial, onSubmit, loading }) {
     // pre-registered under the org, not created here.
     const vehicle_visits = clientType === 'organization'
       ? form.selectedVehicleIds.map(vid => {
-          const meta = form.vehicleVisitMeta[vid] || {};
-          return {
-            vehicle_id: vid,
-            visitor_name: meta.visitorName || null,
-            visitor_phone: meta.visitorPhone || null,
-            checkin_time: meta.checkinTime || null,
-            checkout_time: meta.checkoutTime || null,
-          };
-        })
+        const meta = form.vehicleVisitMeta[vid] || {};
+        return {
+          vehicle_id: vid,
+          visitor_name: meta.visitorName || null,
+          visitor_phone: meta.visitorPhone || null,
+          checkin_time: meta.checkinTime || null,
+          checkout_time: meta.checkoutTime || null,
+        };
+      })
       : (form.vehicleId ? [{
-          vehicle_id: form.vehicleId,
-          visitor_name: (form.vehicleVisitMeta[form.vehicleId] || {}).visitorName || null,
-          visitor_phone: (form.vehicleVisitMeta[form.vehicleId] || {}).visitorPhone || null,
-          checkin_time: (form.vehicleVisitMeta[form.vehicleId] || {}).checkinTime || null,
-          checkout_time: (form.vehicleVisitMeta[form.vehicleId] || {}).checkoutTime || null,
-        }] : []);
+        vehicle_id: form.vehicleId,
+        visitor_name: (form.vehicleVisitMeta[form.vehicleId] || {}).visitorName || null,
+        visitor_phone: (form.vehicleVisitMeta[form.vehicleId] || {}).visitorPhone || null,
+        checkin_time: (form.vehicleVisitMeta[form.vehicleId] || {}).checkinTime || null,
+        checkout_time: (form.vehicleVisitMeta[form.vehicleId] || {}).checkoutTime || null,
+      }] : []);
 
     const payload = {
       client_id: clientType === 'individual' ? form.customer.id : null,
@@ -940,30 +1120,38 @@ export default function InvoiceForm({ initial, onSubmit, loading }) {
   const handleModalConfirm = useCallback((selectedIds) => {
     const { type, opt } = serviceModal;
     if (type === 'standard') {
-      setForm(f => {
-        const newServices = [...f.services, {
+      const serviceOpt = serviceOptions.find(s => s.id === opt.id || s.name === opt.name);
+      const totalForVehs = calculateServiceTotalForVehicles(serviceOpt || opt, selectedIds);
+      setForm(f => ({
+        ...f,
+        services: [...f.services, {
           service_id: opt.id,
           service: opt.name,
           description: opt.description || '',
-          price: opt.price || 0,
-          total: opt.price || 0,
+          price: totalForVehs,
+          total: totalForVehs,
           vehicle_ids: selectedIds
-        }];
-        return {
-          ...f,
-          services: newServices,
-          subTotal: newServices.reduce((acc, s) => acc + (Number(s.total) || 0) * (s.vehicle_ids?.length || 1), 0)
-        };
-      });
+        }]
+      }));
     } else if (type === 'third_party') {
       addThirdPartyItem(opt.id, selectedIds);
     } else if (type === 'edit_standard') {
-      updateServiceField(opt.service, 'vehicle_ids', selectedIds);
+      const serviceOpt = serviceOptions.find(s => s.id === opt.service_id || s.name === opt.service);
+      const totalForVehs = calculateServiceTotalForVehicles(serviceOpt, selectedIds);
+      setForm(f => ({
+        ...f,
+        services: f.services.map(s => (s.service === opt.service ? { ...s, vehicle_ids: selectedIds, price: totalForVehs, total: totalForVehs } : s))
+      }));
     } else if (type === 'edit_third_party') {
-      updateThirdPartyField(opt.idx, 'vehicle_ids', selectedIds);
+      const tpOpt = thirdPartyOptions.find(t => t.id === opt.third_party_service_id || t.name === opt.service_name);
+      const totalForVehs = calculateThirdPartyTotalForVehicles(tpOpt, selectedIds);
+      setForm(f => ({
+        ...f,
+        thirdPartyItems: f.thirdPartyItems.map((item, idx) => (idx === opt.idx ? { ...item, vehicle_ids: selectedIds, selling_price: totalForVehs } : item))
+      }));
     }
     setServiceModal({ isOpen: false, type: null, opt: null, selectedVehicleIds: [] });
-  }, [serviceModal, addThirdPartyItem, updateServiceField, updateThirdPartyField]);
+  }, [serviceModal, serviceOptions, thirdPartyOptions, calculateServiceTotalForVehicles, calculateThirdPartyTotalForVehicles, addThirdPartyItem]);
 
   return (
     <div className="relative">
@@ -979,6 +1167,8 @@ export default function InvoiceForm({ initial, onSubmit, loading }) {
         serviceName={serviceModal.opt?.name || serviceModal.opt?.service || serviceModal.opt?.service_name || 'Service'}
         vehicleOptions={vehicleOptions.filter(v => activeVehicleIds.includes(v.value))}
         initialSelection={serviceModal.selectedVehicleIds}
+        allVehicles={form.customer?.vehicles || []}
+        serviceOption={serviceModal.opt}
       />
       <ScheduleConflictModal
         isOpen={conflictModal.isOpen}
@@ -998,21 +1188,17 @@ export default function InvoiceForm({ initial, onSubmit, loading }) {
           </div>
 
           <div className="flex flex-col gap-6">
-            <AccordionSection
-              title={clientType === 'individual' ? 'Client Details' : 'Organization Details'}
-              icon={User}
-              isComplete={isStep1Complete}
-              isOpen={accordions.client}
-              onToggle={() => toggleAccordion('client')}
-              summary={form.customer.name ? `${form.customer.name} (${form.customer.phone})` : 'Select a client'}
-            >
-              <div className="flex flex-col gap-5">
-                <div className="flex items-center justify-end">
-                  <div className="flex items-center gap-1 bg-gray-100/80 p-1 rounded-lg border border-gray-200/50">
-                    <button type="button" onClick={() => { setClientType('individual'); setForm(f => ({...f, customer: { name: '', phone: '', address: '', vehicles: [] }, vehicleId: null, selectedVehicleIds: [], vehicleVisitMeta: {}})); }} className={`px-3 py-1 text-[12px] font-bold rounded-md transition-colors ${clientType === 'individual' ? 'bg-white shadow-sm text-gray-900 border border-gray-200/50' : 'text-gray-500 hover:text-gray-700'}`}>Individual</button>
-                    <button type="button" onClick={() => { setClientType('organization'); setForm(f => ({...f, customer: { name: '', phone: '', address: '', vehicles: [] }, vehicleId: null, selectedVehicleIds: [], vehicleVisitMeta: {}})); }} className={`px-3 py-1 text-[12px] font-bold rounded-md transition-colors ${clientType === 'organization' ? 'bg-white shadow-sm text-gray-900 border border-gray-200/50' : 'text-gray-500 hover:text-gray-700'}`}>Organization</button>
-                  </div>
+            <div className="bg-white/90 backdrop-blur-md rounded-2xl shadow-sm border border-gray-200 p-6 flex flex-col gap-5">
+              <div className="flex items-center gap-3">
+                <div className={`w-6 h-6 rounded-full flex items-center justify-center border-2 transition-colors ${isStep1Complete ? 'border-emerald-500 text-emerald-500 bg-emerald-50' : 'border-gray-300 text-gray-400 bg-gray-50'}`}>
+                  {isStep1Complete ? <CheckCircle2 size={14} className="fill-emerald-50" /> : <span className="text-[10px] font-bold">1</span>}
                 </div>
+                <h2 className="text-[15px] font-bold text-gray-900 tracking-tight">{clientType === 'individual' ? 'Client Details' : 'Organization Details'}</h2>
+                <div className="ml-auto flex items-center gap-1 bg-gray-100 p-1 rounded-lg">
+                  <button type="button" onClick={() => { setClientType('individual'); setForm(f => ({ ...f, customer: { name: '', phone: '', address: '', vehicles: [] }, vehicleId: null, selectedVehicleIds: [], vehicleVisitMeta: {} })); }} className={`px-3 py-1 text-[12px] font-bold rounded-md transition-colors ${clientType === 'individual' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}>Individual</button>
+                  <button type="button" onClick={() => { setClientType('organization'); setForm(f => ({ ...f, customer: { name: '', phone: '', address: '', vehicles: [] }, vehicleId: null, selectedVehicleIds: [], vehicleVisitMeta: {} })); }} className={`px-3 py-1 text-[12px] font-bold rounded-md transition-colors ${clientType === 'organization' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}>Organization</button>
+                </div>
+              </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
                 <Select
@@ -1052,6 +1238,7 @@ export default function InvoiceForm({ initial, onSubmit, loading }) {
                         carMake: '',
                         licensePlate: '',
                       }));
+                      onCustomerSelect?.(m);
                       return;
                     }
                     const first = vehicles[0];
@@ -1068,6 +1255,7 @@ export default function InvoiceForm({ initial, onSubmit, loading }) {
                       carMake: first ? `${first.make || ''} ${first.model || ''}`.trim() : '',
                       licensePlate: first?.plate || '',
                     }));
+                    onCustomerSelect?.(m);
                   }}
                   isDisabled={!!initial}
                 />
@@ -1094,17 +1282,14 @@ export default function InvoiceForm({ initial, onSubmit, loading }) {
                 )}
               </div>
             </div>
-          </AccordionSection>
 
-            <AccordionSection
-              title="Vehicle Identifiers"
-              icon={Car}
-              isComplete={isStep2Complete}
-              isOpen={accordions.vehicle}
-              onToggle={() => toggleAccordion('vehicle')}
-              summary={clientType === 'organization' ? `${form.selectedVehicleIds.length} vehicles selected` : (selectedVehicle?.label || 'Select a vehicle')}
-            >
-              <div className="flex flex-col gap-5">
+            <div className="bg-white/90 backdrop-blur-md rounded-2xl shadow-sm border border-gray-200 p-6 flex flex-col gap-5">
+              <div className="flex items-center gap-3">
+                <div className={`w-6 h-6 rounded-full flex items-center justify-center border-2 transition-colors ${isStep2Complete ? 'border-emerald-500 text-emerald-500 bg-emerald-50' : 'border-gray-300 text-gray-400 bg-gray-50'}`}>
+                  {isStep2Complete ? <CheckCircle2 size={14} className="fill-emerald-50" /> : <span className="text-[10px] font-bold">2</span>}
+                </div>
+                <h2 className="text-[15px] font-bold text-gray-900 tracking-tight">Vehicle Identifiers</h2>
+              </div>
 
               {clientType === 'individual' ? (
                 <>
@@ -1150,7 +1335,7 @@ export default function InvoiceForm({ initial, onSubmit, loading }) {
                       {assignedOffers.filter(o => o.vehicleId === form.vehicleId).map(offer => (
                         <div key={offer.id} className="bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-100 p-4 rounded-xl flex items-center justify-between shadow-sm">
                           <div className="flex flex-col">
-                            <span className="text-[12px] font-bold text-emerald-700 uppercase tracking-wider flex items-center gap-1.5"><Sparkles size={12}/> Active Package</span>
+                            <span className="text-[12px] font-bold text-emerald-700 uppercase tracking-wider flex items-center gap-1.5"><Sparkles size={12} /> Active Package</span>
                             <span className="text-[15px] font-bold text-gray-900 mt-0.5">{offer.packageName}</span>
                             <span className="text-[12px] font-medium text-emerald-600 mt-0.5">{offer.completedWashes} of {offer.totalWashes} washes used</span>
                           </div>
@@ -1205,98 +1390,95 @@ export default function InvoiceForm({ initial, onSubmit, loading }) {
                   )}
                 </>
               )}
-              </div>
-            </AccordionSection>
+            </div>
 
-            <AccordionSection
-              title="Services"
-              icon={Sparkles}
-              isComplete={isStep3Complete}
-              isOpen={accordions.services}
-              onToggle={() => toggleAccordion('services')}
-              summary={`${form.services.length} services added`}
-            >
-              <div className="flex flex-col gap-5">
-                {isOfferPurchase && <span className="inline-block self-start text-[11px] font-medium text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full mb-2 border border-amber-200">(Offer Purchase - Read Only)</span>}
-                
+            <div className="bg-white/90 backdrop-blur-md rounded-2xl shadow-sm border border-gray-200 p-6 flex flex-col gap-5">
+              <div className="flex items-center gap-3">
+                <div className={`w-6 h-6 rounded-full flex items-center justify-center border-2 transition-colors ${isStep3Complete ? 'border-emerald-500 text-emerald-500 bg-emerald-50' : 'border-gray-300 text-gray-400 bg-gray-50'}`}>
+                  {isStep3Complete ? <CheckCircle2 size={14} className="fill-emerald-50" /> : <span className="text-[10px] font-bold">3</span>}
+                </div>
+                <h2 className="text-[15px] font-bold text-gray-900 tracking-tight">Services Grid</h2>
+                {isOfferPurchase && <span className="text-[11px] font-medium text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">(Offer Purchase - Read Only)</span>}
+              </div>
+              <div>
                 {!isOfferPurchase && (
-                  <Field label="Add Service">
-                    <Select
-                      isClearable
-                      isSearchable
-                      placeholder="Search and select a service to add..."
-                      styles={selectStyles()}
-                      menuPortalTarget={document.body}
-                      menuPosition="fixed"
-                      options={serviceOptions.filter(o => o.isActive !== false).map(o => ({ value: o.id, label: o.name, opt: o }))}
-                      value={null}
-                      onChange={sel => {
-                        if (sel) {
-                          if (!selectedServiceIds.has(sel.opt.id) && !selectedServiceNames.has(sel.opt.name)) {
-                            toggleService(sel.opt, true);
-                          } else {
-                            toast.error(`${sel.opt.name} is already added.`);
-                          }
-                        }
-                      }}
-                    />
-                  </Field>
+                  <div className="flex flex-wrap gap-2.5">
+                    {serviceOptions.filter(o => o.isActive !== false).map(opt => {
+                      const badgeInfo = getServiceBadgeInfo(opt, activeVehicleIds);
+                      return (
+                        <ServiceChip
+                          key={opt.id}
+                          opt={opt}
+                          checked={selectedServiceIds.has(opt.id) || selectedServiceNames.has(opt.name)}
+                          onToggle={toggleService}
+                          resolvedPrice={badgeInfo.priceStr}
+                          vehicleTypeName={badgeInfo.suffix}
+                        />
+                      );
+                    })}
+                    {serviceOptions.length === 0 && (
+                      <div className="text-[13px] font-medium text-gray-500 p-4 border border-dashed border-gray-300 rounded-xl bg-gray-50">
+                        No services available.
+                      </div>
+                    )}
+                  </div>
                 )}
                 {form.services.length > 0 && (
-                  <div className="flex flex-col gap-3">
+                  <div className="mt-6 flex flex-col gap-3">
                     {form.services.map(cur => (
                       <SelectedServiceRow
                         key={cur.service_id || cur.service}
                         cur={cur}
                         onDesc={e => updateServiceField(cur.service, 'description', e.target.value)}
+                        onPrice={val => updateServiceField(cur.service, 'price', val)}
                         vehicleOptions={clientType === 'organization' && activeVehicleIds.length > 1 ? vehicleOptions.filter(v => activeVehicleIds.includes(v.value)) : null}
                         onVehiclesChange={() => setServiceModal({ isOpen: true, type: 'edit_standard', opt: cur, selectedVehicleIds: cur.vehicle_ids })}
                         assignedOffers={assignedOffers}
                         onRedeemPackage={id => updateServiceField(cur.service, 'assigned_offer_id', id)}
                         readOnly={isOfferPurchase}
-                        onRemove={() => toggleService({ id: cur.service_id, name: cur.service }, false)}
+                        allVehicles={form.customer?.vehicles || []}
+                        serviceOption={serviceOptions.find(o => o.id === cur.service_id || o.name === cur.service)}
                       />
                     ))}
                   </div>
                 )}
               </div>
-            </AccordionSection>
+            </div>
 
-            <AccordionSection
-              title="Third-Party Services"
-              icon={Truck}
-              isComplete={form.thirdPartyItems.length > 0}
-              isOpen={accordions.vendors}
-              onToggle={() => toggleAccordion('vendors')}
-              summary={form.thirdPartyItems.length > 0 ? `${form.thirdPartyItems.length} vendor items added` : 'Optional vendor-provided work'}
-            >
-              <div className="flex flex-col gap-5">
+            <div className="bg-white/90 backdrop-blur-md rounded-2xl shadow-sm border border-gray-200 p-6 flex flex-col gap-5">
+              <div className="flex items-center gap-3">
+                <div className="w-6 h-6 rounded-full flex items-center justify-center border-2 border-gray-300 text-gray-400 bg-gray-50">
+                  <Truck size={12} />
+                </div>
+                <h2 className="text-[15px] font-bold text-gray-900 tracking-tight">Third-Party Services</h2>
+                <span className="text-[11px] font-medium text-gray-400">(Optional — vendor-provided work)</span>
+              </div>
+              <div>
                 {!isOfferPurchase && (
-                  <Field label="Add Vendor Service">
-                    <Select
-                      isClearable
-                      isSearchable
-                      placeholder="Search vendor services..."
-                      styles={selectStyles()}
-                      menuPortalTarget={document.body}
-                      menuPosition="fixed"
-                      options={thirdPartyOptions.filter(t => t.isActive !== false).map(opt => ({ value: opt.id, label: `${opt.name} ${opt.vendorName ? `(${opt.vendorName})` : ''}`, opt }))}
-                      value={null}
-                      onChange={sel => {
-                        if (sel) {
-                          if (!selectedThirdPartyIds.has(sel.opt.id)) {
-                            toggleThirdPartyItem(sel.opt, true);
-                          } else {
-                            toast.error(`${sel.opt.name} is already added.`);
-                          }
-                        }
-                      }}
-                    />
-                  </Field>
+                  <div className="flex flex-wrap gap-2.5">
+                    {thirdPartyOptions.filter(t => t.isActive !== false).map(opt => {
+                      const badgeInfo = getThirdPartyBadgeInfo(opt, activeVehicleIds);
+                      return (
+                        <ThirdPartyServiceChip
+                          key={opt.id}
+                          opt={opt}
+                          checked={selectedThirdPartyIds.has(opt.id)}
+                          onToggle={toggleThirdPartyItem}
+                          resolvedPrice={badgeInfo.priceStr}
+                          vehicleTypeName={badgeInfo.suffix}
+                        />
+                      );
+                    })}
+                    {thirdPartyOptions.length === 0 && (
+                      <div className="text-[13px] font-medium text-gray-500 p-4 border border-dashed border-gray-300 rounded-xl bg-gray-50">
+                        No vendor services available.
+                      </div>
+                    )}
+                  </div>
                 )}
 
                 {form.thirdPartyItems.length > 0 && (
-                  <div className="flex flex-col gap-3">
+                  <div className="mt-6 flex flex-col gap-3">
                     {form.thirdPartyItems.map((item, idx) => (
                       <ThirdPartyServiceRow
                         key={idx}
@@ -1306,21 +1488,22 @@ export default function InvoiceForm({ initial, onSubmit, loading }) {
                         onVehiclesChange={() => setServiceModal({ isOpen: true, type: 'edit_third_party', opt: { ...item, idx }, selectedVehicleIds: item.vehicle_ids })}
                         onRemove={() => removeThirdPartyItem(idx)}
                         readOnly={isOfferPurchase}
+                        allVehicles={form.customer?.vehicles || []}
+                        thirdPartyOption={thirdPartyOptions.find(t => t.id === item.third_party_service_id || t.name === item.service_name)}
                       />
                     ))}
                   </div>
                 )}
               </div>
-            </AccordionSection>
+            </div>
 
-            <AccordionSection
-              title="Additional Terms & Notes"
-              icon={Settings}
-              isComplete={!!form.notes || !!form.termsAndConditions}
-              isOpen={accordions.notes}
-              onToggle={() => toggleAccordion('notes')}
-              summary={form.notes ? 'Notes added' : 'Add special instructions'}
-            >
+            <div className="bg-white/90 backdrop-blur-md rounded-2xl shadow-sm border border-gray-200 p-6 flex flex-col gap-5">
+              <div className="flex items-center gap-3">
+                <div className="w-6 h-6 rounded-full flex items-center justify-center border-2 border-gray-300 text-gray-400 bg-gray-50">
+                  <Settings size={12} />
+                </div>
+                <h2 className="text-[15px] font-bold text-gray-900 tracking-tight">Additional Terms & Notes</h2>
+              </div>
               <div className="flex flex-col gap-4">
                 <Field label="Special Notes for Client">
                   <textarea className={`${inputCls} resize-none h-16 bg-gray-50 border-gray-200`} value={form.notes} onChange={e => setF('notes', e.target.value)} placeholder="e.g. Thanks for your business!" />
@@ -1335,7 +1518,7 @@ export default function InvoiceForm({ initial, onSubmit, loading }) {
                   </Field>
                 )}
               </div>
-            </AccordionSection>
+            </div>
           </div>
         </div>
 
@@ -1354,7 +1537,7 @@ export default function InvoiceForm({ initial, onSubmit, loading }) {
                 </div>
               </div>
 
-              <div className="p-6 flex flex-col gap-5 bg-white/40 backdrop-blur-xl">
+              <div className="p-6 flex flex-col gap-5 bg-[#fafafa]">
                 <div className="flex flex-col gap-3">
                   <div className="flex items-center justify-between text-[14px]">
                     <span className="font-bold text-gray-500">Sub Total</span>
@@ -1452,7 +1635,7 @@ export default function InvoiceForm({ initial, onSubmit, loading }) {
               <button
                 type="submit"
                 disabled={loading || checkingConflicts}
-                className={`hidden lg:flex w-full py-5 text-[15px] font-black tracking-widest uppercase text-slate-900 bg-[#F6CB59] hover:bg-[#e5c603] items-center justify-center gap-2 transition-colors ${(loading || checkingConflicts) ? 'opacity-70 pointer-events-none' : ''}`}
+                className={`w-full py-5 text-[15px] font-black tracking-widest uppercase text-slate-900 bg-[#F6CB59] hover:bg-[#e5c603] flex items-center justify-center gap-2 transition-colors ${(loading || checkingConflicts) ? 'opacity-70 pointer-events-none' : ''}`}
               >
                 {(loading || checkingConflicts) ? (
                   <div className="w-5 h-5 border-2 border-slate-900/30 border-t-slate-900 rounded-full animate-spin" />
@@ -1462,23 +1645,7 @@ export default function InvoiceForm({ initial, onSubmit, loading }) {
                 {checkingConflicts ? 'Checking Schedule…' : initial ? 'Update Invoice' : 'Create Invoice'}
               </button>
             </div>
-            
-            <div className="block lg:hidden sticky bottom-[75px] z-30 px-1 mt-2">
-              <button
-                type="submit"
-                disabled={loading || checkingConflicts}
-                className={`w-full py-4 rounded-2xl text-[15px] font-black tracking-widest uppercase text-slate-900 bg-[#F6CB59] hover:bg-[#e5c603] flex items-center justify-center gap-2 transition-colors shadow-2xl border border-amber-300 ${(loading || checkingConflicts) ? 'opacity-70 pointer-events-none' : ''}`}
-              >
-                {(loading || checkingConflicts) ? (
-                  <div className="w-5 h-5 border-2 border-slate-900/30 border-t-slate-900 rounded-full animate-spin" />
-                ) : (
-                  <Sparkles size={18} />
-                )}
-                {checkingConflicts ? 'Checking Schedule…' : initial ? 'Update Invoice' : 'Create Invoice'}
-              </button>
-            </div>
-
-            <p className="hidden lg:block text-center text-[11px] font-medium text-gray-400 mt-2 px-6">
+            <p className="text-center text-[11px] font-medium text-gray-400 mt-2 px-6">
               Review all services and financial details before generating the final order.
             </p>
           </div>

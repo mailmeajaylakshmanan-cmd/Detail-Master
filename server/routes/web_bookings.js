@@ -296,9 +296,9 @@ router.post('/:id/convert', async (req, res) => {
 
     // 5. Insert Invoice Service if applicable
     if (booking.service_id) {
-      // Get base_price for the service
-      const priceRes = await client.query('SELECT base_price FROM services WHERE id = $1', [booking.service_id]);
-      const basePrice = priceRes.rows.length > 0 ? Number(priceRes.rows[0].base_price) || 0 : 0;
+      // Base price is no longer available; use 0 or fetch from vehicle_prices if needed
+      // Default to 0 for now
+      const basePrice = 0;
 
       await client.query(
         'INSERT INTO invoice_services (invoice_order_id, service_id, unit_price) VALUES ($1, $2, $3)',

@@ -82,12 +82,12 @@ router.get('/:id', async (req, res) => {
 // CREATE a service
 router.post('/', async (req, res) => {
   try {
-    const { service_name, category, base_price, is_active, estimate_time, vehicle_prices } = req.body;
-    if (!service_name || base_price === undefined) return res.status(400).json({ message: 'service_name and base_price are required' });
+    const { service_name, category, is_active, estimate_time, vehicle_prices } = req.body;
+    if (!service_name) return res.status(400).json({ message: 'service_name is required' });
     
     const { rows } = await db.query(
-      'INSERT INTO services (service_name, category, base_price, is_active, estimate_time) VALUES ($1, $2, $3, $4, $5) RETURNING *',
-      [service_name, category, base_price, is_active !== undefined ? is_active : true, estimate_time || null]
+      'INSERT INTO services (service_name, category, is_active, estimate_time) VALUES ($1, $2, $3, $4) RETURNING *',
+      [service_name, category, is_active !== undefined ? is_active : true, estimate_time || null]
     );
 
     const createdService = rows[0];
@@ -122,12 +122,12 @@ router.post('/', async (req, res) => {
 router.put('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { service_name, category, base_price, is_active, estimate_time, vehicle_prices } = req.body;
-    if (!service_name || base_price === undefined) return res.status(400).json({ message: 'service_name and base_price are required' });
+    const { service_name, category, is_active, estimate_time, vehicle_prices } = req.body;
+    if (!service_name) return res.status(400).json({ message: 'service_name is required' });
     
     const { rows } = await db.query(
-      'UPDATE services SET service_name = $1, category = $2, base_price = $3, is_active = $4, estimate_time = $5 WHERE id = $6 RETURNING *',
-      [service_name, category, base_price, is_active !== undefined ? is_active : true, estimate_time || null, id]
+      'UPDATE services SET service_name = $1, category = $2, is_active = $3, estimate_time = $4 WHERE id = $5 RETURNING *',
+      [service_name, category, is_active !== undefined ? is_active : true, estimate_time || null, id]
     );
     if (rows.length === 0) return res.status(404).json({ message: 'Service not found' });
 

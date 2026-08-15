@@ -171,9 +171,11 @@ router.get('/:id', async (req, res) => {
         [id]
       ),
       db.query(
-        `SELECT iv.*, v.make_model, v.license_vin
+        `SELECT iv.*, v.make_model, v.license_vin, v.vehicle_type_id, v.vehicle_type,
+                vt.name AS vehicle_type_name
          FROM invoice_vehicles iv
          JOIN vehicles v ON iv.vehicle_id = v.id
+         LEFT JOIN vehicle_types vt ON v.vehicle_type_id = vt.id
          WHERE iv.invoice_order_id = $1
          ORDER BY iv.id ASC`,
         [id]
@@ -328,28 +330,27 @@ router.post('/', async (req, res) => {
     // Support legacy payload: service_ids = [1, 2, 3] with single vehicle_id
     if (Array.isArray(req.body.service_items) && req.body.service_items.length > 0) {
       const ids = req.body.service_items.map(s => s.service_id);
-      const sRes = await client.query('SELECT id, base_price FROM services WHERE id = ANY($1::int[])', [ids]);
+      const sRes = await client.query('SELECT id FROM services WHERE id = ANY($1::int[])', [ids]);
 
       req.body.service_items.forEach(si => {
         const dbSrv = sRes.rows.find(r => r.id === si.service_id);
         if (dbSrv) {
+          const vIds = Array.isArray(si.vehicle_ids) && si.vehicle_ids.length > 0 ? si.vehicle_ids : [vehicle_id || null];
           lines.push({
             service_id: si.service_id,
-            unit_price: si.assigned_offer_id ? 0 : (Number(dbSrv.base_price) || 0),
+            unit_price: si.assigned_offer_id ? 0 : (Number(si.price) / vIds.length || 0),
             assigned_offer_id: si.assigned_offer_id || null,
-            vehicle_ids: Array.isArray(si.vehicle_ids) && si.vehicle_ids.length > 0
-              ? si.vehicle_ids
-              : [vehicle_id || null]
+            vehicle_ids: vIds
           });
         }
       });
     } else if (Array.isArray(service_ids) && service_ids.length > 0) {
-      const sRes = await client.query('SELECT id, base_price FROM services WHERE id = ANY($1::int[])', [service_ids]);
+      const sRes = await client.query('SELECT id FROM services WHERE id = ANY($1::int[])', [service_ids]);
       lines = service_ids.map((id) => {
         const row = sRes.rows.find((r) => r.id === id);
         return {
           service_id: id,
-          unit_price: row ? Number(row.base_price) : 0,
+          unit_price: 0,
           vehicle_ids: [vehicle_id || null]
         };
       });
@@ -489,8 +490,8 @@ router.post('/', async (req, res) => {
           t.vendor_name || null,
           t.labour_count !== undefined ? t.labour_count : 1,
           t.labour_charge || 0,
-          t.service_cost || 0,
-          t.selling_price || 0,
+          t.service_cost ? (Number(t.service_cost) / (vIds.length || 1)) : 0,
+          t.selling_price ? (Number(t.selling_price) / (vIds.length || 1)) : 0,
           vId,
         ]);
       }
@@ -607,7 +608,7 @@ router.put('/:id', async (req, res) => {
     if (Array.isArray(req.body.service_items) && req.body.service_items.length > 0) {
       const svcIds = req.body.service_items.map(s => s.service_id);
       const priceRes = await client.query(
-        `SELECT id, base_price FROM services WHERE id = ANY($1::int[]) AND is_active = TRUE`,
+        `SELECT id FROM services WHERE id = ANY($1::int[]) AND is_active = TRUE`,
         [svcIds]
       );
       
@@ -633,7 +634,7 @@ router.put('/:id', async (req, res) => {
           ? si.vehicle_ids
           : [vehicle_id || null];
         for (const vId of vIds) {
-          const unitPrice = si.assigned_offer_id ? 0 : (Number(row.base_price) || 0);
+          const unitPrice = si.assigned_offer_id ? 0 : (Number(si.price) / vIds.length || 0);
           serviceRows.push([id, row.id, unitPrice, vId]);
           
           if (si.assigned_offer_id) {
@@ -689,7 +690,7 @@ router.put('/:id', async (req, res) => {
       const serviceRows = priceRes.rows.map(r => [
         id,
         r.id,
-        Number(r.base_price) || 0,
+        0,
         vehicle_id || null,
       ]);
       const q = buildBulkInsert(
@@ -716,8 +717,8 @@ router.put('/:id', async (req, res) => {
             t.vendor_name || null,
             t.labour_count !== undefined ? t.labour_count : 1,
             t.labour_charge || 0,
-            t.service_cost || 0,
-            t.selling_price || 0,
+            t.service_cost ? (Number(t.service_cost) / (vIds.length || 1)) : 0,
+            t.selling_price ? (Number(t.selling_price) / (vIds.length || 1)) : 0,
             vId,
           ]);
         }

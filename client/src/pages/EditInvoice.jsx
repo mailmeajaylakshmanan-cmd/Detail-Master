@@ -43,6 +43,8 @@ export default function EditInvoice() {
           make: vParts[0] || '',
           model: vParts.slice(1).join(' ') || '',
           plate: v.license_vin || '',
+          vehicle_type_id: v.vehicle_type_id || null,
+          type: v.vehicle_type_name || v.vehicle_type || '',
           isActive: true,
         };
       });
@@ -76,6 +78,8 @@ export default function EditInvoice() {
         services: Object.values((row.services || []).reduce((acc, s) => {
           if (acc[s.service_id]) {
             if (s.vehicle_id) acc[s.service_id].vehicle_ids.push(s.vehicle_id);
+            acc[s.service_id].price += Number(s.unit_price ?? s.price) || 0;
+            acc[s.service_id].total += Number(s.unit_price ?? s.total) || 0;
           } else {
             acc[s.service_id] = {
               service_id: s.service_id,
@@ -92,6 +96,8 @@ export default function EditInvoice() {
           const key = t.third_party_service_id || t.service_name;
           if (acc[key]) {
             if (t.vehicle_id) acc[key].vehicle_ids.push(t.vehicle_id);
+            acc[key].selling_price += Number(t.selling_price) || 0;
+            acc[key].total += Number(t.total) || 0;
           } else {
             acc[key] = {
               ...t,

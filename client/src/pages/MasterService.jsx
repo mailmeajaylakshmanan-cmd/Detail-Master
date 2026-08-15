@@ -50,7 +50,7 @@ export default function MasterService() {
     const payload = {
       service_name: name,
       category: description || null,
-      base_price: Number(price) || 0,
+
       is_active: true,
       estimate_time: estimateTime || null,
       vehicle_prices: formattedVehiclePrices,
@@ -110,12 +110,17 @@ export default function MasterService() {
     const existing = services.find(s => s.id === id);
     if (!existing) return;
     try {
+      const vpPayload = (existing.vehiclePrices || []).map(vp => ({
+        vehicle_type_id: vp.vehicle_type_id,
+        price: Number(vp.price) || 0
+      }));
+
       await api.put(`/services/${id}`, {
         service_name: existing.name,
         category: existing.description || null,
-        base_price: existing.price,
         is_active: isActive,
         estimate_time: existing.estimateTime || null,
+        vehicle_prices: vpPayload
       });
       toast.success(`Service marked ${newStatusStr}`);
       queryClient.invalidateQueries({ queryKey: queryKeys.services.all });
