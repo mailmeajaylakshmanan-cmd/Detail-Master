@@ -239,13 +239,22 @@ const ServiceVehicleModal = memo(function ServiceVehicleModal({ isOpen, onClose,
 
 const ServiceChip = memo(function ServiceChip({ opt, checked, onToggle, resolvedPrice, vehicleTypeName }) {
   let displayPrice = resolvedPrice;
-  let labelSuffix = vehicleTypeName ? ` (${vehicleTypeName})` : '';
+  let labelSuffix = vehicleTypeName || '';
   if (!vehicleTypeName && opt.vehiclePrices && opt.vehiclePrices.length > 0) {
     const minP = Math.min(...opt.vehiclePrices.map(vp => Number(vp.price)).filter(p => p > 0));
     if (isFinite(minP)) {
       displayPrice = minP;
       labelSuffix = ' (From)';
     }
+  }
+  let safePrice = 0;
+  if (typeof displayPrice === 'number') {
+    safePrice = isNaN(displayPrice) ? 0 : displayPrice;
+  } else if (typeof displayPrice === 'string') {
+    const parsed = Number(displayPrice.replace(/[^0-9.-]+/g, ''));
+    safePrice = isNaN(parsed) ? 0 : parsed;
+  } else {
+    safePrice = Number(opt.price || 0) || 0;
   }
   return (
     <label className={`flex items-center gap-2 cursor-pointer px-4 py-2.5 rounded-xl text-[13px] font-bold transition-all border ${checked
@@ -255,7 +264,7 @@ const ServiceChip = memo(function ServiceChip({ opt, checked, onToggle, resolved
       <input type="checkbox" checked={checked} onChange={e => onToggle(opt, e.target.checked)} className="sr-only" />
       <span>{opt.name}</span>
       <span className={`text-[11px] font-bold px-2 py-0.5 rounded-md ${checked ? 'bg-gray-800 text-[#FFD700]' : 'bg-slate-100 text-slate-700'}`}>
-        ₹{Number(displayPrice || opt.price || 0).toLocaleString('en-IN')}{labelSuffix}
+        ₹{safePrice.toLocaleString('en-IN')}{labelSuffix}
       </span>
     </label>
   );
@@ -263,13 +272,22 @@ const ServiceChip = memo(function ServiceChip({ opt, checked, onToggle, resolved
 
 const ThirdPartyServiceChip = memo(function ThirdPartyServiceChip({ opt, checked, onToggle, resolvedPrice, vehicleTypeName }) {
   let displayPrice = resolvedPrice;
-  let labelSuffix = vehicleTypeName ? ` (${vehicleTypeName})` : '';
+  let labelSuffix = vehicleTypeName || '';
   if (!vehicleTypeName && opt.vehiclePrices && opt.vehiclePrices.length > 0) {
     const minP = Math.min(...opt.vehiclePrices.map(vp => Number(vp.selling_price)).filter(p => p > 0));
     if (isFinite(minP)) {
       displayPrice = minP;
       labelSuffix = ' (From)';
     }
+  }
+  let safePrice = 0;
+  if (typeof displayPrice === 'number') {
+    safePrice = isNaN(displayPrice) ? 0 : displayPrice;
+  } else if (typeof displayPrice === 'string') {
+    const parsed = Number(displayPrice.replace(/[^0-9.-]+/g, ''));
+    safePrice = isNaN(parsed) ? 0 : parsed;
+  } else {
+    safePrice = Number(opt.sellingPrice || 0) || 0;
   }
   return (
     <label className={`flex flex-col gap-0.5 cursor-pointer px-4 py-2.5 rounded-xl text-[13px] font-bold transition-all border ${checked
@@ -282,7 +300,7 @@ const ThirdPartyServiceChip = memo(function ThirdPartyServiceChip({ opt, checked
         {opt.name}
       </span>
       <span className={`text-[11px] font-medium ${checked ? 'text-amber-50' : 'text-gray-500'}`}>
-        {opt.vendorName ? `${opt.vendorName} · ` : ''}₹{Number(displayPrice || opt.sellingPrice || 0).toLocaleString('en-IN')}{labelSuffix}
+        {opt.vendorName ? `${opt.vendorName} · ` : ''}₹{safePrice.toLocaleString('en-IN')}{labelSuffix}
       </span>
     </label>
   );
@@ -757,10 +775,11 @@ export default function InvoiceForm({ initial, onSubmit, loading }) {
         const prices = opt.vehiclePrices.map(vp => Number(vp.price)).filter(p => p > 0);
         const minP = Math.min(...prices);
         if (isFinite(minP)) {
-          return { priceStr: `₹${minP.toLocaleString('en-IN')}`, suffix: ' (From)' };
+          return { price: minP, priceStr: `₹${minP.toLocaleString('en-IN')}`, suffix: ' (From)' };
         }
       }
-      return { priceStr: `₹${Number(opt.price || 0).toLocaleString('en-IN')}`, suffix: '' };
+      const p = Number(opt.price || 0);
+      return { price: p, priceStr: `₹${p.toLocaleString('en-IN')}`, suffix: '' };
     }
 
     const allVehicles = form.customer?.vehicles || [];
@@ -770,7 +789,7 @@ export default function InvoiceForm({ initial, onSubmit, loading }) {
       const v = selectedVehs[0];
       const resPrice = resolveServicePrice(opt, v.id);
       const safePrice = isNaN(resPrice) ? 0 : resPrice;
-      return { priceStr: `₹${safePrice.toLocaleString('en-IN')}`, suffix: v.type ? ` (${v.type})` : '' };
+      return { price: safePrice, priceStr: `₹${safePrice.toLocaleString('en-IN')}`, suffix: v.type ? ` (${v.type})` : '' };
     }
 
     const totalP = calculateServiceTotalForVehicles(opt, vehicleIds);
@@ -778,7 +797,7 @@ export default function InvoiceForm({ initial, onSubmit, loading }) {
     const types = Array.from(new Set(selectedVehs.map(v => v.type).filter(Boolean)));
     const typeLabel = types.length > 0 ? ` (${types.join(' + ')})` : ` (${vehicleIds.length} Veh)`;
 
-    return { priceStr: `₹${safeTotalP.toLocaleString('en-IN')}`, suffix: typeLabel };
+    return { price: safeTotalP, priceStr: `₹${safeTotalP.toLocaleString('en-IN')}`, suffix: typeLabel };
   }, [form.customer, resolveServicePrice, calculateServiceTotalForVehicles]);
 
   const getThirdPartyBadgeInfo = useCallback((opt, vehicleIds) => {
@@ -787,10 +806,11 @@ export default function InvoiceForm({ initial, onSubmit, loading }) {
         const prices = opt.vehiclePrices.map(vp => Number(vp.selling_price)).filter(p => p > 0);
         const minP = Math.min(...prices);
         if (isFinite(minP)) {
-          return { priceStr: `₹${minP.toLocaleString('en-IN')}`, suffix: ' (From)' };
+          return { price: minP, priceStr: `₹${minP.toLocaleString('en-IN')}`, suffix: ' (From)' };
         }
       }
-      return { priceStr: `₹${Number(opt.sellingPrice || 0).toLocaleString('en-IN')}`, suffix: '' };
+      const p = Number(opt.sellingPrice || 0);
+      return { price: p, priceStr: `₹${p.toLocaleString('en-IN')}`, suffix: '' };
     }
 
     const allVehicles = form.customer?.vehicles || [];
@@ -800,7 +820,7 @@ export default function InvoiceForm({ initial, onSubmit, loading }) {
       const v = selectedVehs[0];
       const resPrice = resolveThirdPartyPrice(opt, v.id);
       const safePrice = isNaN(resPrice) ? 0 : resPrice;
-      return { priceStr: `₹${safePrice.toLocaleString('en-IN')}`, suffix: v.type ? ` (${v.type})` : '' };
+      return { price: safePrice, priceStr: `₹${safePrice.toLocaleString('en-IN')}`, suffix: v.type ? ` (${v.type})` : '' };
     }
 
     const totalP = calculateThirdPartyTotalForVehicles(opt, vehicleIds);
@@ -808,7 +828,7 @@ export default function InvoiceForm({ initial, onSubmit, loading }) {
     const types = Array.from(new Set(selectedVehs.map(v => v.type).filter(Boolean)));
     const typeLabel = types.length > 0 ? ` (${types.join(' + ')})` : ` (${vehicleIds.length} Veh)`;
 
-    return { priceStr: `₹${safeTotalP.toLocaleString('en-IN')}`, suffix: typeLabel };
+    return { price: safeTotalP, priceStr: `₹${safeTotalP.toLocaleString('en-IN')}`, suffix: typeLabel };
   }, [form.customer, resolveThirdPartyPrice, calculateThirdPartyTotalForVehicles]);
 
   const activeVehicleTypeInfo = useMemo(() => {
@@ -1411,7 +1431,7 @@ export default function InvoiceForm({ initial, onSubmit, loading }) {
                           opt={opt}
                           checked={selectedServiceIds.has(opt.id) || selectedServiceNames.has(opt.name)}
                           onToggle={toggleService}
-                          resolvedPrice={badgeInfo.priceStr}
+                          resolvedPrice={badgeInfo.price}
                           vehicleTypeName={badgeInfo.suffix}
                         />
                       );
@@ -1464,7 +1484,7 @@ export default function InvoiceForm({ initial, onSubmit, loading }) {
                           opt={opt}
                           checked={selectedThirdPartyIds.has(opt.id)}
                           onToggle={toggleThirdPartyItem}
-                          resolvedPrice={badgeInfo.priceStr}
+                          resolvedPrice={badgeInfo.price}
                           vehicleTypeName={badgeInfo.suffix}
                         />
                       );
