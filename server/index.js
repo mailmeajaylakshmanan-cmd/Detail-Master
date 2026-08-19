@@ -45,6 +45,7 @@ app.use('/api/reports', require('./routes/reports'));
 app.use('/api/service-time', require('./routes/service_time'));
 app.use('/api/vehicle_types', require('./routes/vehicle_types'));
 app.use('/api/dashboard', require('./routes/dashboard'));
+app.use('/api/notifications', require('./routes/notifications'));
 
 // Health check
 app.get('/api/health', (req, res) => res.json({ status: 'ok', app: 'DETAILING MASTERS Billing' }));
@@ -63,6 +64,7 @@ if (require.main === module) {
     .catch((err) => console.error('[indexes] bootstrap failed', err))
     .finally(() => {
       app.listen(PORT, '0.0.0.0', () => console.log(`Server running on port ${PORT}`));
+      require('./jobs/serviceCompletionReminders').start();
     });
 }
 
