@@ -60,9 +60,11 @@ router.get('/search', protect, async (req, res) => {
     for (let v of vehicles) {
       // Get services
       const srvQuery = `
-        SELECT js.id, js.quantity, js.unit_price, js.grand_total, s.service_name, s.category
+        SELECT js.id, js.quantity, js.unit_price, js.grand_total, s.service_name, s.category,
+               js.completion_status, js.delay_reason, js.completed_at, COALESCE(NULLIF(u.full_name, ''), u.username) AS completed_by_name
         FROM public.invoice_services js
         JOIN public.services s ON js.service_id = s.id
+        LEFT JOIN public.admin_users u ON js.completed_by = u.id
         WHERE js.invoice_order_id = $1 AND js.vehicle_id = $2
       `;
       const srvResult = await pool.query(srvQuery, [v.invoice_order_id, v.vehicle_id]);
@@ -70,8 +72,10 @@ router.get('/search', protect, async (req, res) => {
 
       // Get 3rd party services
       const tpQuery = `
-        SELECT tps.id, tps.service_name, tps.vendor_name, tps.selling_price
+        SELECT tps.id, tps.service_name, tps.vendor_name, tps.selling_price,
+               tps.completion_status, tps.delay_reason, tps.completed_at, COALESCE(NULLIF(u.full_name, ''), u.username) AS completed_by_name
         FROM public.invoice_third_party_services tps
+        LEFT JOIN public.admin_users u ON tps.completed_by = u.id
         WHERE tps.invoice_order_id = $1 AND tps.vehicle_id = $2
       `;
       const tpResult = await pool.query(tpQuery, [v.invoice_order_id, v.vehicle_id]);
@@ -117,9 +121,11 @@ router.get('/today', protect, async (req, res) => {
     for (let v of vehicles) {
       // Get services
       const srvQuery = `
-        SELECT js.id, js.quantity, js.unit_price, js.grand_total, s.service_name, s.category
+        SELECT js.id, js.quantity, js.unit_price, js.grand_total, s.service_name, s.category,
+               js.completion_status, js.delay_reason, js.completed_at, COALESCE(NULLIF(u.full_name, ''), u.username) AS completed_by_name
         FROM public.invoice_services js
         JOIN public.services s ON js.service_id = s.id
+        LEFT JOIN public.admin_users u ON js.completed_by = u.id
         WHERE js.invoice_order_id = $1 AND js.vehicle_id = $2
       `;
       const srvResult = await pool.query(srvQuery, [v.invoice_order_id, v.vehicle_id]);
@@ -127,8 +133,10 @@ router.get('/today', protect, async (req, res) => {
 
       // Get 3rd party services
       const tpQuery = `
-        SELECT tps.id, tps.service_name, tps.vendor_name, tps.selling_price
+        SELECT tps.id, tps.service_name, tps.vendor_name, tps.selling_price,
+               tps.completion_status, tps.delay_reason, tps.completed_at, COALESCE(NULLIF(u.full_name, ''), u.username) AS completed_by_name
         FROM public.invoice_third_party_services tps
+        LEFT JOIN public.admin_users u ON tps.completed_by = u.id
         WHERE tps.invoice_order_id = $1 AND tps.vehicle_id = $2
       `;
       const tpResult = await pool.query(tpQuery, [v.invoice_order_id, v.vehicle_id]);

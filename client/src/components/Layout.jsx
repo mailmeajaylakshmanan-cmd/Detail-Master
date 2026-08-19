@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Outlet, NavLink, useNavigate, useLocation, Link } from 'react-router-dom';
 import {
-  LayoutDashboard, FileText, Users, Briefcase, Plus, Bell, Search, LogOut, Activity, Gift, ChevronDown, Database, Globe, Menu, X, Sparkles, Shield, Car
+  LayoutDashboard, FileText, Users, Briefcase, Plus, Search, LogOut, Activity, Gift, ChevronDown, Database, Globe, Menu, X, Sparkles, Shield, Car
 } from 'lucide-react';
 import brandLogo from '../assets/brand-logo-for-invoice.png';
 import api from '../api/axios.js';
+import NotificationBell from './NotificationBell.jsx';
 
 const iconMap = {
   'layout-dashboard': LayoutDashboard,
@@ -321,13 +322,7 @@ export default function Layout() {
                 />
               </div>
 
-              <button
-                type="button"
-                className="w-10 h-10 rounded-full flex items-center justify-center bg-white border border-gray-200 text-gray-800 hover:bg-gray-50 relative shadow-sm"
-              >
-                <Bell size={17} />
-                <span className="absolute top-2 right-2.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white" />
-              </button>
+              <NotificationBell />
 
               <Link
                 to="/invoices/new"

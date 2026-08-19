@@ -82,4 +82,48 @@ function renderBookingEmail({ booking, subject, headline, message, dateStr }) {
   return { subject, html };
 }
 
-module.exports = { renderBookingEmail };
+// Generic version of the same shell, for emails not tied to a web_booking
+// record (e.g. invoice-driven notifications like "ready for pickup").
+function renderSimpleEmail({ subject, headline, message, rows = [] }) {
+  const html = `
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>${subject}</title>
+</head>
+<body style="margin:0;padding:0;background-color:${BRAND.bgMain};font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+  <div style="background-color:${BRAND.bgMain};padding:40px 20px;">
+    <table role="presentation" width="100%" style="max-width:600px;margin:0 auto;background-color:${BRAND.bgCard};border-radius:12px;overflow:hidden;border:1px solid ${BRAND.border};border-collapse:collapse;box-shadow:0 4px 6px -1px rgba(0, 0, 0, 0.1);">
+      <tr>
+        <td style="background-color:#000000;padding:30px;text-align:center;">
+          <img src="https://raw.githubusercontent.com/kishore2003K/Detail-master/main/public/logo.png" alt="Detailing Masters" style="display:inline-block;width:200px;height:auto;margin:0;border:0;" />
+        </td>
+      </tr>
+      <tr>
+        <td style="padding:40px;">
+          <h1 style="margin:0 0 16px;font-size:24px;color:${BRAND.textMain};font-weight:700;">${headline}</h1>
+          <p style="margin:0 0 30px;font-size:16px;line-height:1.6;color:${BRAND.textMuted};">${message}</p>
+
+          <table role="presentation" width="100%" style="border-collapse:collapse;margin-bottom:20px;">
+            ${rows.map(([label, value]) => detailsRow(label, value)).join('')}
+          </table>
+
+          <p style="margin:40px 0 0;font-size:15px;line-height:1.6;color:${BRAND.textMuted};">If you have any questions, please contact us.</p>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding:24px 40px;background-color:${BRAND.bgMain};text-align:center;border-top:1px solid ${BRAND.border};">
+          <p style="margin:0 0 8px;font-size:13px;color:${BRAND.textMuted};font-weight:600;">Detailing Masters</p>
+          <p style="margin:0;font-size:12px;color:${BRAND.textMuted};opacity:0.8;">This is an automated message. Please do not reply directly to this email.</p>
+        </td>
+      </tr>
+    </table>
+  </div>
+</body>
+</html>`;
+
+  return { subject, html };
+}
+
+module.exports = { renderBookingEmail, renderSimpleEmail };

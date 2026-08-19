@@ -1,5 +1,5 @@
 const nodemailer = require('nodemailer');
-const { renderBookingEmail } = require('./emailTemplates');
+const { renderBookingEmail, renderSimpleEmail } = require('./emailTemplates');
 
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST,
@@ -76,4 +76,35 @@ async function sendScheduleEmail(booking, event = 'created') {
   return info;
 }
 
-module.exports = { sendScheduleEmail };
+// Fired once, when every service line item on an invoice has been marked
+// completed (see invoices.service_completed_at).
+async function sendReadyForPickupEmail({ toEmail, customerName, vehicleLabel, invoiceNumber }) {
+  if (!toEmail) return null;
+
+  const subject = 'Your vehicle is ready for pickup — Detailing Masters';
+  const message = `Hi ${customerName || 'there'}, great news — all services on your vehicle are complete and it's ready for pickup.`;
+  const { html } = renderSimpleEmail({
+    subject,
+    headline: 'Your vehicle is ready!',
+    message,
+    rows: [
+      ['Vehicle', vehicleLabel],
+      ['Invoice', invoiceNumber],
+    ],
+  });
+
+  const info = await transporter.sendMail({
+    from: `"Detailing Masters" <${process.env.SMTP_USER}>`,
+    replyTo: process.env.SMTP_USER,
+    to: toEmail,
+    subject,
+    text: message,
+    html,
+  });
+
+  const previewUrl = nodemailer.getTestMessageUrl(info);
+  console.log(`[mailer] "${subject}" -> ${toEmail} | ${previewUrl || 'sent'}`);
+  return info;
+}
+
+module.exports = { sendScheduleEmail, sendReadyForPickupEmail };
