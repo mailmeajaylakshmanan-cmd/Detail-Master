@@ -123,176 +123,164 @@ export default function ServiceTimeManagement() {
   };
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto min-h-[calc(100vh-64px)] space-y-6">
-      <div className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-black text-gray-900 tracking-tight">Service Time Management</h1>
-          <p className="text-sm font-semibold text-gray-500 mt-1">Track actual time spent by vehicles in the workshop</p>
+    <div className="min-h-[calc(100vh-100px)] flex flex-col p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6 lg:space-y-8 font-sans">
+      
+      {/* ── Header Toolbar ── */}
+      <div className="card p-4 sm:p-5 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-5">
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 rounded-2xl bg-black flex items-center justify-center shadow-lg shrink-0">
+            <Clock className="text-[#F6CB59]" size={24} />
+          </div>
+          <div>
+            <h1 className="text-xl md:text-[22px] font-black text-gray-900 tracking-tight uppercase">
+              Service Time Management
+            </h1>
+            <p className="text-[12px] md:text-sm font-bold text-gray-500 uppercase tracking-wider mt-0.5">
+              TRACK VEHICLE WORKSHOP TIME
+            </p>
+          </div>
         </div>
-        <Link 
-          to="/invoices/new" 
-          className="shrink-0 inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-xl transition-all shadow-sm"
-        >
-          <Plus size={18} /> New Job
-        </Link>
-      </div>
 
-      <div className="bg-white/60 backdrop-blur-xl border border-white p-6 rounded-2xl shadow-sm">
-        <form onSubmit={handleSearch} className="flex flex-wrap gap-4 items-end">
-          <div className="flex-1 min-w-[250px]">
-            <label className="block text-[13px] font-bold text-gray-700 mb-1.5 ml-1">Search Invoice / Vehicle</label>
-            <div className="relative">
-              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+        <form onSubmit={handleSearch} className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full lg:w-auto shrink-0">
+          <div className="flex gap-2 w-full sm:w-auto">
+            <div className="relative w-full sm:w-40">
               <input
-                type="text"
-                placeholder="Invoice No, License/VIN, or Customer"
-                className="w-full pl-10 pr-4 py-2 bg-white border border-gray-200 rounded-xl text-sm font-semibold text-gray-900 focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                type="date"
+                className="input pl-3 pr-3 py-2.5 !text-[12px]"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+              />
+            </div>
+            <div className="relative w-full sm:w-40">
+              <input
+                type="date"
+                className="input pl-3 pr-3 py-2.5 !text-[12px]"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
               />
             </div>
           </div>
-
-          <div>
-            <label className="block text-[13px] font-bold text-gray-700 mb-1.5 ml-1">From Date</label>
+          <div className="relative w-full sm:w-56 shrink-0">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
             <input
-              type="date"
-              className="w-full px-4 py-2 bg-white border border-gray-200 rounded-xl text-sm font-semibold text-gray-900 focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
+              type="text"
+              className="input pl-10 pr-4 py-2.5"
+              placeholder="Search Invoice/Vehicle..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
             />
           </div>
-
-          <div>
-            <label className="block text-[13px] font-bold text-gray-700 mb-1.5 ml-1">To Date</label>
-            <input
-              type="date"
-              className="w-full px-4 py-2 bg-white border border-gray-200 rounded-xl text-sm font-semibold text-gray-900 focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all"
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-            />
-          </div>
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-xl transition-colors shadow-sm disabled:opacity-70 flex items-center gap-2 h-[42px]"
-          >
-            {loading ? <RotateCw className="animate-spin" size={16} /> : 'Filter'}
-          </button>
-          
-          {(startDate !== todayStr || endDate !== todayStr || search) && (
-            <button
-              type="button"
-              onClick={resetToToday}
-              className="px-4 py-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 text-sm font-bold rounded-xl transition-colors flex items-center gap-2 h-[42px]"
-            >
-              <Calendar size={16} /> Reset
+          <div className="flex gap-2">
+            <button type="submit" disabled={loading} className="btn-primary w-full sm:w-auto flex items-center justify-center gap-2 px-5 !rounded-xl">
+              {loading ? <RotateCw className="animate-spin" size={15} /> : 'FILTER'}
             </button>
-          )}
+            {(startDate !== todayStr || endDate !== todayStr || search) && (
+              <button type="button" onClick={resetToToday} className="btn-secondary w-full sm:w-auto flex items-center justify-center gap-2 px-4 !rounded-xl">
+                <RotateCw size={15} />
+              </button>
+            )}
+          </div>
         </form>
-        {error && <p className="text-red-500 text-sm font-semibold mt-4">{error}</p>}
       </div>
 
-      {vehicles.length > 0 && (
-        <div className="mb-4 flex items-center gap-2">
-          <Calendar className="text-blue-600" size={20} />
-          <h2 className="text-lg font-bold text-gray-800">
-            {startDate === todayStr && endDate === todayStr ? "Today's Orders" : "Filtered Orders"} ({vehicles.length})
-          </h2>
+      {error && <p className="text-red-500 text-sm font-bold bg-red-50 p-3 rounded-xl border border-red-100">{error}</p>}
+
+      {/* ── Table/List Area ── */}
+      <div className="card overflow-hidden flex-1">
+        <div className="overflow-x-auto custom-scrollbar">
+          <table className="w-full text-left border-collapse min-w-[900px]">
+            <thead>
+              <tr className="border-b border-gray-200/50">
+                <th className="py-4 px-6 text-[11px] font-black text-gray-400 uppercase tracking-widest whitespace-nowrap bg-gray-50/50">Vehicle Details</th>
+                <th className="py-4 px-6 text-[11px] font-black text-gray-400 uppercase tracking-widest whitespace-nowrap bg-gray-50/50">Invoice</th>
+                <th className="py-4 px-6 text-[11px] font-black text-gray-400 uppercase tracking-widest whitespace-nowrap bg-gray-50/50">Services</th>
+                <th className="py-4 px-6 text-[11px] font-black text-gray-400 uppercase tracking-widest whitespace-nowrap bg-gray-50/50">Status (In/Out)</th>
+                <th className="py-4 px-6 text-[11px] font-black text-gray-400 uppercase tracking-widest text-right whitespace-nowrap bg-gray-50/50">Total Time</th>
+              </tr>
+            </thead>
+            
+            <tbody className="divide-y divide-gray-100/50">
+              {vehicles.length === 0 && !loading && (
+                <tr>
+                  <td colSpan="5" className="py-16 text-center text-gray-400 font-bold">
+                    <div className="flex flex-col items-center gap-2">
+                      <Clock size={32} className="opacity-20" />
+                      {startDate === todayStr && endDate === todayStr ? "NO ORDERS FOUND FOR TODAY" : "NO VEHICLES FOUND FOR THIS SEARCH"}
+                    </div>
+                  </td>
+                </tr>
+              )}
+
+              {vehicles.map(v => {
+                const items = allItemsFor(v);
+                return (
+                <tr key={v.invoice_vehicle_id} className="hover:bg-gray-50/50 transition-colors align-top group">
+                  <td className="py-5 px-6">
+                    <div className="font-bold text-sm text-gray-900 group-hover:text-black transition-colors">{v.vehicle_name}</div>
+                    <div className="text-[12px] font-bold text-gray-500 mt-1 uppercase tracking-wide">
+                      {v.license_vin} &bull; {v.client_name || 'Walk-in'}
+                    </div>
+                  </td>
+
+                  <td className="py-5 px-6">
+                    <span className="text-[13px] font-black text-black bg-gray-100 px-3 py-1 rounded-lg border border-gray-200">{v.invoice_number}</span>
+                  </td>
+
+                  <td className="py-4 px-6 min-w-[280px]">
+                    {items.length === 0 ? (
+                      <span className="text-[11px] text-gray-400 uppercase font-bold">No services</span>
+                    ) : (
+                      <div className="divide-y divide-gray-100/60">
+                        {items.map(item => (
+                          <ServiceStatusRow key={`${item.isThirdParty ? 'tp' : 's'}-${item.id}`} item={item} />
+                        ))}
+                      </div>
+                    )}
+                  </td>
+
+                  <td className="py-5 px-6">
+                    <div className="flex flex-col gap-2 min-w-[150px]">
+                      <div className="flex items-center justify-between gap-3 bg-gray-50/80 p-2 rounded-xl border border-gray-100">
+                        <span className="text-[10px] font-black text-gray-400 uppercase tracking-wider">IN:</span>
+                        {v.checkin_time ? (
+                          <span className="text-[12px] font-bold text-emerald-700 bg-emerald-100/50 px-2.5 py-0.5 rounded-lg border border-emerald-200/50">
+                            {new Date(v.checkin_time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }).toLowerCase()}
+                          </span>
+                        ) : (
+                          <button onClick={() => handleAction(v.invoice_vehicle_id, 'checkin')} className="px-3 py-1 bg-black text-[#F6CB59] hover:bg-gray-900 text-[10px] font-black uppercase rounded-lg transition-all shadow-sm">
+                            CHECK IN
+                          </button>
+                        )}
+                      </div>
+
+                      <div className="flex items-center justify-between gap-3 bg-gray-50/80 p-2 rounded-xl border border-gray-100">
+                        <span className="text-[10px] font-black text-gray-400 uppercase tracking-wider">OUT:</span>
+                        {v.checkout_time ? (
+                          <span className="text-[12px] font-bold text-rose-700 bg-rose-100/50 px-2.5 py-0.5 rounded-lg border border-rose-200/50">
+                            {new Date(v.checkout_time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }).toLowerCase()}
+                          </span>
+                        ) : v.checkin_time ? (
+                          <button onClick={() => handleAction(v.invoice_vehicle_id, 'checkout')} className="px-3 py-1 bg-white border border-gray-200 text-black hover:bg-gray-100 text-[10px] font-black uppercase rounded-lg transition-all shadow-sm">
+                            CHECK OUT
+                          </button>
+                        ) : (
+                          <span className="text-[11px] font-bold text-gray-300">--:--</span>
+                        )}
+                      </div>
+                    </div>
+                  </td>
+
+                  <td className="py-5 px-6 text-right">
+                    <span className="text-[15px] font-black text-gray-900 bg-[#F6CB59]/20 px-3 py-1.5 rounded-xl text-[#5C4A0A] inline-block">
+                      {calculateDuration(v.checkin_time, v.checkout_time)}
+                    </span>
+                  </td>
+                </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
-      )}
-
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-x-auto">
-        <table className="w-full text-left border-collapse min-w-[800px]">
-          <thead>
-            <tr className="bg-blue-50/50 border-b border-gray-100">
-              <th className="py-4 px-6 text-[11px] font-black text-gray-500 uppercase tracking-widest whitespace-nowrap">Vehicle Details</th>
-              <th className="py-4 px-6 text-[11px] font-black text-gray-500 uppercase tracking-widest whitespace-nowrap">Invoice</th>
-              <th className="py-4 px-6 text-[11px] font-black text-gray-500 uppercase tracking-widest whitespace-nowrap">Services</th>
-              <th className="py-4 px-6 text-[11px] font-black text-gray-500 uppercase tracking-widest whitespace-nowrap">Status (In/Out)</th>
-              <th className="py-4 px-6 text-[11px] font-black text-gray-500 uppercase tracking-widest text-right whitespace-nowrap">Total Time</th>
-            </tr>
-          </thead>
-          
-          <tbody className="divide-y divide-gray-50">
-            {vehicles.length === 0 && !loading && (
-              <tr>
-                <td colSpan="5" className="py-12 text-center text-gray-500 font-semibold bg-gray-50/30">
-                  {startDate === todayStr && endDate === todayStr ? "No orders found for today." : "No vehicles found for this search criteria."}
-                </td>
-              </tr>
-            )}
-
-            {vehicles.map(v => {
-              const items = allItemsFor(v);
-              return (
-              <tr key={v.invoice_vehicle_id} className="hover:bg-gray-50/50 transition-colors align-top">
-                <td className="py-5 px-6">
-                  <div className="font-bold text-sm text-gray-900">{v.vehicle_name}</div>
-                  <div className="text-[12px] font-semibold text-gray-500 mt-1">
-                    {v.license_vin} &bull; {v.client_name || 'Walk-in'}
-                  </div>
-                </td>
-
-                <td className="py-5 px-6">
-                  <span className="text-sm font-bold text-blue-600">{v.invoice_number}</span>
-                </td>
-
-                <td className="py-4 px-6 min-w-[240px]">
-                  {items.length === 0 ? (
-                    <span className="text-xs text-gray-400 italic font-medium">No services</span>
-                  ) : (
-                    <div className="divide-y divide-gray-100">
-                      {items.map(item => (
-                        <ServiceStatusRow key={`${item.isThirdParty ? 'tp' : 's'}-${item.id}`} item={item} />
-                      ))}
-                    </div>
-                  )}
-                </td>
-
-                <td className="py-5 px-6">
-                  <div className="flex flex-col gap-2 min-w-[140px]">
-                    <div className="flex items-center gap-3">
-                      <span className={`inline-flex items-center justify-center px-2 py-0.5 rounded text-[11px] font-bold w-16 ${v.checkin_time ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-400'}`}>
-                        {v.checkin_time ? new Date(v.checkin_time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }).toLowerCase() : '--:--'}
-                      </span>
-                      {!v.checkin_time && (
-                        <button
-                          onClick={() => handleAction(v.invoice_vehicle_id, 'checkin')}
-                          className="px-3 py-1 bg-blue-100 hover:bg-blue-200 text-blue-700 text-[10px] font-bold rounded transition-colors"
-                        >
-                          CHECK IN
-                        </button>
-                      )}
-                    </div>
-
-                    <div className="flex items-center gap-3">
-                      <span className={`inline-flex items-center justify-center px-2 py-0.5 rounded text-[11px] font-bold w-16 ${v.checkout_time ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-400'}`}>
-                        {v.checkout_time ? new Date(v.checkout_time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }).toLowerCase() : '--:--'}
-                      </span>
-                      {v.checkin_time && !v.checkout_time && (
-                        <button
-                          onClick={() => handleAction(v.invoice_vehicle_id, 'checkout')}
-                          className="px-3 py-1 bg-rose-100 hover:bg-rose-200 text-rose-700 text-[10px] font-bold rounded transition-colors"
-                        >
-                          CHECK OUT
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                </td>
-
-                <td className="py-5 px-6 text-right">
-                  <span className="text-sm font-black text-gray-900">
-                    {calculateDuration(v.checkin_time, v.checkout_time)}
-                  </span>
-                </td>
-              </tr>
-              );
-            })}
-          </tbody>
-        </table>
       </div>
     </div>
   );
