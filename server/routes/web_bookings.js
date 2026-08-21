@@ -123,9 +123,9 @@ router.post('/', async (req, res) => {
     const insertQuery = `
       INSERT INTO web_bookings (
         full_name, phone, email, vehicle_brand, vehicle_model,
-        vehicle_type, preferred_date, preferred_time_period, additional_notes, status
+        vehicle_type, service_id, preferred_date, preferred_time_period, additional_notes, status
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, COALESCE($10, 'pending'))
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, COALESCE($11, 'pending'))
       RETURNING *
     `;
     const values = [

@@ -181,7 +181,7 @@ export default function MasterCustomer() {
   const canLoadMore = customers.length < totalCustomers;
 
   return (
-    <div className="w-full h-[calc(100vh-100px)] flex flex-col bg-transparent animate-fade-in">
+    <div className="w-full min-h-[calc(100vh-100px)] flex flex-col bg-transparent animate-fade-in">
 
       {/* ── Full Width: Customer List ── */}
       <div className="w-full flex flex-col h-full gap-4">

@@ -200,7 +200,7 @@ export default function MasterOffers() {
             <Gift size={24} strokeWidth={2.5} />
           </div>
           <div>
-            <h1 className="text-[22px] font-black text-gray-900 tracking-tight leading-none mb-1">
+            <h1 className="text-xl md:text-[22px] font-black text-gray-900 tracking-tight leading-none mb-1">
               Offer Master
             </h1>
             <p className="text-[12px] font-bold text-gray-500 tracking-wide uppercase">
@@ -211,27 +211,27 @@ export default function MasterOffers() {
         
         <div className="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto shrink-0">
           <div className="relative w-full sm:w-64 shrink-0">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
             <input
               type="text"
-              className="w-full pl-10 pr-4 py-2.5 bg-white/80 border border-gray-200/60 rounded-xl text-[13px] font-bold text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent transition-all shadow-sm"
+              className="w-full pl-10 pr-4 py-2 bg-white/80 border border-gray-200/60 rounded-xl text-[12px] font-bold text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent transition-all shadow-sm"
               placeholder="Search offers..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
-          <div className="flex gap-2 w-full sm:w-auto shrink-0">
+          <div className="flex gap-2 w-full sm:w-auto shrink-0 justify-center">
             <Link
               to="/assigned-offers"
-              className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-gray-200 text-gray-900 hover:bg-gray-300 transition-all font-bold text-[13px] shadow-sm whitespace-nowrap"
+              className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-gray-200 text-gray-900 hover:bg-gray-300 transition-all font-bold text-[12px] shadow-sm whitespace-nowrap"
             >
-              <Settings size={16} strokeWidth={2.5} /> Manage Assigned
+              <Settings size={14} strokeWidth={2.5} /> Manage Assigned
             </Link>
             <button
               onClick={handleAdd}
-              className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-black text-[#F6CB59] hover:scale-[1.02] active:scale-[0.98] transition-all font-bold text-[13px] shadow-md whitespace-nowrap"
+              className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-black text-[#F6CB59] hover:scale-[1.02] active:scale-[0.98] transition-all font-bold text-[12px] shadow-md whitespace-nowrap"
             >
-              <Plus size={16} strokeWidth={2.5} /> Add Offer
+              <Plus size={14} strokeWidth={2.5} /> Add Offer
             </button>
           </div>
         </div>

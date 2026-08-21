@@ -248,59 +248,49 @@ export default function WebsiteBookings() {
       </div>
 
       <div className="relative z-10 space-y-6">
-        {/* ── Header ── */}
-        <div className="flex flex-col gap-2 mb-8">
-          <div className="inline-flex items-center w-fit px-3 py-1 bg-black rounded-full shadow-md border border-gray-800">
-            <span className="text-[#F6CB59] text-[12px] font-black uppercase tracking-widest flex items-center gap-2">
-              <div className="w-1.5 h-1.5 rounded-full bg-[#F6CB59] animate-pulse"></div>
-              Leads & Inquiries
-            </span>
-          </div>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <h1 className="text-3xl font-black text-gray-900 tracking-tight">Website Bookings</h1>
-              <div className="w-10 h-10 rounded-2xl bg-black text-[#F6CB59] flex items-center justify-center shadow-md shrink-0">
-                <Globe size={20} strokeWidth={2.5} />
-              </div>
+        {/* ── Toolbar ── */}
+        <div className="bg-white/60 backdrop-blur-2xl rounded-[24px] shadow-[0_8px_32px_rgba(0,0,0,0.06)] border border-white/80 p-4 sm:p-5 flex flex-col lg:flex-row lg:items-center justify-between gap-4 sm:gap-5 shrink-0 mb-6">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-2xl bg-black text-[#F6CB59] flex items-center justify-center shadow-md shrink-0">
+              <Globe size={24} strokeWidth={2.5} />
+            </div>
+            <div>
+              <h1 className="text-xl md:text-[22px] font-black text-gray-900 tracking-tight leading-none mb-1">
+                Website Bookings
+              </h1>
+              <p className="text-[12px] font-bold text-gray-500 tracking-wide uppercase flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                Leads & Inquiries
+              </p>
             </div>
           </div>
-        </div>
-
-        {/* ── Controls row ── */}
-        <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
-          <div className="flex items-center bg-white/60 backdrop-blur-xl rounded-2xl p-1.5 border border-white/80 shadow-[0_8px_32px_rgba(0,0,0,0.06)] overflow-x-auto custom-scrollbar w-full sm:w-auto">
-            {[
-              { id: 'pending', label: 'Pending' },
-              { id: 'confirmed', label: 'Confirmed' },
-              { id: 'converted', label: 'Completed' },
-              { id: 'cancelled', label: 'Cancelled' }
-            ].map(tab => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`px-6 py-2.5 rounded-xl text-[13px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${activeTab === tab.id
-                    ? 'bg-gray-900 text-[#F6CB59] shadow-md scale-100'
-                    : 'text-gray-500 hover:bg-white/80 hover:text-gray-900'
-                  }`}
+          
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full lg:w-auto shrink-0">
+            <div className="relative w-full sm:w-64 shrink-0">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
+              <input
+                type="text"
+                className="w-full pl-10 pr-4 py-2.5 bg-white/80 border border-gray-200/60 rounded-xl text-[12px] font-bold text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent transition-all shadow-sm"
+                placeholder="Search by name, car..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+            <div className="relative w-full sm:w-auto shrink-0">
+              <select
+                value={activeTab}
+                onChange={(e) => setActiveTab(e.target.value)}
+                className="w-full sm:w-auto appearance-none bg-black text-[#F6CB59] border border-gray-900 rounded-xl pl-4 pr-10 py-2.5 text-[12px] font-bold focus:outline-none focus:ring-2 focus:ring-[#F6CB59]/30 transition-all shadow-md uppercase tracking-wider cursor-pointer"
               >
-                {tab.label}
-                <span className={`ml-2 px-2 py-0.5 rounded-full text-[10px] font-black ${activeTab === tab.id ? 'bg-white/20 text-[#F6CB59]' : 'bg-gray-200 text-gray-600'
-                  }`}>
-                  {bookings.filter(b => b.status === tab.id).length}
-                </span>
-              </button>
-            ))}
-          </div>
-
-          <div className="relative w-full sm:w-auto flex items-center group">
-              <Search className="absolute left-4 text-gray-400 z-10 transition-transform group-focus-within:scale-110" size={20} />
-            <input
-              type="text"
-              placeholder="Search by name, car..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full sm:w-80 pl-11 pr-4 py-3 bg-white/60 backdrop-blur-xl border border-white/80 rounded-2xl text-[13px] font-bold text-gray-900 shadow-[0_8px_32px_rgba(0,0,0,0.04)] focus:outline-none focus:ring-2 focus:ring-[#F6CB59]/30 focus:border-[#F6CB59] transition-all placeholder-gray-400"
-            />
+                <option value="pending">Pending ({bookings.filter(b => b.status === 'pending').length})</option>
+                <option value="confirmed">Confirmed ({bookings.filter(b => b.status === 'confirmed').length})</option>
+                <option value="converted">Completed ({bookings.filter(b => b.status === 'converted').length})</option>
+                <option value="cancelled">Cancelled ({bookings.filter(b => b.status === 'cancelled').length})</option>
+              </select>
+              <div className="absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-[#F6CB59]">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+              </div>
+            </div>
           </div>
         </div>
 

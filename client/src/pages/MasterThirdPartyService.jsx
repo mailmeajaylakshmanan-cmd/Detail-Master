@@ -121,7 +121,7 @@ export default function MasterThirdPartyService() {
             <Truck size={24} strokeWidth={2.5} />
           </div>
           <div>
-            <h1 className="text-[22px] font-black text-gray-900 tracking-tight leading-none mb-1">
+            <h1 className="text-xl md:text-[22px] font-black text-gray-900 tracking-tight leading-none mb-1">
               Third-Party Services
             </h1>
             <p className="text-[12px] font-bold text-gray-500 tracking-wide uppercase">

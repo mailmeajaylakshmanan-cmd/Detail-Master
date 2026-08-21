@@ -129,7 +129,7 @@ export default function MasterVehicleType() {
     <div className="p-6 max-w-7xl mx-auto space-y-6">
       <div className="card p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+          <h1 className="text-xl md:text-2xl font-bold text-gray-900 flex items-center gap-2">
             <Car className="text-gray-900" /> Vehicle Type Master
           </h1>
           <p className="text-gray-500 text-sm mt-1">Manage vehicle categories and pricing tiers.</p>

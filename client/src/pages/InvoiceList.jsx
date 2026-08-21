@@ -75,15 +75,30 @@ export default function InvoiceList() {
 
   return (
     <div className="space-y-6 pb-20 p-2 sm:p-6 lg:p-8 bg-transparent min-h-full">
-      <header className="flex flex-row justify-between items-center pb-2 border-b border-slate-100">
-        <h1 className="text-2xl font-bold text-slate-900">Invoices</h1>
-        <Link
-          to="/invoices/new"
-          className="flex items-center justify-center gap-2 bg-gray-900 hover:bg-black text-[#F6CB59] text-sm px-6 py-2.5 rounded-xl font-bold transition-all shadow-[0_4px_12px_rgba(0,0,0,0.1)] hover:shadow-[0_6px_16px_rgba(0,0,0,0.15)] hover:-translate-y-0.5"
-        >
-          <span>Create Invoice</span>
-        </Link>
-      </header>
+      <div className="bg-white/60 backdrop-blur-2xl rounded-[24px] shadow-[0_8px_32px_rgba(0,0,0,0.06)] border border-white/80 p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shrink-0">
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 rounded-2xl bg-black text-[#F6CB59] flex items-center justify-center shadow-md shrink-0">
+            <ClipboardList size={24} strokeWidth={2.5} />
+          </div>
+          <div>
+            <h1 className="text-xl md:text-[22px] font-black text-gray-900 tracking-tight leading-none mb-1">
+              Invoices
+            </h1>
+            <p className="text-[12px] font-bold text-gray-500 tracking-wide uppercase">
+              Manage and track billing
+            </p>
+          </div>
+        </div>
+
+        <div className="flex w-full sm:w-auto shrink-0">
+          <Link
+            to="/invoices/new"
+            className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-black text-[#F6CB59] hover:scale-[1.02] active:scale-[0.98] transition-all font-bold text-[12px] shadow-md whitespace-nowrap w-full sm:w-auto"
+          >
+            <Plus size={14} strokeWidth={2.5} /> Create Invoice
+          </Link>
+        </div>
+      </div>
 
       {/* Tabs and Filters */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">

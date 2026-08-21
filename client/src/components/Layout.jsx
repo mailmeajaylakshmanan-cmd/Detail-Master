@@ -85,10 +85,10 @@ function SidebarNav({ navItems, openGroups, setOpenGroups, onNavigate }) {
                     [item.label]: !(prev[item.label] ?? isActiveGroup),
                   }))
                 }
-                className={`flex items-center justify-between w-full px-3 py-2.5 rounded-xl text-[13px] font-extrabold transition-colors ${
+                className={`flex items-center justify-between w-full px-4 py-3 rounded-xl text-[13px] font-extrabold transition-all duration-300 group ${
                   isActiveGroup
-                    ? 'bg-blue-50 text-blue-700'
-                    : 'text-gray-800 hover:bg-white/50 hover:text-gray-900'
+                    ? 'bg-gradient-to-r from-black to-gray-900 text-[#F6CB59] border-l-[3px] border-[#F6CB59] shadow-md'
+                    : 'text-gray-700 hover:bg-white/60 hover:text-gray-900 border-l-[3px] border-transparent'
                 }`}
               >
                 <span className="flex items-center gap-3">
@@ -106,10 +106,10 @@ function SidebarNav({ navItems, openGroups, setOpenGroups, onNavigate }) {
                       to={sub.to || '#'}
                       onClick={onNavigate}
                       className={({ isActive }) => `
-                        flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] font-bold transition-colors
+                        flex items-center gap-2.5 px-4 py-2.5 rounded-xl text-[13px] font-bold transition-all duration-300
                         ${isActive
-                          ? 'bg-black text-[#FFD700] shadow-md border border-[#FFD700]/30'
-                          : 'text-gray-800 hover:text-gray-900 hover:bg-white/50'}
+                          ? 'bg-gradient-to-r from-black to-gray-900 text-[#F6CB59] shadow-md border border-gray-800 translate-x-1'
+                          : 'text-gray-600 hover:text-gray-900 hover:bg-white/60 hover:translate-x-0.5'}
                       `}
                     >
                       <sub.icon size={15} />
@@ -129,10 +129,10 @@ function SidebarNav({ navItems, openGroups, setOpenGroups, onNavigate }) {
             end={item.end}
             onClick={onNavigate}
             className={({ isActive }) => `
-              flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-extrabold transition-colors
+              flex items-center gap-3 px-4 py-3 rounded-xl text-[13px] font-extrabold transition-all duration-300 group
               ${isActive
-                ? 'bg-black text-[#FFD700] shadow-md border border-[#FFD700]/30'
-                : 'text-gray-800 hover:bg-white/50 hover:text-gray-900'}
+                ? 'bg-gradient-to-r from-black to-gray-900 text-[#F6CB59] shadow-md border-l-[3px] border-[#F6CB59]'
+                : 'text-gray-700 hover:bg-white/60 hover:text-gray-900 border-l-[3px] border-transparent hover:translate-x-0.5'}
             `}
           >
             <item.icon size={17} />
@@ -214,21 +214,19 @@ export default function Layout() {
       </div>
 
       {/* Mobile backdrop */}
-      {isMobileMenuOpen && (
-        <div
-          className="fixed inset-0 bg-gray-900/40 backdrop-blur-sm z-[60] lg:hidden"
-          onClick={() => setIsMobileMenuOpen(false)}
-        />
-      )}
+      <div
+        className={`fixed inset-0 bg-gray-950/40 backdrop-blur-md z-[60] lg:hidden transition-opacity duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${isMobileMenuOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
+        onClick={() => setIsMobileMenuOpen(false)}
+      />
 
       {/* Sidebar — mobile drawer + desktop fixed */}
       <aside
         className={`
           print:hidden
-          fixed top-0 left-0 z-[70] h-full w-[260px]
-          bg-white/70 backdrop-blur-2xl border-r border-white/60
-          flex flex-col shadow-[4px_0_24px_rgba(0,0,0,0.1)]
-          transform transition-transform duration-300 ease-in-out
+          fixed top-0 left-0 z-[70] h-full w-[280px] lg:w-[260px]
+          bg-white/80 backdrop-blur-3xl border-r border-white/60
+          flex flex-col shadow-[10px_0_40px_rgba(0,0,0,0.08)]
+          transform transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]
           ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}
           ${isDesktopSidebarOpen ? 'lg:translate-x-0' : 'lg:-translate-x-full'}
         `}
@@ -277,27 +275,27 @@ export default function Layout() {
       {/* Main column */}
       <div className={`flex-1 flex flex-col min-w-0 transition-all duration-300 ${isDesktopSidebarOpen ? 'lg:pl-[260px]' : 'lg:pl-0'} bg-transparent`}>
         <header
-          className={`print:hidden sticky top-0 z-50 transition-all duration-200 bg-transparent ${
-            scrolled ? 'bg-white/40 backdrop-blur-xl border-b border-white/50 shadow-sm' : 'border-b border-transparent'
+          className={`print:hidden sticky top-0 z-50 transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] bg-white/60 backdrop-blur-3xl ${
+            scrolled ? 'border-b border-white/80 shadow-[0_4px_30px_rgba(0,0,0,0.04)]' : 'border-b border-transparent'
           }`}
         >
           <div className="px-4 sm:px-6 h-[64px] flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2 min-w-0">
+            <div className="flex items-center gap-3 min-w-0">
               <button
                 type="button"
                 onClick={() => setIsMobileMenuOpen(true)}
-                className="lg:hidden w-10 h-10 flex items-center justify-center rounded-xl bg-gray-100 border border-gray-200 text-gray-700 hover:bg-gray-200 shrink-0"
+                className="lg:hidden w-11 h-11 flex items-center justify-center rounded-[14px] bg-white/80 border border-gray-200/60 text-gray-800 hover:bg-white shadow-sm transition-all active:scale-95 shrink-0"
               >
-                <Menu size={20} />
+                <Menu size={22} />
               </button>
               
               {!isDesktopSidebarOpen && (
                 <button
                   type="button"
                   onClick={() => setIsDesktopSidebarOpen(true)}
-                  className="hidden lg:flex w-10 h-10 items-center justify-center rounded-xl bg-gray-100 border border-gray-200 text-gray-700 hover:bg-gray-200 shrink-0"
+                  className="hidden lg:flex w-11 h-11 items-center justify-center rounded-[14px] bg-white/80 border border-gray-200/60 text-gray-800 hover:bg-white shadow-sm transition-all active:scale-95 shrink-0"
                 >
-                  <Menu size={20} />
+                  <Menu size={22} />
                 </button>
               )}
 

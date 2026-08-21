@@ -31,44 +31,104 @@
 }
 
 @layer components {
+  /* Premium Buttons */
   .btn-primary {
-    background: #000000; /* Black */
-    color: #FFD700;      /* Gold text */
-    @apply font-bold px-4 py-2 rounded-xl transition-all duration-300 text-sm;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
-    border: 1px solid rgba(255, 215, 0, 0.5); /* Gold border */
-    backdrop-filter: blur(4px);
+    background: #000000;
+    color: #F6CB59;
+    @apply font-black px-5 py-2.5 rounded-[14px] transition-all duration-300 text-[13px] tracking-wide relative overflow-hidden;
+    box-shadow: 0 4px 14px 0 rgba(0, 0, 0, 0.25), inset 0 1px 0 0 rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(246, 203, 89, 0.4);
+  }
+  .btn-primary::before {
+    content: '';
+    position: absolute;
+    top: 0; left: -100%; width: 100%; height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+    transition: left 0.5s ease-in-out;
   }
   .btn-primary:hover {
-    background: #1A1A1A; /* Dark Grey on hover */
-    color: #FFF;
+    background: #111111;
+    color: #FFD700;
     transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.6);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4), inset 0 1px 0 0 rgba(255, 255, 255, 0.15);
+    border-color: rgba(246, 203, 89, 0.7);
   }
+  .btn-primary:hover::before {
+    left: 100%;
+  }
+  .btn-primary:active {
+    transform: scale(0.97) translateY(0);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+  }
+
   .btn-secondary {
-    @apply bg-white hover:bg-gray-50 font-medium px-4 py-2 rounded-xl border border-gray-200 transition-all duration-300 text-sm shadow-sm;
-    color: #5C4A0A;
+    @apply bg-white hover:bg-gray-50/80 font-black px-5 py-2.5 rounded-[14px] border border-gray-200/80 transition-all duration-300 text-[13px] tracking-wide;
+    color: #1a1a1a;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04), inset 0 -2px 0 rgba(0,0,0,0.02);
   }
   .btn-secondary:hover {
-    @apply shadow-md transform -translate-y-0.5;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08), inset 0 -1px 0 rgba(0,0,0,0.01);
   }
+  .btn-secondary:active {
+    transform: scale(0.97) translateY(0);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+  }
+
+  /* Sleek Inputs */
   .input {
-    @apply w-full bg-white/50 backdrop-blur-md border border-white/60 rounded-xl px-4 py-2.5 text-[13px] font-bold text-gray-900 focus:outline-none placeholder-gray-400 transition-all duration-300 shadow-sm;
+    @apply w-full bg-white/70 backdrop-blur-xl border border-gray-200/60 rounded-[14px] px-4 py-3 text-[13px] font-bold text-gray-900 transition-all duration-300;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.02) inset, 0 1px 2px rgba(0,0,0,0.01);
+  }
+  .input::placeholder {
+    @apply text-gray-400 font-medium;
   }
   .input:focus {
-    @apply border-[#F6CB59] ring-2 ring-[#F6CB59]/30 bg-white/80;
+    @apply bg-white border-[#F6CB59] ring-4 ring-[#F6CB59]/10 outline-none;
+    box-shadow: 0 4px 20px rgba(246, 203, 89, 0.15);
+    transform: translateY(-1px);
   }
+
+  /* Luxury Cards */
   .card {
-    @apply bg-white/60 backdrop-blur-2xl rounded-[24px] border border-white/80 transition-all duration-300;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.06);
+    @apply bg-white/70 backdrop-blur-2xl rounded-[24px] border border-white transition-all duration-500 relative overflow-hidden;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02), 0 10px 15px -3px rgba(0, 0, 0, 0.04), 0 20px 40px -5px rgba(0,0,0,0.06);
   }
   .card:hover {
-    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.08);
-    @apply bg-white/80 scale-[1.01] active:scale-[0.99];
+    @apply bg-white/85 border-white;
+    transform: translateY(-3px) scale(1.005);
+    box-shadow: 0 10px 20px -2px rgba(0, 0, 0, 0.04), 0 20px 40px -5px rgba(0, 0, 0, 0.08), 0 30px 60px -10px rgba(0,0,0,0.1);
   }
+  
   .glass-panel {
-    @apply bg-white/40 backdrop-blur-2xl border border-white/60 shadow-xl rounded-3xl;
+    @apply bg-white/40 backdrop-blur-3xl border border-white/60 rounded-[32px];
+    box-shadow: 0 10px 40px -10px rgba(0,0,0,0.1);
   }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.3);
+}
+
+/* Custom Scrollbar class for specific divs */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.1);
 }
 
 @media print {
