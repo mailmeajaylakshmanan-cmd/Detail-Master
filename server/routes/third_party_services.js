@@ -3,7 +3,7 @@ const router = express.Router();
 const db = require('../db');
 const { requirePermission } = require('../middleware/permissions');
 
-router.use(requirePermission('Third Party Services'));
+router.use(requirePermission('Third-Party Services'));
 
 async function saveVehiclePrices(tpServiceId, vehiclePrices) {
   if (!Array.isArray(vehiclePrices)) return;

@@ -4,7 +4,7 @@ const db = require('../db');
 const { recalculateInvoiceTotals } = require('../utils/finance');
 const { requirePermission } = require('../middleware/permissions');
 
-router.use(requirePermission('Billing & Records'));
+router.use(requirePermission('Invoicing & Records'));
 
 function mapPaymentMethod(method) {
   const m = String(method || 'cash').toLowerCase().replace(/\s+/g, '_');

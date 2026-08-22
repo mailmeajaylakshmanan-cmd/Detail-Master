@@ -5,7 +5,7 @@ const { pool } = require('../db');
 const { protect } = require('../middleware/auth');
 const { requirePermission } = require('../middleware/permissions');
 
-router.use(requirePermission('Permissions'));
+router.use(requirePermission('Access Control'));
 
 // GET all roles
 router.get('/roles', protect, async (req, res) => {

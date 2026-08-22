@@ -6,7 +6,7 @@ const { buildBulkInsert } = require('../utils/db');
 const { getBrowser } = require('../utils/pdf');
 const { requirePermission } = require('../middleware/permissions');
 
-router.use(requirePermission('Billing & Records'));
+router.use(requirePermission('Invoicing & Records'));
 
 function mapPaymentMethod(method) {
   const m = String(method || 'cash').toLowerCase().replace(/\s+/g, '_');

@@ -4,7 +4,7 @@ const db = require('../db');
 const { recalculateJobOrderTotals } = require('../utils/finance');
 const { requirePermission } = require('../middleware/permissions');
 
-router.use(requirePermission('Billing & Records'));
+router.use(requirePermission('Invoicing & Records'));
 
 // CREATE a line item
 router.post('/', async (req, res) => {
