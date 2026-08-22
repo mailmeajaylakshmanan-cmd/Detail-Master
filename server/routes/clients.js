@@ -2,6 +2,9 @@ const express = require('express');
 const router = express.Router();
 const db = require('../db');
 const { buildBulkInsert } = require('../utils/db');
+const { requirePermission } = require('../middleware/permissions');
+
+router.use(requirePermission('Customers'));
 
 // Shared shape: normalize a vehicle row to the compact object the UI expects.
 function mapVehicleRow(v) {
@@ -123,7 +126,7 @@ router.get('/', async (req, res) => {
         ) AS vehicles_json
       FROM clients c
       LEFT JOIN vehicles v ON v.client_id = c.id
-      ${whereSql}
+      ${whereSql ? whereSql + ' AND ' : 'WHERE '}c.is_active = TRUE
       GROUP BY c.id
     `;
 
@@ -293,7 +296,7 @@ router.put('/:id', async (req, res) => {
 router.delete('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { rowCount } = await db.query('DELETE FROM clients WHERE id = $1', [id]);
+    const { rowCount } = await db.query('UPDATE clients SET is_active = FALSE WHERE id = $1', [id]);
     if (rowCount === 0) return res.status(404).json({ message: 'Client not found' });
     res.json({ message: 'Client deleted successfully' });
   } catch (err) {

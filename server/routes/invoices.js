@@ -4,6 +4,9 @@ const db = require('../db');
 const { recalculateInvoiceTotals } = require('../utils/finance');
 const { buildBulkInsert } = require('../utils/db');
 const { getBrowser } = require('../utils/pdf');
+const { requirePermission } = require('../middleware/permissions');
+
+router.use(requirePermission('Billing & Records'));
 
 function mapPaymentMethod(method) {
   const m = String(method || 'cash').toLowerCase().replace(/\s+/g, '_');
@@ -794,16 +797,7 @@ router.get('/:id/pdf', async (req, res) => {
     const page = await browser.newPage();
     
     // Dynamically match the frontend's origin URL
-    const origin = req.get('Origin');
-    const referer = req.get('Referer');
     let clientUrl = process.env.CLIENT_URL ? process.env.CLIENT_URL.split(',')[0] : 'http://localhost:5173';
-    
-    if (origin) {
-      clientUrl = origin;
-    } else if (referer) {
-      const url = new URL(referer);
-      clientUrl = `${url.protocol}//${url.host}`;
-    }
     
     console.log(`[PDF] Generating for Invoice ID: ${id}`);
     console.log(`[PDF] Using Client URL: ${clientUrl}`);
@@ -862,7 +856,7 @@ router.get('/:id/pdf', async (req, res) => {
       margin: { top: '0', bottom: '0', left: '0', right: '0' }
     });
     
-    await browser.close();
+    await page.close();
     
     // Send as base64 to match frontend expectation
     // Convert Uint8Array to Buffer first, because Uint8Array.toString('base64') does not exist
@@ -881,16 +875,7 @@ router.get('/:id/service-report/pdf', async (req, res) => {
     const page = await browser.newPage();
     
     // Dynamically match the frontend's origin URL
-    const origin = req.get('Origin');
-    const referer = req.get('Referer');
     let clientUrl = process.env.CLIENT_URL ? process.env.CLIENT_URL.split(',')[0] : 'http://localhost:5173';
-    
-    if (origin) {
-      clientUrl = origin;
-    } else if (referer) {
-      const url = new URL(referer);
-      clientUrl = `${url.protocol}//${url.host}`;
-    }
     
     console.log(`[PDF] Generating Service Report for Invoice ID: ${id}`);
     console.log(`[PDF] Using Client URL: ${clientUrl}`);
@@ -948,7 +933,7 @@ router.get('/:id/service-report/pdf', async (req, res) => {
       margin: { top: '0', bottom: '0', left: '0', right: '0' }
     });
     
-    await browser.close();
+    await page.close();
     
     res.json({ base64: Buffer.from(pdfBuffer).toString('base64') });
   } catch (err) {

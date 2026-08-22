@@ -2,6 +2,9 @@ const express = require('express');
 const router = express.Router();
 const db = require('../db');
 const { recalculateInvoiceTotals } = require('../utils/finance');
+const { requirePermission } = require('../middleware/permissions');
+
+router.use(requirePermission('Billing & Records'));
 
 function mapPaymentMethod(method) {
   const m = String(method || 'cash').toLowerCase().replace(/\s+/g, '_');
@@ -40,7 +43,23 @@ router.post('/', async (req, res) => {
       return res.status(404).json({ message: 'Invoice not found' });
     }
 
-    const mappedMethod = mapPaymentMethod(rawMethod);
+    const finalMethod = mapPaymentMethod(rawMethod);
+
+    // Prevent duplicate payments (same invoice, amount, method within 15 seconds)
+    const duplicateCheck = await db.query(
+      `SELECT id FROM payments 
+       WHERE invoice_order_id = $1 
+         AND amount = $2 
+         AND payment_method = $3 
+         AND payment_date > NOW() - INTERVAL '15 seconds'`,
+      [invoice_order_id, amount, finalMethod]
+    );
+
+    if (duplicateCheck.rows.length > 0) {
+      return res.status(409).json({ message: 'Duplicate payment detected. Please wait a moment before trying again.' });
+    }
+
+    const mappedMethod = finalMethod;
     // Cash: never store reference_no. UPI / bank_transfer: optional.
     const ref =
       mappedMethod === 'cash' || mappedMethod === 'card' || mappedMethod === 'other'
@@ -79,7 +98,7 @@ router.delete('/:id', async (req, res) => {
     );
     if (current.length === 0) return res.status(404).json({ message: 'Payment not found' });
 
-    await db.query('DELETE FROM payments WHERE id = $1', [id]);
+    await db.query('UPDATE payments SET is_active = FALSE WHERE id = $1', [id]);
     await recalculateInvoiceTotals(current[0].invoice_order_id);
 
     res.json({ message: 'Payment deleted successfully' });

@@ -1,6 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../db');
+const { requirePermission } = require('../middleware/permissions');
+
+router.use(requirePermission('Dashboard'));
 
 // Aggregate stats for the dashboard — everything computed in Postgres so the
 // browser never downloads whole tables just to show a few numbers.

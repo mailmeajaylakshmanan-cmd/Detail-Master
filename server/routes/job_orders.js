@@ -3,6 +3,9 @@ const router = express.Router();
 const db = require('../db');
 
 const { recalculateJobOrderTotals } = require('../utils/finance');
+const { requirePermission } = require('../middleware/permissions');
+
+router.use(requirePermission('Billing & Records'));
 
 // GET all job orders (enriched), optional pagination + search
 // ?page=&limit=&search= → { jobOrders, pagination }   (no page) → array
@@ -26,7 +29,7 @@ router.get('/', async (req, res) => {
       FROM job_orders jo
       JOIN clients c ON jo.client_id = c.id
       JOIN vehicles v ON jo.vehicle_id = v.id
-      ${whereSql}
+      ${whereSql ? whereSql + ' AND ' : 'WHERE '}jo.is_active = TRUE
       ORDER BY jo.created_at DESC
     `;
 
@@ -139,7 +142,7 @@ router.put('/:id', async (req, res) => {
 router.delete('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { rowCount } = await db.query('DELETE FROM job_orders WHERE id = $1', [id]);
+    const { rowCount } = await db.query('UPDATE job_orders SET is_active = FALSE WHERE id = $1', [id]);
     if (rowCount === 0) return res.status(404).json({ message: 'Job order not found' });
     res.json({ message: 'Job order deleted successfully' });
   } catch (err) {

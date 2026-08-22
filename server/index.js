@@ -7,6 +7,11 @@ require('dotenv').config();
 const cookieParser = require('cookie-parser');
 const { ensureIndexes } = require('./db/indexes');
 
+if (!process.env.JWT_SECRET) {
+  console.error('FATAL ERROR: JWT_SECRET is not defined in the environment.');
+  process.exit(1);
+}
+
 const app = express();
 
 const allowedOrigins = [
@@ -26,26 +31,35 @@ app.use(cors({
 app.use(express.json({ limit: '1mb' }));
 app.use(cookieParser());
 
-// Routes
+const sanitize = require('./middleware/sanitize');
+const csrfProtection = require('./middleware/csrf');
+const { protect } = require('./middleware/auth');
+
+app.use(sanitize);
+app.use(csrfProtection);
+
+// Public Routes
 app.use('/api/auth', require('./routes/auth'));
-app.use('/api/clients', require('./routes/clients'));
-app.use('/api/vehicles', require('./routes/vehicles'));
-app.use('/api/services', require('./routes/services'));
-app.use('/api/job_orders', require('./routes/job_orders'));
-app.use('/api/job_order_services', require('./routes/job_order_services'));
-app.use('/api/invoices', require('./routes/invoices'));
-app.use('/api/payments', require('./routes/payments'));
-app.use('/api/permissions', require('./routes/permissions'));
 app.use('/api/web_bookings', require('./routes/web_bookings'));
-app.use('/api/organizations', require('./routes/organizations'));
-app.use('/api/third_party_services', require('./routes/third_party_services'));
-app.use('/api/offerMaster', require('./routes/master_offers'));
-app.use('/api/offers', require('./routes/assigned_offers'));
-app.use('/api/reports', require('./routes/reports'));
-app.use('/api/service-time', require('./routes/service_time'));
-app.use('/api/vehicle_types', require('./routes/vehicle_types'));
-app.use('/api/dashboard', require('./routes/dashboard'));
-app.use('/api/notifications', require('./routes/notifications'));
+
+// Protected Routes
+app.use('/api/clients', protect, require('./routes/clients'));
+app.use('/api/vehicles', protect, require('./routes/vehicles'));
+app.use('/api/services', protect, require('./routes/services'));
+app.use('/api/job_orders', protect, require('./routes/job_orders'));
+app.use('/api/job_order_services', protect, require('./routes/job_order_services'));
+app.use('/api/invoices', protect, require('./routes/invoices'));
+app.use('/api/payments', protect, require('./routes/payments'));
+app.use('/api/permissions', protect, require('./routes/permissions'));
+app.use('/api/organizations', protect, require('./routes/organizations'));
+app.use('/api/third_party_services', protect, require('./routes/third_party_services'));
+app.use('/api/offerMaster', protect, require('./routes/master_offers'));
+app.use('/api/offers', protect, require('./routes/assigned_offers'));
+app.use('/api/reports', protect, require('./routes/reports'));
+app.use('/api/service-time', protect, require('./routes/service_time'));
+app.use('/api/vehicle_types', protect, require('./routes/vehicle_types'));
+app.use('/api/dashboard', protect, require('./routes/dashboard'));
+app.use('/api/notifications', protect, require('./routes/notifications'));
 
 // Health check
 app.get('/api/health', (req, res) => res.json({ status: 'ok', app: 'DETAILING MASTERS Billing' }));

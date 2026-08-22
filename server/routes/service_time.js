@@ -2,6 +2,9 @@ const express = require('express');
 const router = express.Router();
 const { pool } = require('../db');
 const { protect } = require('../middleware/auth');
+const { requirePermission } = require('../middleware/permissions');
+
+router.use(requirePermission('Services'));
 
 // Helper to calculate time difference
 function calculateDuration(checkin, checkout) {

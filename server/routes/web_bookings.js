@@ -109,7 +109,17 @@ router.get('/:id', async (req, res) => {
 });
 
 // CREATE a web booking
-router.post('/', async (req, res) => {
+const rateLimit = require('express-rate-limit');
+
+const bookingLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // Limit each IP to 5 booking requests per `window` (here, per 15 minutes)
+  message: { message: 'Too many booking requests from this IP, please try again after 15 minutes' },
+  standardHeaders: true, 
+  legacyHeaders: false,
+});
+
+router.post('/', bookingLimiter, async (req, res) => {
   try {
     const {
       full_name, phone, email, vehicle_brand, vehicle_model,
@@ -118,6 +128,19 @@ router.post('/', async (req, res) => {
 
     if (!full_name || !phone) {
       return res.status(400).json({ message: 'full_name and phone are required' });
+    }
+
+    // Basic format checks
+    const phoneRegex = /^[0-9\+\-\s\(\)]{7,20}$/;
+    if (!phoneRegex.test(phone)) {
+      return res.status(400).json({ message: 'Invalid phone number format' });
+    }
+    
+    if (email) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        return res.status(400).json({ message: 'Invalid email format' });
+      }
     }
 
     const insertQuery = `

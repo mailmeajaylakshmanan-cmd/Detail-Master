@@ -1,6 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../db');
+const { requirePermission } = require('../middleware/permissions');
+
+router.use(requirePermission('Dashboard'));
 const { protect } = require('../middleware/auth');
 const { sendReadyForPickupEmail } = require('../utils/mailer');
 

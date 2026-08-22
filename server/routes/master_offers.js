@@ -2,6 +2,10 @@ const express = require('express');
 const router = express.Router();
 const { pool } = require('../db');
 const { protect } = require('../middleware/auth');
+const { requirePermission } = require('../middleware/permissions');
+
+router.use(protect);
+router.use(requirePermission('Offers'));
 
 const mapOffer = (row) => ({
   id: row.id,

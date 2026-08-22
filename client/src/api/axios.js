@@ -12,6 +12,13 @@ api.interceptors.request.use(config => {
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+  
+  // Extract CSRF token from cookies
+  const match = document.cookie.match(new RegExp('(^| )csrfToken=([^;]+)'));
+  if (match) {
+    config.headers['x-csrf-token'] = match[2];
+  }
+  
   return config;
 });
 

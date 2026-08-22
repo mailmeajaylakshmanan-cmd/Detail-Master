@@ -15,7 +15,7 @@ async function recalculateInvoiceTotals(invoiceId, executor = db) {
     `SELECT
        (SELECT COALESCE(SUM(unit_price), 0) FROM invoice_services WHERE invoice_order_id = $1) AS services_total,
        (SELECT COALESCE(SUM(selling_price), 0) FROM invoice_third_party_services WHERE invoice_order_id = $1) AS third_party_total,
-       (SELECT COALESCE(SUM(amount), 0) FROM payments WHERE invoice_order_id = $1) AS amount_paid,
+       (SELECT COALESCE(SUM(amount), 0) FROM payments WHERE invoice_order_id = $1 AND is_active = TRUE) AS amount_paid,
        (SELECT COALESCE(discount, 0) FROM invoices WHERE id = $1) AS discount`,
     [invoiceId]
   );

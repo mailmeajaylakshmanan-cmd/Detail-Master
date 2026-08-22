@@ -1,6 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../db');
+const { requirePermission } = require('../middleware/permissions');
+
+router.use(requirePermission('Dashboard'));
 const { getBrowser } = require('../utils/pdf');
 const fs = require('fs');
 const path = require('path');
@@ -221,7 +224,7 @@ router.get('/services-pdf', async (req, res) => {
       margin: { top: '20px', bottom: '20px' }
     });
     
-    await browser.close();
+    await page.close();
 
     res.set({
       'Content-Type': 'application/pdf',

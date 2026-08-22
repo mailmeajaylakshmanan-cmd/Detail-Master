@@ -5,7 +5,7 @@ const jwt = require('jsonwebtoken');
 const { pool } = require('../db');
 const { protect, invalidateSessionCache } = require('../middleware/auth'); // using the existing export
 
-const JWT_SECRET = process.env.JWT_SECRET || 'supersecretjwtkey';
+const JWT_SECRET = process.env.JWT_SECRET;
 
 async function getUserWithMenus(userId) {
   const userResult = await pool.query(
@@ -136,6 +136,9 @@ router.post('/login', async (req, res) => {
       [userRow.id, token, ipAddress, userAgent]
     );
 
+    const crypto = require('crypto');
+    const csrfToken = crypto.randomBytes(32).toString('hex');
+
     res.cookie('token', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
@@ -143,7 +146,14 @@ router.post('/login', async (req, res) => {
       maxAge: 24 * 60 * 60 * 1000
     });
 
-    res.json({ message: 'Logged in successfully', user: userResponse, token });
+    res.cookie('csrfToken', csrfToken, {
+      httpOnly: false,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
+      maxAge: 24 * 60 * 60 * 1000
+    });
+
+    res.json({ message: 'Logged in successfully', user: userResponse, token, csrfToken });
   } catch (error) {
     console.error('Login error:', error);
     res.status(500).json({ message: 'Server error' });
@@ -160,6 +170,7 @@ router.post('/logout', protect, async (req, res) => {
     console.error('Logout error:', error);
   }
   res.clearCookie('token');
+  res.clearCookie('csrfToken');
   res.json({ message: 'Logged out successfully' });
 });
 

@@ -2,6 +2,9 @@ const express = require('express');
 const router = express.Router();
 const db = require('../db');
 const { recalculateJobOrderTotals } = require('../utils/finance');
+const { requirePermission } = require('../middleware/permissions');
+
+router.use(requirePermission('Billing & Records'));
 
 // CREATE a line item
 router.post('/', async (req, res) => {
