@@ -36,11 +36,12 @@ const csrfProtection = require('./middleware/csrf');
 const { protect } = require('./middleware/auth');
 
 app.use(sanitize);
-app.use(csrfProtection);
 
 // Public Routes
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/web_bookings', require('./routes/web_bookings'));
+
+app.use(csrfProtection);
 
 // Protected Routes
 app.use('/api/clients', protect, require('./routes/clients'));
