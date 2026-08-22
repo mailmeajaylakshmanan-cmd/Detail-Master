@@ -109,7 +109,7 @@ router.post('/login', async (req, res) => {
   }
 
   try {
-    const result = await pool.query(`SELECT id, password_hash, is_active FROM public.admin_users WHERE LOWER(username) = LOWER($1) OR LOWER(email) = LOWER($1)`, [email]);
+    const result = await pool.query(`SELECT id, role_id, password_hash, is_active FROM public.admin_users WHERE LOWER(username) = LOWER($1) OR LOWER(email) = LOWER($1)`, [email]);
     const userRow = result.rows[0];
 
     if (!userRow) return res.status(401).json({ message: 'Invalid credentials' });
