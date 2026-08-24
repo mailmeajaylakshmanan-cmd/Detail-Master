@@ -9,7 +9,6 @@ CREATE TABLE third_party_services (
   vendor_name VARCHAR(255),
   labour_count INTEGER NOT NULL DEFAULT 1,
   labour_charge NUMERIC(12,2) NOT NULL DEFAULT 0,
-  service_cost NUMERIC(12,2) NOT NULL DEFAULT 0,
   selling_price NUMERIC(12,2) NOT NULL DEFAULT 0,
   is_active BOOLEAN NOT NULL DEFAULT TRUE,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -27,7 +26,6 @@ CREATE TABLE invoice_third_party_services (
   vendor_name VARCHAR(255),
   labour_count INTEGER NOT NULL DEFAULT 1,
   labour_charge NUMERIC(12,2) NOT NULL DEFAULT 0,
-  service_cost NUMERIC(12,2) NOT NULL DEFAULT 0,
   selling_price NUMERIC(12,2) NOT NULL DEFAULT 0,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );

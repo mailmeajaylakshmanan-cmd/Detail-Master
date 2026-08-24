@@ -7,7 +7,7 @@ import { useThirdPartyServices } from '../hooks/useQueries.js';
 import { useDebouncedValue } from '../hooks/useDebouncedValue.js';
 import { queryKeys } from '../api/queryKeys.js';
 
-const emptyForm = { name: '', vendorName: '', labourCount: '1', labourCharge: '', serviceCost: '', sellingPrice: '' };
+const emptyForm = { name: '', vendorName: '', labourCount: '1', labourCharge: '', sellingPrice: '' };
 
 export default function MasterThirdPartyService() {
   const queryClient = useQueryClient();
@@ -42,7 +42,6 @@ export default function MasterThirdPartyService() {
       vendor_name: form.vendorName || null,
       labour_count: Number(form.labourCount) || 1,
       labour_charge: Number(form.labourCharge) || 0,
-      service_cost: Number(form.serviceCost) || 0,
       selling_price: Number(form.sellingPrice) || 0,
       is_active: true,
     };
@@ -79,7 +78,6 @@ export default function MasterThirdPartyService() {
       vendorName: item.vendorName || '',
       labourCount: String(item.labourCount ?? 1),
       labourCharge: String(item.labourCharge ?? ''),
-      serviceCost: String(item.serviceCost ?? ''),
       sellingPrice: String(item.sellingPrice ?? ''),
     });
     setIsModalOpen(true);
@@ -100,7 +98,6 @@ export default function MasterThirdPartyService() {
         vendor_name: existing.vendorName || null,
         labour_count: existing.labourCount,
         labour_charge: existing.labourCharge,
-        service_cost: existing.serviceCost,
         selling_price: existing.sellingPrice,
         is_active: makeActive,
       });
@@ -158,7 +155,6 @@ export default function MasterThirdPartyService() {
 
             <div className="text-[12px] text-gray-500 space-y-1 mb-4">
               <div className="flex justify-between"><span>Labour</span><span className="font-medium text-gray-700">{item.labourCount} × ₹{item.labourCharge.toLocaleString('en-IN')}</span></div>
-              <div className="flex justify-between"><span>Vendor Cost</span><span className="font-medium text-gray-700">₹{item.serviceCost.toLocaleString('en-IN')}</span></div>
             </div>
 
             <div className="flex items-center justify-between mt-auto">
@@ -215,11 +211,7 @@ export default function MasterThirdPartyService() {
                   <input type="number" min="0" step="1" className="input" value={form.labourCharge} onChange={e => setField('labourCharge', e.target.value)} placeholder="0" />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-500 mb-1.5">Vendor Cost (₹)</label>
-                  <input type="number" min="0" step="1" className="input" value={form.serviceCost} onChange={e => setField('serviceCost', e.target.value)} placeholder="0" />
-                </div>
+              <div className="grid grid-cols-1 gap-4 mt-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-500 mb-1.5">Selling Price (₹) *</label>
                   <input required type="number" min="0" step="1" className="input" value={form.sellingPrice} onChange={e => setField('sellingPrice', e.target.value)} placeholder="0" />

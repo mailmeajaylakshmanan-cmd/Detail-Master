@@ -148,7 +148,7 @@ router.get('/:id/invoices', protect, async (req, res) => {
        tp AS (
          SELECT invoice_order_id,
                 COALESCE(SUM(selling_price), 0) AS revenue,
-                COALESCE(SUM(service_cost + labour_charge), 0) AS cost
+                COALESCE(SUM(labour_charge), 0) AS cost
          FROM invoice_third_party_services GROUP BY invoice_order_id
        ),
        veh AS (

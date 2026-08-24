@@ -82,8 +82,8 @@ router.post('/', protect, async (req, res) => {
       for (const t of thirdPartyItems) {
         await client.query(
           `INSERT INTO invoice_third_party_services 
-           (invoice_order_id, third_party_service_id, service_name, vendor_name, labour_count, labour_charge, service_cost, selling_price)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+           (invoice_order_id, third_party_service_id, service_name, vendor_name, labour_count, labour_charge, selling_price)
+           VALUES ($1, $2, $3, $4, $5, $6, $7)`,
           [
             invoiceId, 
             t.third_party_service_id || null, 
@@ -91,7 +91,6 @@ router.post('/', protect, async (req, res) => {
             t.vendor_name || null,
             t.labour_count || 1,
             t.labour_charge || 0,
-            t.service_cost || 0,
             t.selling_price || 0
           ]
         );
@@ -100,8 +99,8 @@ router.post('/', protect, async (req, res) => {
       // Fallback: If no services selected, insert generic package line item
       await client.query(
         `INSERT INTO invoice_third_party_services 
-         (invoice_order_id, service_name, selling_price, service_cost)
-         VALUES ($1, $2, $3, 0)`,
+         (invoice_order_id, service_name, selling_price)
+         VALUES ($1, $2, $3)`,
         [invoiceId, `Package Subscription: ${packageName}`, invoicePrice]
       );
     }

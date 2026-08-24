@@ -101,7 +101,6 @@ export function mapThirdPartyService(t) {
     vendorName: t.vendor_name ?? '',
     labourCount: Number(t.labour_count ?? 1),
     labourCharge: Number(t.labour_charge ?? 0),
-    serviceCost: Number(t.service_cost ?? 0),
     sellingPrice: Number(t.selling_price ?? 0),
     isActive: t.is_active !== undefined ? !!t.is_active : true,
     vehiclePrices: vpArray,

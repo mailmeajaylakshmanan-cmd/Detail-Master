@@ -173,7 +173,6 @@ export default function OfferForm({ initial, onSubmit, loading, onCustomerSelect
         vendor_name: opt?.vendorName || '',
         labour_count: opt?.labourCount ?? 1,
         labour_charge: opt?.labourCharge ?? 0,
-        service_cost: opt?.serviceCost ?? 0,
         selling_price: opt?.sellingPrice ?? 0,
       }],
     }));

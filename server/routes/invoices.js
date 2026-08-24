@@ -290,7 +290,7 @@ router.post('/check-conflicts', async (req, res) => {
 //       status?, special_notes?, include_terms?, terms_conditions?, payments?,
 //       vehicle_visits?: [{ vehicle_id, visitor_name?, visitor_phone?, checkin_time?, checkout_time? }],
 //       third_party_items?: [{ third_party_service_id?, service_name, vendor_name?,
-//                              labour_count?, labour_charge?, service_cost?, selling_price }]
+//                              labour_count?, labour_charge?, selling_price }]
 router.post('/', async (req, res) => {
   const client = await db.pool.connect();
   try {
@@ -493,7 +493,6 @@ router.post('/', async (req, res) => {
           t.vendor_name || null,
           t.labour_count !== undefined ? t.labour_count : 1,
           t.labour_charge || 0,
-          t.service_cost ? (Number(t.service_cost) / (vIds.length || 1)) : 0,
           t.selling_price ? (Number(t.selling_price) / (vIds.length || 1)) : 0,
           vId,
         ]);
@@ -502,7 +501,7 @@ router.post('/', async (req, res) => {
     if (tPartyRows.length > 0) {
       const q = buildBulkInsert(
         'invoice_third_party_services',
-        ['invoice_order_id', 'third_party_service_id', 'service_name', 'vendor_name', 'labour_count', 'labour_charge', 'service_cost', 'selling_price', 'vehicle_id'],
+        ['invoice_order_id', 'third_party_service_id', 'service_name', 'vendor_name', 'labour_count', 'labour_charge', 'selling_price', 'vehicle_id'],
         tPartyRows
       );
       await client.query(q.text, q.params);
@@ -720,7 +719,6 @@ router.put('/:id', async (req, res) => {
             t.vendor_name || null,
             t.labour_count !== undefined ? t.labour_count : 1,
             t.labour_charge || 0,
-            t.service_cost ? (Number(t.service_cost) / (vIds.length || 1)) : 0,
             t.selling_price ? (Number(t.selling_price) / (vIds.length || 1)) : 0,
             vId,
           ]);
@@ -729,7 +727,7 @@ router.put('/:id', async (req, res) => {
       if (tPartyRows.length > 0) {
         const q = buildBulkInsert(
           'invoice_third_party_services',
-          ['invoice_order_id', 'third_party_service_id', 'service_name', 'vendor_name', 'labour_count', 'labour_charge', 'service_cost', 'selling_price', 'vehicle_id'],
+          ['invoice_order_id', 'third_party_service_id', 'service_name', 'vendor_name', 'labour_count', 'labour_charge', 'selling_price', 'vehicle_id'],
           tPartyRows
         );
         await client.query(q.text, q.params);

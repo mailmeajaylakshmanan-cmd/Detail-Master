@@ -577,8 +577,7 @@ export default function InvoiceForm({ initial, onSubmit, loading }) {
         vendor_name: t.vendor_name || '',
         labour_count: t.labour_count ?? 1,
         labour_charge: t.labour_charge ?? 0,
-        service_cost: t.service_cost ?? 0,
-        selling_price: t.selling_price ?? 0,
+        selling_price: Number(t.selling_price) || 0,
       })),
       subTotal: initial.subTotal || 0,
       payments: (() => {
@@ -709,7 +708,6 @@ export default function InvoiceForm({ initial, onSubmit, loading }) {
         vendor_name: t.vendorName || '',
         labour_count: t.labourCount ?? 1,
         labour_charge: 0,
-        service_cost: 0,
         selling_price: 0,
         vehicle_ids: [vid],
         assigned_offer_id: offer.id
@@ -907,7 +905,6 @@ export default function InvoiceForm({ initial, onSubmit, loading }) {
         vendor_name: opt?.vendorName || '',
         labour_count: opt?.labourCount ?? 1,
         labour_charge: opt?.labourCharge ?? 0,
-        service_cost: opt?.serviceCost ?? 0,
         selling_price: initialTotal,
       }],
     }));
@@ -1014,7 +1011,6 @@ export default function InvoiceForm({ initial, onSubmit, loading }) {
       vendor_name: t.vendor_name || null,
       labour_count: Number(t.labour_count) || 1,
       labour_charge: Number(t.labour_charge) || 0,
-      service_cost: Number(t.service_cost) || 0,
       selling_price: Number(t.selling_price) || 0,
       vehicle_ids: t.vehicle_ids || [],
     }));
