@@ -168,6 +168,9 @@ export default function Layout() {
         const menus = res.data?.user?.menus;
         if (cancelled || !menus) return;
         localStorage.setItem('user', JSON.stringify(res.data.user));
+        if (res.data.csrfToken) {
+          localStorage.setItem('csrfToken', res.data.csrfToken);
+        }
         const next = buildNavItems(menus);
         setNavItems(next);
         setOpenGroups((prev) => ({
@@ -200,6 +203,7 @@ export default function Layout() {
     localStorage.removeItem('isAuthenticated');
     localStorage.removeItem('user');
     localStorage.removeItem('token');
+    localStorage.removeItem('csrfToken');
     navigate('/login');
   };
 

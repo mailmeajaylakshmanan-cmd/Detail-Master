@@ -13,10 +13,14 @@ api.interceptors.request.use(config => {
     config.headers.Authorization = `Bearer ${token}`;
   }
   
-  // Extract CSRF token from cookies
-  const match = document.cookie.match(new RegExp('(^| )csrfToken=([^;]+)'));
-  if (match) {
-    config.headers['x-csrf-token'] = match[2];
+  // Extract CSRF token from localStorage or cookies
+  let csrfToken = localStorage.getItem('csrfToken');
+  if (!csrfToken) {
+    const match = document.cookie.match(new RegExp('(^| )csrfToken=([^;]+)'));
+    if (match) csrfToken = match[2];
+  }
+  if (csrfToken) {
+    config.headers['x-csrf-token'] = csrfToken;
   }
   
   return config;
@@ -29,6 +33,7 @@ api.interceptors.response.use(
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       localStorage.removeItem('isAuthenticated');
+      localStorage.removeItem('csrfToken');
       if (window.location.pathname !== '/login') {
         window.location.href = '/login';
       }

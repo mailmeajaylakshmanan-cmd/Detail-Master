@@ -178,7 +178,8 @@ router.get('/me', protect, async (req, res) => {
   try {
     const userResponse = await getUserWithMenus(req.user.id);
     if (!userResponse) return res.status(404).json({ message: 'User not found' });
-    res.json({ user: userResponse });
+    const csrfToken = req.cookies?.csrfToken;
+    res.json({ user: userResponse, csrfToken });
   } catch (error) {
     console.error('/me error:', error);
     res.status(500).json({ message: 'Server error' });

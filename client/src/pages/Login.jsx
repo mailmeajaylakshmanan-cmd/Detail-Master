@@ -18,6 +18,7 @@ export default function Login() {
       const res = await api.post('/auth/login', form);
       localStorage.setItem('isAuthenticated', 'true');
       localStorage.setItem('token', res.data.token);
+      localStorage.setItem('csrfToken', res.data.csrfToken);
       localStorage.setItem('user', JSON.stringify(res.data.user));
       toast.success('Welcome back!');
       navigate('/');
