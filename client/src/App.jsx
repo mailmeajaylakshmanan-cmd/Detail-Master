@@ -14,6 +14,14 @@ class ErrorBoundary extends React.Component {
 
   componentDidCatch(error, errorInfo) {
     console.error("Uncaught error:", error, errorInfo);
+    
+    // Auto-reload on Vite dynamic import failure (new deployment)
+    const isDynamicImportError = error?.message?.includes('Failed to fetch dynamically imported module');
+    if (isDynamicImportError) {
+      window.location.reload();
+      return;
+    }
+    
     this.setState({ errorInfo });
   }
 

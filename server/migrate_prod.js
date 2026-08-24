@@ -13,6 +13,8 @@ async function run() {
     console.log('Added vehicle_id to invoice_services');
     await pool.query('ALTER TABLE invoice_third_party_services ADD COLUMN IF NOT EXISTS vehicle_id INTEGER REFERENCES vehicles(id);');
     console.log('Added vehicle_id to invoice_third_party_services');
+    await pool.query('ALTER TABLE clients ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE;');
+    console.log('Added is_active to clients');
   } catch (err) {
     console.error('Error running migration:', err);
   } finally {
