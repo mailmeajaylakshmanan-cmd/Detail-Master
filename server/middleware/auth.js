@@ -24,9 +24,11 @@ function cacheDelete(token) {
 }
 
 const protect = async (req, res, next) => {
-  let token = req.cookies?.token;
+  let token = req.header('Authorization')?.replace('Bearer ', '');
+  let isFromHeader = !!token;
+
   if (!token) {
-    token = req.header('Authorization')?.replace('Bearer ', '');
+    token = req.cookies?.token;
   }
 
   if (!token) return res.status(401).json({ message: "Not authorized" });
@@ -48,6 +50,7 @@ const protect = async (req, res, next) => {
 
     req.user = decoded;
     req.token = token;
+    req.isTokenFromHeader = isFromHeader;
     next();
   } catch (error) {
     res.status(401).json({ message: "Token failed" });
