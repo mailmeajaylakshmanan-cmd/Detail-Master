@@ -504,6 +504,7 @@ router.post('/', async (req, res) => {
           t.labour_count !== undefined ? t.labour_count : 1,
           t.labour_charge || 0,
           t.selling_price ? (Number(t.selling_price) / (vIds.length || 1)) : 0,
+          t.vendor_cost ? (Number(t.vendor_cost) / (vIds.length || 1)) : 0,
           vId,
         ]);
       }
@@ -511,7 +512,7 @@ router.post('/', async (req, res) => {
     if (tPartyRows.length > 0) {
       const q = buildBulkInsert(
         'invoice_third_party_services',
-        ['invoice_order_id', 'third_party_service_id', 'service_name', 'vendor_name', 'labour_count', 'labour_charge', 'selling_price', 'vehicle_id'],
+        ['invoice_order_id', 'third_party_service_id', 'service_name', 'vendor_name', 'labour_count', 'labour_charge', 'selling_price', 'vendor_cost', 'vehicle_id'],
         tPartyRows
       );
       await client.query(q.text, q.params);
@@ -730,6 +731,7 @@ router.put('/:id', async (req, res) => {
             t.labour_count !== undefined ? t.labour_count : 1,
             t.labour_charge || 0,
             t.selling_price ? (Number(t.selling_price) / (vIds.length || 1)) : 0,
+            t.vendor_cost ? (Number(t.vendor_cost) / (vIds.length || 1)) : 0,
             vId,
           ]);
         }
@@ -737,7 +739,7 @@ router.put('/:id', async (req, res) => {
       if (tPartyRows.length > 0) {
         const q = buildBulkInsert(
           'invoice_third_party_services',
-          ['invoice_order_id', 'third_party_service_id', 'service_name', 'vendor_name', 'labour_count', 'labour_charge', 'selling_price', 'vehicle_id'],
+          ['invoice_order_id', 'third_party_service_id', 'service_name', 'vendor_name', 'labour_count', 'labour_charge', 'selling_price', 'vendor_cost', 'vehicle_id'],
           tPartyRows
         );
         await client.query(q.text, q.params);

@@ -1,0 +1,2 @@
+ALTER TABLE third_party_services ADD COLUMN IF NOT EXISTS vendor_cost NUMERIC(12,2) NOT NULL DEFAULT 0;
+ALTER TABLE invoice_third_party_services ADD COLUMN IF NOT EXISTS vendor_cost NUMERIC(12,2) NOT NULL DEFAULT 0;

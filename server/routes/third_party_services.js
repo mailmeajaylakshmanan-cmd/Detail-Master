@@ -85,18 +85,19 @@ router.get('/:id', async (req, res) => {
 // CREATE a third-party service
 router.post('/', async (req, res) => {
   try {
-    const { service_name, vendor_name, labour_count, labour_charge, selling_price, is_active, vehicle_prices } = req.body;
+    const { service_name, vendor_name, vendor_cost, labour_count, labour_charge, selling_price, is_active, vehicle_prices } = req.body;
     if (!service_name || selling_price === undefined) {
       return res.status(400).json({ message: 'service_name and selling_price are required' });
     }
 
     const { rows } = await db.query(
       `INSERT INTO third_party_services
-       (service_name, vendor_name, labour_count, labour_charge, selling_price, is_active)
-       VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
+       (service_name, vendor_name, vendor_cost, labour_count, labour_charge, selling_price, is_active)
+       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
       [
         service_name,
         vendor_name || null,
+        vendor_cost || 0,
         labour_count !== undefined ? labour_count : 1,
         labour_charge || 0,
         selling_price,
@@ -135,19 +136,20 @@ router.post('/', async (req, res) => {
 router.put('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { service_name, vendor_name, labour_count, labour_charge, selling_price, is_active, vehicle_prices } = req.body;
+    const { service_name, vendor_name, vendor_cost, labour_count, labour_charge, selling_price, is_active, vehicle_prices } = req.body;
     if (!service_name || selling_price === undefined) {
       return res.status(400).json({ message: 'service_name and selling_price are required' });
     }
 
     const { rows } = await db.query(
       `UPDATE third_party_services
-       SET service_name = $1, vendor_name = $2, labour_count = $3, labour_charge = $4,
-           selling_price = $5, is_active = $6, updated_at = CURRENT_TIMESTAMP
-       WHERE id = $7 RETURNING *`,
+       SET service_name = $1, vendor_name = $2, vendor_cost = $3, labour_count = $4, labour_charge = $5,
+           selling_price = $6, is_active = $7, updated_at = CURRENT_TIMESTAMP
+       WHERE id = $8 RETURNING *`,
       [
         service_name,
         vendor_name || null,
+        vendor_cost || 0,
         labour_count !== undefined ? labour_count : 1,
         labour_charge || 0,
         selling_price,

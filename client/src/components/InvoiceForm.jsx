@@ -479,8 +479,15 @@ const ThirdPartyServiceRow = memo(function ThirdPartyServiceRow({ item, onField,
           />
         </div>
 
-        <div className="sm:w-36 flex flex-col gap-1 items-end">
-          <MoneyInput value={item.selling_price || ''} onChange={val => onField('selling_price', val)} disabled={readOnly} />
+        <div className="sm:w-40 flex flex-col gap-2 items-end">
+          <div className="w-full flex flex-col items-end">
+            <span className="text-[10px] font-bold text-amber-900/60 uppercase tracking-wider mb-0.5">Selling Price</span>
+            <MoneyInput value={item.selling_price || ''} onChange={val => onField('selling_price', val)} disabled={readOnly} />
+          </div>
+          <div className="w-full flex flex-col items-end">
+            <span className="text-[10px] font-bold text-amber-900/60 uppercase tracking-wider mb-0.5">Vendor Cost</span>
+            <MoneyInput value={item.vendor_cost || ''} onChange={val => onField('vendor_cost', val)} disabled={readOnly} />
+          </div>
           <div className="flex items-center gap-2">
             {vehicleOptions && vehicleOptions.length > 1 && (
               <button type="button" onClick={onVehiclesChange} className="text-amber-700 font-bold text-[11px] hover:underline">
