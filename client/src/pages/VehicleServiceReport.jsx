@@ -289,7 +289,7 @@ export default function VehicleServiceReport() {
             </div>
 
             <div style={{ flex: 1, position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-               <img src={goldenCar} alt="Car Accent" style={{ height: '80px', objectFit: 'contain', filter: 'drop-shadow(2px 2px 4px rgba(0,0,0,0.4))', position: 'relative', left: '15%', top: '10px' }} />
+               <img src={goldenCar} alt="Car Accent" style={{ height: '80px', objectFit: 'contain', filter: 'drop-shadow(2px 2px 4px rgba(0,0,0,0.4))', position: 'relative', left: '35%', top: '10px' }} />
             </div>
 
             <div style={{ display: 'flex', alignItems: 'flex-start', paddingRight: '5px', paddingTop: '20px' }}>
