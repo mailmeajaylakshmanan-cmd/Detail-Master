@@ -5,6 +5,18 @@ const puppeteer = require('puppeteer');
 let browserPromise = null;
 let browser = null;
 
+const fs = require('fs');
+
+function getExecutablePath() {
+  const winPath = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
+  const winPathx86 = 'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe';
+  if (process.platform === 'win32') {
+    if (fs.existsSync(winPath)) return winPath;
+    if (fs.existsSync(winPathx86)) return winPathx86;
+  }
+  return undefined; // Let puppeteer use its bundled chromium
+}
+
 function launchOptions() {
   return {
     headless: true,
@@ -15,12 +27,13 @@ function launchOptions() {
       '--disable-dev-shm-usage',
       '--ignore-certificate-errors',
       '--disable-gpu',
+      '--pipe',
     ],
   };
 }
 
 async function getBrowser() {
-  if (browser && browser.isConnected()) return browser;
+  if (browser && browser.connected) return browser;
 
   if (!browserPromise) {
     browserPromise = puppeteer.launch(launchOptions()).then((b) => {
@@ -37,6 +50,7 @@ async function getBrowser() {
     browser = await browserPromise;
   } catch (err) {
     browserPromise = null;
+    require('fs').writeFileSync('C:/Users/ajay2/.gemini/antigravity-ide/brain/16e8cef9-ae0d-4e43-9a46-2cd6a34d58a8/scratch/puppeteer_error.txt', String(err.stack));
     throw err;
   }
   return browser;

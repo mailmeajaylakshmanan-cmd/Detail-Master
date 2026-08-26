@@ -7,6 +7,7 @@ import { parseSafeDate, formatDate } from '../utils/dateFormatter.js';
 import { useClients, useInvoices } from '../hooks/useQueries.js';
 import { useDebouncedValue } from '../hooks/useDebouncedValue.js';
 import { queryKeys } from '../api/queryKeys.js';
+import { usePermissions } from '../hooks/usePermissions.js';
 
 import { useNavigate } from 'react-router-dom';
 import CustomerTable from '../components/customers/CustomerTable.jsx';
@@ -21,6 +22,8 @@ export default function MasterCustomer() {
   const [activeFilter, setActiveFilter] = useState('All');
   const [selectedPhone, setSelectedPhone] = useState(null);
   const [limit, setLimit] = useState(50);
+  
+  const { can_delete } = usePermissions('Customers');
 
   const { data: customerData, isLoading: loadingCustomers, isFetching: fetchingCustomers } = useClients({
     page: 1,
@@ -138,6 +141,17 @@ export default function MasterCustomer() {
       setIsSaving(false);
     }
   }
+  
+  async function handleDelete(id) {
+    if (!window.confirm('Are you sure you want to delete this customer?')) return;
+    try {
+      await api.delete('/clients/' + id);
+      toast.success('Customer deleted');
+      queryClient.invalidateQueries({ queryKey: queryKeys.clients.all });
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Error deleting customer');
+    }
+  }
 
   function handleAdd() {
     setEditId(null);
@@ -245,6 +259,8 @@ export default function MasterCustomer() {
             selectedId={null}
             onSelect={(phone) => navigate(`/master-customer/${phone}`)}
             onEdit={handleEdit}
+            onDelete={handleDelete}
+            canDelete={can_delete}
           />
         )}
 

@@ -85,6 +85,20 @@ function LazyPage({ children }) {
 }
 
 export default function App() {
+  React.useEffect(() => {
+    // Eagerly prefetch main chunks after initial load to make menu navigation instant
+    const prefetchTimer = setTimeout(() => {
+      import('./pages/Dashboard.jsx').catch(() => {});
+      import('./pages/InvoiceList.jsx').catch(() => {});
+      import('./pages/MasterService.jsx').catch(() => {});
+      import('./pages/MasterCustomer.jsx').catch(() => {});
+      import('./pages/MasterOrganization.jsx').catch(() => {});
+      import('./pages/MasterOffers.jsx').catch(() => {});
+      import('./pages/WebsiteBookings.jsx').catch(() => {});
+    }, 1500);
+    return () => clearTimeout(prefetchTimer);
+  }, []);
+
   return (
     <ErrorBoundary>
       <Routes>

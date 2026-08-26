@@ -6,11 +6,13 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useServices, useVehicleTypes } from '../hooks/useQueries.js';
 import { useDebouncedValue } from '../hooks/useDebouncedValue.js';
 import { queryKeys } from '../api/queryKeys.js';
+import { usePermissions } from '../hooks/usePermissions.js';
 
 export default function MasterService() {
   const queryClient = useQueryClient();
   const { data: services = [], isLoading: loading } = useServices();
   const { data: vehicleTypes = [] } = useVehicleTypes();
+  const { can_delete } = usePermissions('Services');
 
   const [searchQuery, setSearchQuery] = useState('');
   const debouncedSearch = useDebouncedValue(searchQuery, 250);
@@ -241,13 +243,15 @@ export default function MasterService() {
                     >
                       {srv.isActive ? 'Active' : 'Inactive'}
                     </button>
-                    <button
-                      onClick={(e) => handleDeleteClick(e, srv.id)}
-                      className="w-7 h-7 rounded-full bg-white text-rose-500 shadow-sm border border-rose-100 flex items-center justify-center hover:bg-rose-50 hover:text-rose-600 transition-colors"
-                      title="Delete Service"
-                    >
-                      <Trash2 size={14} />
-                    </button>
+                    {can_delete && (
+                      <button
+                        onClick={(e) => handleDeleteClick(e, srv.id)}
+                        className="w-7 h-7 rounded-full bg-white text-rose-500 shadow-sm border border-rose-100 flex items-center justify-center hover:bg-rose-50 hover:text-rose-600 transition-colors"
+                        title="Delete Service"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>

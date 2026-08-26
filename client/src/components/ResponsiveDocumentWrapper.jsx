@@ -33,7 +33,7 @@ export default function ResponsiveDocumentWrapper({ children, documentWidth = 82
         setScaledHeight(`${actualContentHeight * newScale}px`);
       } else {
         setScale(1);
-        setScaledHeight('auto');
+        setScaledHeight(`${actualContentHeight}px`);
       }
     });
 
@@ -52,7 +52,7 @@ export default function ResponsiveDocumentWrapper({ children, documentWidth = 82
       <div 
         className="print-reset"
         style={{ 
-          height: scaledHeight,
+          height: scale === 1 ? 'auto' : scaledHeight,
           width: `${documentWidth}px`,
           position: 'relative',
         }}
@@ -63,7 +63,7 @@ export default function ResponsiveDocumentWrapper({ children, documentWidth = 82
             transform: `scale(${scale})`,
             transformOrigin: 'top left',
             width: `${documentWidth}px`,
-            position: 'absolute',
+            position: scale === 1 ? 'relative' : 'absolute',
             top: 0,
             left: 0,
           }}

@@ -58,6 +58,7 @@ function normalizeInvoice(row) {
     carModel: parts.slice(1).join(' ') || row.carModel || '',
     licensePlate: row.license_vin || row.licensePlate || '',
     total: Number(row.grand_total ?? row.total) || 0,
+    subTotal: Number(row.sub_total ?? row.subTotal) || 0,
     discount: Number(row.discount) || 0,
     balance: Number(row.balance_due ?? row.balance) || 0,
     amountPaid: Number(row.amount_paid) || 0,
@@ -73,12 +74,26 @@ function normalizeInvoice(row) {
           price: Number(s.unit_price ?? s.price) || 0,
           total: 0,
           quantity: 0,
-          plates: []
+          plates: [],
+          is_redeemed: !!s.assigned_offer_id,
+          usage_type: s.usage_type,
+          completed_washes: s.completed_washes,
+          total_washes: s.total_washes,
+          free_washes_used: s.free_washes_used,
+          free_washes: s.free_washes
         };
       }
       acc[name].quantity += (s.quantity || 1);
       acc[name].total += (Number(s.unit_price ?? s.total ?? s.grand_total) || 0);
       if (s.vehicle_plate) acc[name].plates.push(s.vehicle_plate);
+      if (s.assigned_offer_id) {
+        acc[name].is_redeemed = true;
+        acc[name].usage_type = s.usage_type;
+        acc[name].completed_washes = s.completed_washes;
+        acc[name].total_washes = s.total_washes;
+        acc[name].free_washes_used = s.free_washes_used;
+        acc[name].free_washes = s.free_washes;
+      }
       return acc;
     }, {})).map(s => ({ ...s, vehicle_plate: s.plates.join(', ') })),
     thirdPartyServices: Object.values((row.thirdPartyServices || []).reduce((acc, t) => {
@@ -439,16 +454,16 @@ export default function InvoiceView() {
         </div>
 
         {/* INFO SECTIONS */}
-        <div className="invoice-info-sections" style={{ padding: '20px 40px', backgroundColor: 'transparent', position: 'relative', zIndex: 1, fontFamily: "'Inter', 'Segoe UI', 'Roboto', sans-serif" }}>
-           <div className="invoice-info-col">
+        <div className="invoice-info-sections" style={{ padding: '20px 40px', backgroundColor: 'transparent', position: 'relative', zIndex: 1, fontFamily: "'Inter', 'Segoe UI', 'Roboto', sans-serif", display: 'flex', gap: '40px' }}>
+           <div className="invoice-info-col" style={{ flex: '1 1 50%' }}>
               <h3 style={{ fontSize: 13, fontWeight: 700, margin: '0 0 12px 0', color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.05em' }}>INVOICE INFO</h3>
               <div style={{ fontSize: 14, color: '#111827', display: 'flex', flexDirection: 'column', gap: '10px' }}>
                  <div style={{ display: 'flex', alignItems: 'flex-start' }}><span style={{ width: 85, color: '#6B7280', fontSize: 13, paddingTop: 1 }}>Address:</span> <span style={{ flex: 1, fontWeight: 500, lineHeight: 1.5 }}>Opposite KTM Bike Showroom, Chankai, Marthandam, Tamil Nadu 629155</span></div>
                  <div style={{ display: 'flex', alignItems: 'center' }}><span style={{ width: 85, color: '#6B7280', fontSize: 13 }}>Phone:</span> <span style={{ fontWeight: 500 }}>+91 9994122652</span></div>
-                 <div style={{ display: 'flex', alignItems: 'center' }}><span style={{ width: 85, color: '#6B7280', fontSize: 13 }}>Email:</span> <span style={{ fontWeight: 500 }}>detailingmasters@gmail.com</span></div>
+                 <div style={{ display: 'flex', alignItems: 'center' }}><span style={{ width: 85, color: '#6B7280', fontSize: 13 }}>Email:</span> <span style={{ fontWeight: 500 }}>detailingmasters2024@gmail.com</span></div>
               </div>
            </div>
-           <div className="invoice-info-col">
+           <div className="invoice-info-col" style={{ flex: '1 1 50%' }}>
               <h3 style={{ fontSize: 13, fontWeight: 700, margin: '0 0 12px 0', color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.05em' }}>CLIENT INFO</h3>
               <div style={{ fontSize: 14, color: '#111827', display: 'flex', flexDirection: 'column', gap: '10px' }}>
                  <div style={{ display: 'flex', alignItems: 'center' }}><span style={{ width: 85, color: '#6B7280', fontSize: 13 }}>Name:</span> <span style={{ fontWeight: 500 }}>{invoice.customer?.name || 'John Doe'}</span></div>
@@ -488,17 +503,32 @@ export default function InvoiceView() {
                                 </div>
                                 <div>
                                    <div style={{ fontWeight: 500, color: '#000' }}>{s.service}</div>
-                                   {(s.description || s.vehicle_plate) && (
+                                   {(s.description || s.vehicle_plate || s.is_redeemed) && (
                                       <div style={{ fontSize: 11, color: '#666' }}>
                                          {s.vehicle_plate && <span style={{ fontWeight: 600, color: '#444' }}>[{s.vehicle_plate}] </span>}
                                          {s.description}
+                                         {s.is_redeemed && (
+                                           <div style={{ marginTop: '2px', color: '#15803d', fontWeight: 600 }}>
+                                              {s.usage_type === 'free' 
+                                                ? `Package Wash (${s.free_washes_used} of ${s.free_washes} free washes used)`
+                                                : `Package Wash (${s.completed_washes} of ${s.total_washes} washes used)`}
+                                           </div>
+                                         )}
                                       </div>
                                    )}
                                 </div>
                              </td>
                              <td style={{ padding: '6px 10px', border: '1px solid #000', textAlign: 'center', color: '#000' }}>{s.quantity || 1}</td>
-                             <td style={{ padding: '6px 10px', border: '1px solid #000', textAlign: 'center', color: '#000' }}>₹{fmt(s.price)}</td>
-                             <td style={{ padding: '6px 10px', border: '1px solid #000', textAlign: 'center', color: '#000', fontWeight: 600 }}>₹{fmt(s.total)}</td>
+                             <td style={{ padding: '6px 10px', border: '1px solid #000', textAlign: 'center', color: '#000' }}>
+                                {s.is_redeemed ? (
+                                   <span style={{ backgroundColor: '#22c55e', color: 'white', padding: '2px 6px', borderRadius: '4px', fontSize: '11px', fontWeight: 'bold' }}>REDEEMED</span>
+                                ) : `₹${fmt(s.price)}`}
+                             </td>
+                             <td style={{ padding: '6px 10px', border: '1px solid #000', textAlign: 'center', color: '#000', fontWeight: 600 }}>
+                                {s.is_redeemed ? (
+                                   <span style={{ backgroundColor: '#22c55e', color: 'white', padding: '2px 6px', borderRadius: '4px', fontSize: '11px', fontWeight: 'bold' }}>REDEEMED</span>
+                                ) : `₹${fmt(s.total)}`}
+                             </td>
                           </tr>
                           );
                        })}
@@ -534,25 +564,76 @@ export default function InvoiceView() {
                        </tr>
                     )}
                     <tr>
-                       <td style={{ border: 'none', backgroundColor: 'transparent' }}></td>
-                       <td colSpan="3" style={{ border: 'none', padding: 0, backgroundColor: 'transparent' }}>
-                          <div style={{ backgroundColor: '#F6CB59', color: '#000', padding: '12px 16px', fontWeight: 800, fontSize: 16, textAlign: 'center', width: '100%' }}>
-                             TOTAL AMOUNT DUE: ₹{fmt(invoice.total || 45000)}
-                          </div>
-                       </td>
+                       <td colSpan="2" style={{ border: 'none', backgroundColor: 'transparent' }}></td>
+                       <td style={{ padding: '8px 10px', textAlign: 'right', fontWeight: 700, border: '1px solid #000' }}>Sub Total</td>
+                       <td style={{ padding: '8px 10px', textAlign: 'center', fontWeight: 700, border: '1px solid #000' }}>₹{fmt(invoice.subTotal)}</td>
                     </tr>
+                    {invoice.discount > 0 && (
+                    <tr>
+                       <td colSpan="2" style={{ border: 'none', backgroundColor: 'transparent' }}></td>
+                       <td style={{ padding: '8px 10px', textAlign: 'right', fontWeight: 700, border: '1px solid #000' }}>Discount</td>
+                       <td style={{ padding: '8px 10px', textAlign: 'center', fontWeight: 700, border: '1px solid #000', color: '#e11d48' }}>-₹{fmt(invoice.discount)}</td>
+                    </tr>
+                    )}
+                    <tr>
+                        <td colSpan="2" style={{ border: 'none', backgroundColor: 'transparent' }}></td>
+                        <td colSpan="2" style={{ border: 'none', padding: 0, backgroundColor: 'transparent' }}>
+                           <div style={{ backgroundColor: invoice.total === 0 && invoice.services?.some(s => s.is_redeemed) ? '#22c55e' : '#F6CB59', color: invoice.total === 0 && invoice.services?.some(s => s.is_redeemed) ? 'white' : '#000', padding: '12px 16px', fontWeight: 800, fontSize: 16, textAlign: 'center', width: '100%', border: '1px solid #000', borderTop: 'none' }}>
+                              {invoice.total === 0 && invoice.services?.some(s => s.is_redeemed) ? 'GRAND TOTAL: ₹0.00 (Covered by Package)' : `GRAND TOTAL: ₹${fmt(invoice.total)}`}
+                           </div>
+                        </td>
+                     </tr>
                  </tbody>
               </table>
            </div>
         </div>
+
+        {/* PAYMENT RECORDS TABLE */}
+        {invoice.payments?.length > 0 && (
+        <div className="invoice-payments-container" style={{ padding: '20px 40px 0 40px' }}>
+           <h3 style={{ fontSize: 13, fontWeight: 700, margin: '0 0 8px 0', color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.05em' }}>PAYMENT RECORDS</h3>
+           <div style={{ height: 2, backgroundColor: '#0A0A0A', marginBottom: 12 }}></div>
+           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, position: 'relative', zIndex: 1, backgroundColor: '#fff' }}>
+              <thead>
+                 <tr style={{ backgroundColor: '#f8fafc', color: '#333' }}>
+                    <th style={{ padding: '8px 10px', textAlign: 'left', fontWeight: 600, border: '1px solid #ddd' }}>Date</th>
+                    <th style={{ padding: '8px 10px', textAlign: 'left', fontWeight: 600, border: '1px solid #ddd' }}>Method</th>
+                    <th style={{ padding: '8px 10px', textAlign: 'left', fontWeight: 600, border: '1px solid #ddd' }}>Reference</th>
+                    <th style={{ padding: '8px 10px', textAlign: 'right', fontWeight: 600, border: '1px solid #ddd' }}>Amount (₹)</th>
+                 </tr>
+              </thead>
+              <tbody>
+                 {invoice.payments.map((p, idx) => (
+                    <tr key={idx}>
+                       <td style={{ padding: '8px 10px', border: '1px solid #ddd' }}>{fmtDate(p.payment_date) || '—'}</td>
+                       <td style={{ padding: '8px 10px', border: '1px solid #ddd' }}>{mapMethodLabel(p.payment_method)}</td>
+                       <td style={{ padding: '8px 10px', border: '1px solid #ddd' }}>{p.reference_no || '-'}</td>
+                       <td style={{ padding: '8px 10px', border: '1px solid #ddd', textAlign: 'right', fontWeight: 600 }}>₹{fmt(p.amount)}</td>
+                    </tr>
+                 ))}
+                 <tr>
+                    <td colSpan="2" style={{ border: 'none', backgroundColor: 'transparent' }}></td>
+                    <td style={{ padding: '8px 10px', textAlign: 'right', fontWeight: 700, border: '1px solid #ddd', backgroundColor: '#f8fafc' }}>Total Paid</td>
+                    <td style={{ padding: '8px 10px', textAlign: 'right', fontWeight: 700, border: '1px solid #ddd', color: '#059669' }}>₹{fmt(invoice.amountPaid)}</td>
+                 </tr>
+                 {invoice.balance > 0 && (
+                 <tr>
+                    <td colSpan="2" style={{ border: 'none', backgroundColor: 'transparent' }}></td>
+                    <td style={{ padding: '8px 10px', textAlign: 'right', fontWeight: 700, border: '1px solid #ddd', backgroundColor: '#f8fafc' }}>Balance Due</td>
+                    <td style={{ padding: '8px 10px', textAlign: 'right', fontWeight: 800, border: '1px solid #ddd', color: '#e11d48' }}>₹{fmt(invoice.balance)}</td>
+                 </tr>
+                 )}
+              </tbody>
+           </table>
+        </div>
+        )}
         {/* BOTTOM SECTION (PAYMENT + FOOTER) */}
         <div style={{ position: 'relative', width: '100%', marginTop: 'auto', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
            {/* PAYMENT DETAILS */}
            <div style={{ padding: '5px 40px', marginBottom: '20px' }}>
               <h3 style={{ fontSize: 15, fontWeight: 700, margin: '0 0 6px 0', color: '#111', textTransform: 'uppercase' }}>PAYMENT DETAILS</h3>
               <div style={{ fontSize: 13, color: '#333', lineHeight: 1.6 }}>
-                 <div>+91 1234567890</div>
-                 <div>contact@detailingmasters.com</div>
+                 <div>+91 9994122652 | E-mail: detailingmasters2024@gmail.com</div>
                  {invoice.showTerms && invoice.termsAndConditions && (
                     <div style={{ marginTop: 12, fontSize: 11, color: '#666', maxWidth: '70%' }}>
                        <strong>Terms:</strong> {invoice.termsAndConditions}
@@ -563,8 +644,8 @@ export default function InvoiceView() {
 
            {/* FOOTER */}
            <div style={{ margin: '0 40px', borderTop: '1.5px solid #111', paddingTop: '15px', paddingBottom: '30px', textAlign: 'center', fontSize: 13, color: '#111', zIndex: 10, position: 'relative' }}>
-              <strong>Detailing Masters</strong>, 123 High Street, Opp. KTM Bike Showroom, Bengaluru, India.<br/>
-              Ph: +91 (23 367 7873 | E-mail: infi@detailingmasters.com
+              <strong>Detailing Masters</strong>, Opposite KTM Bike Showroom, Chankai, Marthandam, Tamil Nadu 629155.<br/>
+              Ph: +91 9994122652 | E-mail: detailingmasters2024@gmail.com
            </div>
         </div>
         </div>

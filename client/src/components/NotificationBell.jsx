@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Bell, AlertTriangle, Check, X } from 'lucide-react';
 import api from '../api/axios.js';
 import toast from 'react-hot-toast';
+import { usePermissions } from '../hooks/usePermissions.js';
 
 const endpointFor = kind => (kind === 'service' ? 'service-items' : 'third-party-items');
 
@@ -24,11 +25,16 @@ export default function NotificationBell() {
   const [pendingItem, setPendingItem] = useState(null);
   const queryClient = useQueryClient();
 
+  const { can_view } = usePermissions('Dashboard');
+
   const { data: notifications = [] } = useQuery({
     queryKey: ['notifications'],
     queryFn: async () => (await api.get('/notifications')).data,
     refetchInterval: 60000,
+    enabled: can_view,
   });
+
+  if (!can_view) return null;
 
   const totalItems = notifications.reduce((sum, n) => sum + n.items.length, 0);
 

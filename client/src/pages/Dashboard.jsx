@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   IndianRupee, Calendar, Search, Activity, Users, FileText, CheckCircle2, CheckSquare, Clock, Plus, ChevronRight, MoreHorizontal, Car, Sparkles, Droplets, Shield, TrendingUp, Download
@@ -8,11 +8,14 @@ import { useQuery } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { queryKeys } from '../api/queryKeys.js';
 import toast from 'react-hot-toast';
+import { usePermissions } from '../hooks/usePermissions.js';
 
 export default function Dashboard() {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [isExporting, setIsExporting] = useState(false);
+  
+  const { can_view } = usePermissions('Dashboard');
 
   const { data, isLoading } = useQuery({
     queryKey: queryKeys.dashboard.stats(),
@@ -20,7 +23,16 @@ export default function Dashboard() {
       const res = await api.get('/dashboard/stats');
       return res.data;
     },
+    enabled: can_view,
   });
+
+  useEffect(() => {
+    if (!can_view) {
+      navigate('/invoices', { replace: true });
+    }
+  }, [can_view, navigate]);
+
+  if (!can_view) return null;
 
   const handleExport = async (timeframe) => {
     try {

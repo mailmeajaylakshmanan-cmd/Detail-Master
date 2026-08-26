@@ -5,6 +5,7 @@ import { Plus, X, Search, Truck } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useThirdPartyServices } from '../hooks/useQueries.js';
 import { useDebouncedValue } from '../hooks/useDebouncedValue.js';
+import { usePermissions } from '../hooks/usePermissions.js';
 import { queryKeys } from '../api/queryKeys.js';
 
 const emptyForm = { name: '', vendorName: '', labourCount: '1', labourCharge: '', sellingPrice: '' };
@@ -12,6 +13,7 @@ const emptyForm = { name: '', vendorName: '', labourCount: '1', labourCharge: ''
 export default function MasterThirdPartyService() {
   const queryClient = useQueryClient();
   const { data: items = [], isLoading: loading } = useThirdPartyServices();
+  const { can_delete, can_add, can_edit } = usePermissions('Third-Party Services');
 
   const [searchQuery, setSearchQuery] = useState('');
   const debouncedSearch = useDebouncedValue(searchQuery, 250);
@@ -62,6 +64,17 @@ export default function MasterThirdPartyService() {
       queryClient.invalidateQueries({ queryKey: queryKeys.thirdPartyServices.all });
     } catch (err) {
       toast.error(err.response?.data?.message || 'Error saving third-party service');
+    }
+  }
+
+  async function handleDelete(id) {
+    if (!window.confirm('Are you sure you want to delete this third-party service?')) return;
+    try {
+      await api.delete('/third_party_services/' + id);
+      toast.success('Third-party service deleted');
+      queryClient.invalidateQueries({ queryKey: queryKeys.thirdPartyServices.all });
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Error deleting service');
     }
   }
 
@@ -139,16 +152,28 @@ export default function MasterThirdPartyService() {
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
-          <button onClick={handleAdd} className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-black text-[#F6CB59] hover:scale-[1.02] active:scale-[0.98] transition-all font-bold text-[13px] shadow-md whitespace-nowrap">
-            <Plus size={16} strokeWidth={2.5} /> Add Service
-          </button>
+          {can_add && (
+            <button onClick={handleAdd} className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-black text-[#F6CB59] hover:scale-[1.02] active:scale-[0.98] transition-all font-bold text-[13px] shadow-md whitespace-nowrap">
+              <Plus size={16} strokeWidth={2.5} /> Add Service
+            </button>
+          )}
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredItems.map(item => (
-          <div key={item.id} onClick={() => handleEdit(item)} className="card p-6 relative flex flex-col cursor-pointer group hover:-translate-y-1 transition-all duration-300 min-h-[220px]">
-            <h3 className="text-[20px] font-black text-gray-900 leading-tight pr-2 group-hover:text-[#F6CB59] transition-colors">{item.name}</h3>
+          <div key={item.id} onClick={() => { if(can_edit) handleEdit(item) }} className={`card p-6 relative flex flex-col group transition-all duration-300 min-h-[220px] ${can_edit ? 'cursor-pointer hover:-translate-y-1' : ''}`}>
+            <div className="flex justify-between items-start mb-2">
+              <h3 className="text-[20px] font-black text-gray-900 leading-tight pr-2 group-hover:text-[#F6CB59] transition-colors">{item.name}</h3>
+              {can_delete && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); handleDelete(item.id); }}
+                  className="w-7 h-7 rounded-full bg-white text-rose-500 shadow-sm border border-rose-100 flex items-center justify-center hover:bg-rose-50 hover:text-rose-600 transition-colors shrink-0"
+                >
+                  <X size={14} strokeWidth={3} />
+                </button>
+              )}
+            </div>
             <p className="text-[13px] text-gray-500 mb-4">
               {item.vendorName || <span className="italic text-gray-400">No vendor specified</span>}
             </p>

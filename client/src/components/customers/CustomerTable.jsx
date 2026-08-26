@@ -1,5 +1,5 @@
 import { useMemo, useState, useRef, useEffect } from 'react';
-import { ArrowUpDown, ArrowUp, ArrowDown, MoreVertical, Eye, Edit3, Search, Phone, Car, Calendar } from 'lucide-react';
+import { ArrowUpDown, ArrowUp, ArrowDown, MoreVertical, Eye, Edit3, Search, Phone, Car, Calendar, Trash2 } from 'lucide-react';
 import { formatDate } from '../../utils/dateFormatter.js';
 import CustomerAvatar from './CustomerAvatar.jsx';
 import { VipBadge, OfferBadge } from './Badge.jsx';
@@ -25,7 +25,7 @@ function SortIcon({ active, direction }) {
 
 
 
-export default function CustomerTable({ rows, selectedId, onSelect, onEdit }) {
+export default function CustomerTable({ rows, selectedId, onSelect, onEdit, onDelete, canDelete }) {
   const [sortKey, setSortKey] = useState('name');
   const [sortDir, setSortDir] = useState('asc');
   const [page, setPage] = useState(1);
@@ -189,6 +189,15 @@ export default function CustomerTable({ rows, selectedId, onSelect, onEdit }) {
                         >
                           <Edit3 size={14} /> Edit Customer
                         </button>
+                        {canDelete && (
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); onDelete(row.id); setOpenMenuId(null); }}
+                            className="w-full flex items-center gap-2 px-4 py-2.5 text-[12px] font-semibold text-rose-600 hover:bg-rose-50 transition-colors"
+                          >
+                            <Trash2 size={14} /> Delete Customer
+                          </button>
+                        )}
                       </div>
                     )}
                   </td>
@@ -241,6 +250,15 @@ export default function CustomerTable({ rows, selectedId, onSelect, onEdit }) {
                     >
                       <Edit3 size={15} strokeWidth={2.5} />
                     </button>
+                    {canDelete && (
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); onDelete(row.id); }}
+                        className="w-9 h-9 rounded-full bg-rose-600 flex items-center justify-center text-white shadow-md active:scale-95 transition-transform"
+                      >
+                        <Trash2 size={15} strokeWidth={2.5} />
+                      </button>
+                    )}
                   </div>
                 </div>
                 

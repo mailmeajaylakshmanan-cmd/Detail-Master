@@ -1,6 +1,6 @@
 import { useMemo, useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowUpDown, ArrowUp, ArrowDown, MoreVertical, Edit3, Search, Receipt, Phone, User, Car } from 'lucide-react';
+import { ArrowUpDown, ArrowUp, ArrowDown, MoreVertical, Edit3, Search, Receipt, Phone, User, Car, Trash2 } from 'lucide-react';
 import { formatDate } from '../../utils/dateFormatter.js';
 import Pagination from '../customers/Pagination.jsx';
 
@@ -21,7 +21,7 @@ function SortIcon({ active, direction }) {
     : <ArrowDown size={11} className="text-gray-700" />;
 }
 
-export default function OrganizationTable({ rows, onEdit }) {
+export default function OrganizationTable({ rows, onEdit, onDelete, canDelete }) {
   const [sortKey, setSortKey] = useState('org_name');
   const [sortDir, setSortDir] = useState('asc');
   const [page, setPage] = useState(1);
@@ -177,6 +177,15 @@ export default function OrganizationTable({ rows, onEdit }) {
                         >
                           <Receipt size={14} /> View Billing
                         </Link>
+                        {canDelete && (
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); onDelete(row.id); setOpenMenuId(null); }}
+                            className="w-full flex items-center gap-2 px-4 py-2.5 text-[12px] font-semibold text-rose-600 hover:bg-rose-50 transition-colors"
+                          >
+                            <Trash2 size={14} /> Delete
+                          </button>
+                        )}
                       </div>
                     )}
                   </td>
@@ -228,6 +237,15 @@ export default function OrganizationTable({ rows, onEdit }) {
                      >
                        <Receipt size={15} strokeWidth={2.5} />
                      </Link>
+                     {canDelete && (
+                       <button
+                         type="button"
+                         onClick={(e) => { e.stopPropagation(); onDelete(row.id); }}
+                         className="w-9 h-9 rounded-full bg-rose-600 flex items-center justify-center text-white shadow-md active:scale-95 transition-transform"
+                       >
+                         <Trash2 size={15} strokeWidth={2.5} />
+                       </button>
+                     )}
                   </div>
                 </div>
                 

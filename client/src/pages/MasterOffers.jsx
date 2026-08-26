@@ -6,6 +6,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import Select from 'react-select';
 import { useServices, useThirdPartyServices } from '../hooks/useQueries.js';
+import { usePermissions } from '../hooks/usePermissions.js';
 
 const selectStyles = () => ({
   control: (b, s) => ({
@@ -62,6 +63,7 @@ const selectStyles = () => ({
 
 export default function MasterOffers() {
   const queryClient = useQueryClient();
+  const { can_delete, can_add, can_edit } = usePermissions('Offers');
   
   const { data: offers = [], isLoading: loading } = useQuery({
     queryKey: ['offerMasterData'],
@@ -227,19 +229,21 @@ export default function MasterOffers() {
             >
               <Settings size={14} strokeWidth={2.5} /> Manage Assigned
             </Link>
-            <button
-              onClick={handleAdd}
-              className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-black text-[#F6CB59] hover:scale-[1.02] active:scale-[0.98] transition-all font-bold text-[12px] shadow-md whitespace-nowrap"
-            >
-              <Plus size={14} strokeWidth={2.5} /> Add Offer
-            </button>
+            {can_add && (
+              <button
+                onClick={handleAdd}
+                className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-black text-[#F6CB59] hover:scale-[1.02] active:scale-[0.98] transition-all font-bold text-[12px] shadow-md whitespace-nowrap"
+              >
+                <Plus size={14} strokeWidth={2.5} /> Add Offer
+              </button>
+            )}
           </div>
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
         {filteredOffers.map(offer => (
-          <div key={offer.id} onClick={() => handleEdit(offer)} className="card p-6 relative flex flex-col cursor-pointer group min-h-[220px]">
+          <div key={offer.id} onClick={() => { if(can_edit) handleEdit(offer) }} className={`card p-6 relative flex flex-col group min-h-[220px] ${can_edit ? 'cursor-pointer' : ''}`}>
             <div className="flex flex-col flex-1">
               <h3 className="text-[20px] font-black text-gray-900 leading-tight mb-2 pr-2">{offer.name}</h3>
               <p className="text-[13px] font-medium text-gray-500 mb-4 line-clamp-2">
@@ -268,12 +272,14 @@ export default function MasterOffers() {
                   ₹{Number(offer.defaultPrice || 0).toLocaleString('en-IN')}
                 </div>
               </div>
-              <button
-                onClick={(e) => { e.stopPropagation(); handleDelete(offer.id); }}
-                className="w-7 h-7 rounded-full bg-white text-rose-500 shadow-sm border border-rose-100 flex items-center justify-center hover:bg-rose-50 hover:text-rose-600 transition-colors"
-              >
-                <X size={14} strokeWidth={3} />
-              </button>
+              {can_delete && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); handleDelete(offer.id); }}
+                  className="w-7 h-7 rounded-full bg-white text-rose-500 shadow-sm border border-rose-100 flex items-center justify-center hover:bg-rose-50 hover:text-rose-600 transition-colors"
+                >
+                  <X size={14} strokeWidth={3} />
+                </button>
+              )}
             </div>
           </div>
         ))}

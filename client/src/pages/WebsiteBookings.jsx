@@ -3,9 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Globe, Search, Calendar, Car, Phone, Mail, Clock, MoreVertical,
-  CheckCircle2, XCircle, Clock4, CheckSquare, PenSquare, Check, X as XIcon, AlertCircle
+  CheckCircle2, XCircle, Clock4, CheckSquare, PenSquare, Check, X as XIcon, AlertCircle, Trash2
 } from 'lucide-react';
 import api from '../api/axios';
+import { usePermissions } from '../hooks/usePermissions.js';
 import { format, parseISO } from 'date-fns';
 import toast from 'react-hot-toast';
 
@@ -48,6 +49,7 @@ export default function WebsiteBookings() {
 
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const { can_delete } = usePermissions('Online Booking');
 
   const { data: bookings = [], isLoading } = useQuery({
     queryKey: ['web_bookings'],
@@ -215,12 +217,22 @@ export default function WebsiteBookings() {
     setCancellingId(null);
   };
 
-  // ── Simple status changes (no WhatsApp needed: Revert / Reopen) ──
   const plainStatusChange = (booking, status) => {
     updateStatusMutation.mutate(
       { id: booking.booking_id, status },
       { onSuccess: () => toast.success('Booking status updated!') }
     );
+  };
+  
+  const handleDelete = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this booking?')) return;
+    try {
+      await api.delete('/web_bookings/' + id);
+      toast.success('Booking deleted');
+      queryClient.invalidateQueries(['web_bookings']);
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Error deleting booking');
+    }
   };
 
   const filteredBookings = bookings.filter(booking => {
@@ -423,6 +435,11 @@ export default function WebsiteBookings() {
                               Reopen
                             </button>
                           )}
+                          {can_delete && (
+                            <button onClick={() => handleDelete(booking.booking_id)} className="w-8 h-8 flex items-center justify-center rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 transition-colors shadow-sm ml-1 shrink-0">
+                              <Trash2 size={13} strokeWidth={2.5} />
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -540,6 +557,11 @@ export default function WebsiteBookings() {
                       {(activeTab === 'converted' || activeTab === 'cancelled') && (
                         <button onClick={() => plainStatusChange(booking, 'pending')} className="flex-1 py-2.5 bg-white hover:bg-gray-50 text-gray-600 border border-gray-200 text-[12px] font-black rounded-xl transition-all shadow-sm">
                           Reopen
+                        </button>
+                      )}
+                      {can_delete && (
+                        <button onClick={() => handleDelete(booking.booking_id)} className="w-10 h-10 flex items-center justify-center rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 transition-colors shadow-sm ml-1 shrink-0">
+                          <Trash2 size={16} strokeWidth={2.5} />
                         </button>
                       )}
                     </div>

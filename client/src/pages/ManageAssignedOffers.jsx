@@ -1,9 +1,11 @@
 import React, { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, Eye, ArrowLeft, Gift } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
+import { Search, Eye, ArrowLeft, Gift, Trash2 } from 'lucide-react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import api from '../api/axios.js';
+import toast from 'react-hot-toast';
 import { parseSafeDate } from '../utils/dateFormatter.js';
+import { usePermissions } from '../hooks/usePermissions.js';
 
 function formatDate(dateStr) {
   if (!dateStr) return '—';
@@ -18,6 +20,8 @@ function fmt(n) {
 
 export default function ManageAssignedOffers() {
   const [search, setSearch] = useState('');
+  const queryClient = useQueryClient();
+  const { can_delete } = usePermissions('Offers');
 
   const { data: offers = [], isLoading } = useQuery({
     queryKey: ['assignedOffers'],
@@ -38,6 +42,17 @@ export default function ManageAssignedOffers() {
       (o.licensePlate && o.licensePlate.toLowerCase().includes(lower))
     );
   }, [offers, search]);
+  
+  const handleDelete = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this assigned offer?')) return;
+    try {
+      await api.delete('/offers/' + id);
+      toast.success('Assigned offer deleted');
+      queryClient.invalidateQueries(['assignedOffers']);
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Error deleting assigned offer');
+    }
+  };
 
   return (
     <div className="space-y-5 pb-20 max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
@@ -131,12 +146,22 @@ export default function ManageAssignedOffers() {
                         </span>
                       </td>
                       <td className="px-3 py-3 text-right">
-                        <Link 
-                          to={`/offers/${offer.id}`} 
-                          className="w-8 h-8 inline-flex items-center justify-center rounded-lg text-gray-400 hover:text-blue-600 hover:bg-white transition-colors border border-transparent hover:border-blue-100 shadow-sm"
-                        >
-                          <Eye size={16} />
-                        </Link>
+                        <div className="flex items-center justify-end gap-1">
+                          <Link 
+                            to={`/offers/${offer.id}`} 
+                            className="w-8 h-8 inline-flex items-center justify-center rounded-lg text-gray-400 hover:text-blue-600 hover:bg-white transition-colors border border-transparent hover:border-blue-100 shadow-sm"
+                          >
+                            <Eye size={16} />
+                          </Link>
+                          {can_delete && (
+                            <button
+                              onClick={() => handleDelete(offer.id)}
+                              className="w-8 h-8 inline-flex items-center justify-center rounded-lg text-gray-400 hover:text-rose-600 hover:bg-rose-50 transition-colors border border-transparent hover:border-rose-100 shadow-sm"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   );

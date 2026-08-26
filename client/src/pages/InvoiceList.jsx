@@ -1,9 +1,12 @@
 import React, { useState, useMemo } from 'react';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
-import { Plus, Search, Filter, ArrowUpDown, ChevronLeft, ChevronRight, Eye, Pencil, ClipboardList, Car, Calendar, User } from 'lucide-react';
+import { Plus, Search, Filter, ArrowUpDown, ChevronLeft, ChevronRight, Eye, Pencil, ClipboardList, Car, Calendar, User, XCircle } from 'lucide-react';
 import { useInvoices } from '../hooks/useQueries.js';
 import { useDebouncedValue } from '../hooks/useDebouncedValue.js';
 import { parseSafeDate } from '../utils/dateFormatter.js';
+import api from '../api/axios.js';
+import toast from 'react-hot-toast';
+import { useQueryClient, useMutation } from '@tanstack/react-query';
 
 function fmt(n) {
   return '₹' + Number(n || 0).toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
@@ -32,6 +35,22 @@ export default function InvoiceList() {
   const [status, setStatus] = useState('All');
   const [page, setPage] = useState(1);
   const debouncedSearch = useDebouncedValue(search, 300);
+  const queryClient = useQueryClient();
+
+  const dropMutation = useMutation({
+    mutationFn: async (id) => {
+      const res = await api.put(`/invoices/${id}`, { status: 'cancelled' });
+      return res.data;
+    },
+    onSuccess: () => {
+      toast.success('Invoice dropped/cancelled successfully');
+      queryClient.invalidateQueries(['invoices']);
+      refetch();
+    },
+    onError: () => {
+      toast.error('Failed to drop invoice');
+    }
+  });
 
   const { data, isLoading: loading, isFetching, isError, error, refetch } = useInvoices({
     page,
@@ -74,7 +93,7 @@ export default function InvoiceList() {
   };
 
   return (
-    <div className="space-y-6 pb-20 p-2 sm:p-6 lg:p-8 bg-transparent min-h-full">
+    <div className="space-y-3 pb-20 p-2 sm:p-6 lg:p-8 bg-transparent min-h-full">
       <div className="bg-white/60 backdrop-blur-2xl rounded-[24px] shadow-[0_8px_32px_rgba(0,0,0,0.06)] border border-white/80 p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shrink-0">
         <div className="flex items-center gap-4">
           <div className="w-12 h-12 rounded-2xl bg-black text-[#F6CB59] flex items-center justify-center shadow-md shrink-0">
@@ -233,6 +252,19 @@ export default function InvoiceList() {
                         <button onClick={() => navigate(`/invoices/${inv.id}/edit`)} title="Edit Invoice" className="p-1.5 text-amber-600 bg-amber-50 hover:bg-amber-100 hover:text-amber-700 rounded-lg transition-colors inline-flex">
                           <Pencil size={18} />
                         </button>
+                        {inv.status !== 'cancelled' && (
+                          <button
+                            onClick={() => {
+                              if (window.confirm('Are you sure you want to drop/cancel this invoice?')) {
+                                dropMutation.mutate(inv.id);
+                              }
+                            }}
+                            title="Drop / Cancel Invoice"
+                            className="p-1.5 text-rose-600 bg-rose-50 hover:bg-rose-100 hover:text-rose-700 rounded-lg transition-colors inline-flex"
+                          >
+                            <XCircle size={18} />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>

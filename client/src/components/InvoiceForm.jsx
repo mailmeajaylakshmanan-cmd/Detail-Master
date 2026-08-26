@@ -667,7 +667,7 @@ export default function InvoiceForm({ initial, onSubmit, loading }) {
     () => form.thirdPartyItems.reduce((sum, t) => sum + (Number(t.selling_price) || 0) * (t.vehicle_ids?.length || 1), 0),
     [form.thirdPartyItems]
   );
-  const subTotal = servicesSubTotal + thirdPartySubTotal;
+  const subTotal = isOfferPurchase ? Number(form.subTotal || 0) : (servicesSubTotal + thirdPartySubTotal);
   const discount = Number(form.discount || 0);
   const discountExceedsTotal = discount > subTotal && subTotal > 0;
   const total = Math.max(0, subTotal - discount);

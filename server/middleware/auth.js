@@ -48,6 +48,7 @@ const protect = async (req, res, next) => {
       cacheSet(token);
     }
 
+
     req.user = decoded;
     req.token = token;
     req.isTokenFromHeader = isFromHeader;

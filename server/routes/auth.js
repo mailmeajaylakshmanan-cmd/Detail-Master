@@ -33,18 +33,18 @@ async function getUserWithMenus(userId) {
   } else {
     // Menus from role_menus OR user_menus overrides
     const menuQuery = `
-      SELECT DISTINCT m.* 
+      SELECT m.*,
+        COALESCE(um.can_view, rm.can_view, false) AS can_view,
+        COALESCE(um.can_add, rm.can_add, false) AS can_add,
+        COALESCE(um.can_edit, rm.can_edit, false) AS can_edit,
+        COALESCE(um.can_delete, rm.can_delete, false) AS can_delete
       FROM public.menus m
+      LEFT JOIN public.role_menus rm ON rm.menu_id = m.id AND rm.role_id = $1
+      LEFT JOIN public.user_menus um ON um.menu_id = m.id AND um.user_id = $2
       WHERE m.is_active = TRUE
         AND (
-          EXISTS (
-            SELECT 1 FROM public.role_menus rm
-            WHERE rm.menu_id = m.id AND rm.role_id = $1 AND rm.can_view = TRUE
-          )
-          OR EXISTS (
-            SELECT 1 FROM public.user_menus um
-            WHERE um.menu_id = m.id AND um.user_id = $2 AND um.can_view = TRUE
-          )
+          um.can_view = TRUE OR
+          (um.can_view IS NULL AND rm.can_view = TRUE)
         )
       ORDER BY m.id ASC
     `;

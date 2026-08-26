@@ -184,8 +184,10 @@ router.get('/:id', async (req, res) => {
         [id]
       ),
       db.query(
-        `SELECT * FROM assigned_offer_usages
-         WHERE invoice_order_id = $1`,
+        `SELECT u.*, a.completed_washes, a.total_washes, a.free_washes_used, a.free_washes
+         FROM assigned_offer_usages u
+         JOIN assigned_offers a ON u.assigned_offer_id = a.id
+         WHERE u.invoice_order_id = $1`,
         [id]
       ),
     ]);
@@ -195,7 +197,15 @@ router.get('/:id', async (req, res) => {
       if (Number(s.unit_price) === 0 && usages.length > 0) {
         // Blindly assign an offer usage to a service that is free
         const usage = usages.shift();
-        return { ...s, assigned_offer_id: usage.assigned_offer_id };
+        return { 
+          ...s, 
+          assigned_offer_id: usage.assigned_offer_id,
+          usage_type: usage.usage_type,
+          completed_washes: usage.completed_washes,
+          total_washes: usage.total_washes,
+          free_washes_used: usage.free_washes_used,
+          free_washes: usage.free_washes
+        };
       }
       return s;
     });
@@ -892,10 +902,10 @@ router.get('/:id/service-report/pdf', async (req, res) => {
     
     // Wait for the report to render
     try {
-      await page.waitForSelector('#report-print', { timeout: 15000 });
+      await page.waitForSelector('#invoice-print', { timeout: 15000 });
     } catch (err) {
       const html = await page.content();
-      console.error("[PDF] Timeout waiting for #report-print. Page HTML snippet:", html.substring(0, 1500));
+      console.error("[PDF] Timeout waiting for #invoice-print. Page HTML snippet:", html.substring(0, 1500));
       throw err;
     }
 

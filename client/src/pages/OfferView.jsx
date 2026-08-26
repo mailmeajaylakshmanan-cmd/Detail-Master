@@ -170,7 +170,7 @@ export default function OfferView() {
 
       <div className="pb-8">
       <ResponsiveDocumentWrapper documentWidth={820}>
-        <div id="invoice-print" style={doc.wrap}>
+        <div id="invoice-print" style={{ ...doc.wrap, display: 'flex', flexDirection: 'column', minHeight: '1122px' }}>
         
         {/* HEADER */}
         <div style={{ position: 'relative', height: '115px', backgroundColor: '#EBEBED', width: '100%', WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>
@@ -377,36 +377,26 @@ export default function OfferView() {
               )}
             </ul>
           </div>
-          
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: 10 }}>
-            <div style={{ 
-              backgroundColor: '#111827', 
-              color: '#F6CB59', 
-              width: 80, 
-              height: 90, 
-              clipPath: 'polygon(50% 0%, 100% 0, 100% 70%, 50% 100%, 0 70%, 0 0)',
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'center',
-              alignItems: 'center',
-              textAlign: 'center',
-              padding: '10px 4px 16px'
-            }}>
-              <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.05em' }}>VIP</div>
-              <div style={{ fontSize: 12, fontWeight: 800, marginTop: 2 }}>OFFER</div>
-              <div style={{ fontSize: 8, marginTop: 4, opacity: 0.8, textTransform: 'uppercase' }}>Exclusive</div>
-            </div>
-          </div>
         </div>
 
-        {/* Bottom address bar */}
-        <div style={{ borderTop: `1px solid ${borderCol}`, padding: '16px 40px', textAlign: 'center', backgroundColor: '#f9fafb' }}>
-          <p style={{ margin: 0, fontSize: 12, color: textDark, fontWeight: 500 }}>
-            <strong>Detailing Masters</strong>, Opposite KTM Bike Showroom, Chankai, Marthandam, Tamil Nadu 629155.
-          </p>
-          <p style={{ margin: '4px 0 0', fontSize: 11, color: textMuted }}>
-            Ph: +91 9994122652 | E-mail: detailingmasters@gmail.com
-          </p>
+        {/* BOTTOM SECTION (VIP BADGE + FOOTER) */}
+        <div style={{ position: 'relative', width: '100%', marginTop: 'auto', display: 'flex', flexDirection: 'column' }}>
+          {/* VIP Badge */}
+          <div style={{ position: 'absolute', right: 40, bottom: 80, width: 60, height: 80, background: '#0f172a', clipPath: 'polygon(0 0, 100% 0, 100% 75%, 50% 100%, 0 75%)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', paddingTop: 8, zIndex: 10, boxShadow: '0 10px 25px rgba(0,0,0,0.2)' }}>
+            <div style={{ fontSize: 11, fontWeight: 800, color: '#fff', letterSpacing: '1px' }}>VIP</div>
+            <div style={{ fontSize: 12, fontWeight: 900, color: '#F6CB59', marginTop: 2 }}>OFFER</div>
+            <div style={{ fontSize: 8, fontWeight: 600, color: '#94a3b8', marginTop: 2, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Exclusive</div>
+          </div>
+
+          {/* Bottom address bar */}
+          <div style={{ borderTop: `1px solid ${borderCol}`, padding: '16px 40px', textAlign: 'center', backgroundColor: '#f9fafb' }}>
+            <p style={{ margin: 0, fontSize: 12, color: textDark, fontWeight: 500 }}>
+              <strong>Detailing Masters</strong>, Opposite KTM Bike Showroom, Chankai, Marthandam, Tamil Nadu 629155.
+            </p>
+            <p style={{ margin: '4px 0 0', fontSize: 11, color: textMuted }}>
+              Ph: +91 9994122652 | E-mail: detailingmasters2024@gmail.com
+            </p>
+          </div>
         </div>
 
         </div>

@@ -304,7 +304,7 @@ export default function VehicleServiceReport() {
                   printColorAdjust: 'exact',
                   filter: 'drop-shadow(1px 1px 2px rgba(0,0,0,0.6))',
                   textAlign: 'right'
-              }}>VEHICLE<br/>REPORT</h1>
+              }}>VEHICLE REPORT</h1>
             </div>
           </div>
         </div>
@@ -314,78 +314,78 @@ export default function VehicleServiceReport() {
         </div>
 
         <div style={{ display: 'flex', justifyContent: 'space-between', padding: '24px 40px', backgroundColor: 'transparent', position: 'relative', zIndex: 1, borderBottom: '1px solid #e2e8f0' }}>
-           <div style={{ flex: 1 }}>
-              <h3 style={{ fontSize: 13, fontWeight: 700, margin: '0 0 8px 0', color: '#111', textTransform: 'uppercase', letterSpacing: '0.5px' }}>STUDIO DETAILS</h3>
-              <div style={{ fontSize: 12, color: '#333', lineHeight: 1.7 }}>
-                 <div style={{ display: 'flex' }}><span style={{ width: 65, fontWeight: 600 }}>Address:</span> <span style={{ flex: 1 }}>Opposite KTM Bike Showroom, Chankai, Marthandam, Tamil Nadu 629155</span></div>
-                 <div style={{ display: 'flex' }}><span style={{ width: 65, fontWeight: 600 }}>Phone:</span> <span>+91 9994122652</span></div>
-                 <div style={{ display: 'flex' }}><span style={{ width: 65, fontWeight: 600 }}>Email:</span> <span>detailingmasters@gmail.com</span></div>
+           <div style={{ flex: 1, background: '#f8fafc', padding: '16px 20px', borderRadius: 8, marginRight: '15px', border: '1px solid #e2e8f0' }}>
+              <h3 style={{ fontSize: 13, fontWeight: 800, margin: '0 0 10px 0', color: '#111', textTransform: 'uppercase', letterSpacing: '0.5px', borderBottom: '2px solid #FBD904', paddingBottom: 4, display: 'inline-block' }}>STUDIO DETAILS</h3>
+              <div style={{ fontSize: 12, color: '#333', lineHeight: 1.8 }}>
+                 <div style={{ display: 'flex' }}><span style={{ width: 65, fontWeight: 600, color: '#64748b' }}>Address:</span> <span style={{ flex: 1, fontWeight: 500 }}>Opposite KTM Bike Showroom, Chankai, Marthandam, Tamil Nadu 629155</span></div>
+                 <div style={{ display: 'flex' }}><span style={{ width: 65, fontWeight: 600, color: '#64748b' }}>Phone:</span> <span style={{ fontWeight: 500 }}>+91 9994122652</span></div>
+                 <div style={{ display: 'flex' }}><span style={{ width: 65, fontWeight: 600, color: '#64748b' }}>Email:</span> <span style={{ fontWeight: 500 }}>detailingmasters2024@gmail.com</span></div>
               </div>
            </div>
-           <div style={{ flex: 1, paddingLeft: 40 }}>
-              <h3 style={{ fontSize: 13, fontWeight: 700, margin: '0 0 8px 0', color: '#111', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{isMultiVehicle ? 'FLEET & OWNER' : 'VEHICLE & OWNER'}</h3>
-              <div style={{ fontSize: 12, color: '#333', lineHeight: 1.7 }}>
-                 <div style={{ display: 'flex' }}><span style={{ width: 75, fontWeight: 600 }}>Owner Name:</span> <span>{invoice.customer?.name || '—'}</span></div>
+           <div style={{ flex: 1, background: '#f8fafc', padding: '16px 20px', borderRadius: 8, marginLeft: '15px', border: '1px solid #e2e8f0' }}>
+              <h3 style={{ fontSize: 13, fontWeight: 800, margin: '0 0 10px 0', color: '#111', textTransform: 'uppercase', letterSpacing: '0.5px', borderBottom: '2px solid #FBD904', paddingBottom: 4, display: 'inline-block' }}>{isMultiVehicle ? 'FLEET & OWNER' : 'VEHICLE & OWNER'}</h3>
+              <div style={{ fontSize: 12, color: '#333', lineHeight: 1.8 }}>
+                 <div style={{ display: 'flex' }}><span style={{ width: 85, fontWeight: 600, color: '#64748b' }}>Owner Name:</span> <span style={{ fontWeight: 600, color: '#000' }}>{invoice.customer?.name || '—'}</span></div>
                  {isMultiVehicle ? (
-                   <div style={{ display: 'flex' }}><span style={{ width: 75, fontWeight: 600 }}>Vehicles:</span> <span>{vehicles.length} Vehicles</span></div>
+                   <div style={{ display: 'flex' }}><span style={{ width: 85, fontWeight: 600, color: '#64748b' }}>Vehicles:</span> <span style={{ fontWeight: 500 }}>{vehicles.length} Vehicles</span></div>
                  ) : (
                    <>
-                     <div style={{ display: 'flex' }}><span style={{ width: 75, fontWeight: 600 }}>Vehicle:</span> <span>{vehicles[0]?.make_model || '—'}</span></div>
-                     <div style={{ display: 'flex' }}><span style={{ width: 75, fontWeight: 600 }}>Plate No:</span> <span>{vehicles[0]?.license_vin || '—'}</span></div>
+                     <div style={{ display: 'flex' }}><span style={{ width: 85, fontWeight: 600, color: '#64748b' }}>Vehicle:</span> <span style={{ fontWeight: 500 }}>{vehicles[0]?.make_model || '—'}</span></div>
+                     <div style={{ display: 'flex' }}><span style={{ width: 85, fontWeight: 600, color: '#64748b' }}>Plate No:</span> <span style={{ fontWeight: 500, background: '#FBD904', padding: '1px 6px', borderRadius: 4 }}>{vehicles[0]?.license_vin || '—'}</span></div>
                    </>
                  )}
-                 <div style={{ display: 'flex' }}><span style={{ width: 75, fontWeight: 600 }}>Date:</span> <span>{dateStr || '—'}</span></div>
+                 <div style={{ display: 'flex' }}><span style={{ width: 85, fontWeight: 600, color: '#64748b' }}>Date:</span> <span style={{ fontWeight: 500 }}>{dateStr || '—'}</span></div>
               </div>
            </div>
         </div>
 
-        <div style={{ padding: '20px 40px 10px 40px', display: 'flex', gap: 16 }}>
-           <div style={{ flex: 1, background: '#fff', borderRadius: 12, border: '1px solid #e2e8f0', padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
-             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#FBD904', borderRadius: '50%', width: 36, height: 36 }}>
-               <Shield size={18} color="#000" />
+        <div style={{ padding: '24px 40px 10px 40px', display: 'flex', gap: 20 }}>
+           <div style={{ flex: 1, background: '#fff', borderRadius: 12, border: '1px solid #e2e8f0', padding: '16px', display: 'flex', alignItems: 'center', gap: 14, boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}>
+             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg, #FBD904 0%, #E2C300 100%)', borderRadius: '50%', width: 44, height: 44, boxShadow: '0 4px 10px rgba(251,217,4,0.3)' }}>
+               <Shield size={22} color="#000" />
              </div>
              <div>
-               <span style={{ fontSize: 10, color: '#64748b', fontWeight: 600, display: 'block', textTransform: 'uppercase' }}>Report Status</span>
-               <span style={{ fontSize: 13, fontWeight: 800, color: '#0f172a' }}>Service Completed</span>
+               <span style={{ fontSize: 10, color: '#64748b', fontWeight: 700, display: 'block', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Report Status</span>
+               <span style={{ fontSize: 14, fontWeight: 800, color: '#0f172a' }}>Service Completed</span>
              </div>
            </div>
            
-           <div style={{ flex: 1, background: '#fff', borderRadius: 12, border: '1px solid #e2e8f0', padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
-             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#e2e8f0', borderRadius: '50%', width: 36, height: 36 }}>
-               <Wrench size={18} color="#000" />
+           <div style={{ flex: 1, background: '#fff', borderRadius: 12, border: '1px solid #e2e8f0', padding: '16px', display: 'flex', alignItems: 'center', gap: 14, boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}>
+             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%)', borderRadius: '50%', width: 44, height: 44, boxShadow: '0 4px 10px rgba(0,0,0,0.05)' }}>
+               <Wrench size={20} color="#334155" />
              </div>
              <div>
-               <span style={{ fontSize: 10, color: '#64748b', fontWeight: 600, display: 'block', textTransform: 'uppercase' }}>Inspection QA</span>
-               <span style={{ fontSize: 13, fontWeight: 800, color: '#10b981' }}>100% Passed</span>
+               <span style={{ fontSize: 10, color: '#64748b', fontWeight: 700, display: 'block', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Inspection QA</span>
+               <span style={{ fontSize: 14, fontWeight: 800, color: '#059669' }}>100% Passed</span>
              </div>
            </div>
 
-           <div style={{ flex: 1, background: '#fff', borderRadius: 12, border: '1px solid #e2e8f0', padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
-             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#fef3c7', borderRadius: '50%', width: 36, height: 36 }}>
-               <Star size={18} color="#d97706" />
+           <div style={{ flex: 1, background: '#fff', borderRadius: 12, border: '1px solid #e2e8f0', padding: '16px', display: 'flex', alignItems: 'center', gap: 14, boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}>
+             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)', borderRadius: '50%', width: 44, height: 44, boxShadow: '0 4px 10px rgba(245,158,11,0.2)' }}>
+               <Star size={20} color="#d97706" />
              </div>
              <div>
-               <span style={{ fontSize: 10, color: '#64748b', fontWeight: 600, display: 'block', textTransform: 'uppercase' }}>Quality Grade</span>
-               <span style={{ fontSize: 13, fontWeight: 800, color: '#d97706' }}>Premium Restored</span>
+               <span style={{ fontSize: 10, color: '#64748b', fontWeight: 700, display: 'block', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Quality Grade</span>
+               <span style={{ fontSize: 14, fontWeight: 800, color: '#d97706' }}>Premium Restored</span>
              </div>
            </div>
         </div>
 
-        <div style={{ padding: '14px 40px 18px 40px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-            <h3 style={{ fontSize: 12, fontWeight: 800, color: '#0f172a', margin: 0, textTransform: 'uppercase', letterSpacing: '0.5px' }}>SERVICES PERFORMED</h3>
+        <div style={{ padding: '15px 40px 20px 40px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+            <h3 style={{ fontSize: 13, fontWeight: 800, color: '#0f172a', margin: 0, textTransform: 'uppercase', letterSpacing: '0.5px' }}>SERVICES PERFORMED</h3>
             {(allServices.length + allThirdParty.length) > 0 && (
               <span style={{
-                fontSize: 9, fontWeight: 700, color: '#047857',
+                fontSize: 11, fontWeight: 700, color: '#047857',
                 background: '#ecfdf5', border: '1px solid #a7f3d0',
-                borderRadius: 20, padding: '2px 9px',
+                borderRadius: 20, padding: '4px 12px',
                 WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact',
               }}>✓ {allServices.length + allThirdParty.length} Completed</span>
             )}
           </div>
 
           {(allServices.length > 0 || allThirdParty.length > 0) ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               {(isMultiVehicle ? servicesByVehicle : [{
                 plate: vehicles[0]?.license_vin || '',
                 make_model: vehicles[0]?.make_model || '',
@@ -400,41 +400,40 @@ export default function VehicleServiceReport() {
                   <div key={vehicleGroup.plate}>
                     {isMultiVehicle && (
                       <div style={{
-                        display: 'flex', alignItems: 'center', gap: 6,
-                        background: '#1e293b', borderRadius: '6px 6px 0 0',
-                        padding: '4px 10px',
+                        display: 'flex', alignItems: 'center', gap: 8,
+                        background: '#1e293b', borderRadius: '8px 8px 0 0',
+                        padding: '8px 14px',
                         WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact'
                       }}>
-                        <span style={{ background: '#FBD904', color: '#000', padding: '0px 6px', borderRadius: 3, fontSize: 9, fontWeight: 800 }}>{vehicleGroup.plate || 'N/A'}</span>
-                        <span style={{ color: '#fff', fontWeight: 600, fontSize: 10 }}>{vehicleGroup.make_model || 'Vehicle'}</span>
-                        <span style={{ marginLeft: 'auto', color: '#94a3b8', fontSize: 9 }}>{allItems.length} svcs</span>
+                        <span style={{ background: '#FBD904', color: '#000', padding: '2px 8px', borderRadius: 4, fontSize: 11, fontWeight: 800 }}>{vehicleGroup.plate || 'N/A'}</span>
+                        <span style={{ color: '#fff', fontWeight: 600, fontSize: 12 }}>{vehicleGroup.make_model || 'Vehicle'}</span>
+                        <span style={{ marginLeft: 'auto', color: '#94a3b8', fontSize: 11 }}>{allItems.length} services</span>
                       </div>
                     )}
                     <div style={{
                       display: 'grid',
-                      gridTemplateColumns: 'repeat(3, 1fr)',
-                      gap: '4px',
-                      padding: '8px',
+                      gridTemplateColumns: 'repeat(2, 1fr)',
+                      gap: '12px',
+                      padding: '16px',
                       background: '#fff',
                       border: '1px solid #e2e8f0',
-                      borderRadius: isMultiVehicle ? '0 0 6px 6px' : 6,
+                      borderRadius: isMultiVehicle ? '0 0 8px 8px' : 8,
                       WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact',
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.02)'
                     }}>
                       {allItems.map((item, i) => (
                         <div key={i} style={{
-                          display: 'flex', alignItems: 'center', gap: 4,
-                          fontSize: 10, fontWeight: 600, color: '#1e293b',
-                          padding: '3px 7px', borderRadius: 4,
+                          display: 'flex', alignItems: 'center', gap: 8,
+                          fontSize: 12, fontWeight: 600, color: '#1e293b',
+                          padding: '10px 14px', borderRadius: 6,
                           background: item.isThird ? '#fdf4ff' : '#f0fdf4',
-                          border: `1px solid ${item.isThird ? '#ddd6fe' : '#bbf7d0'}`,
-                          overflow: 'hidden',
+                          border: `1px solid ${item.isThird ? '#e9d5ff' : '#bbf7d0'}`,
                           WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact',
                         }}>
-                          <svg width="6" height="6" viewBox="0 0 8 8" fill="none" style={{ flexShrink: 0 }}>
-                            <circle cx="4" cy="4" r="4" fill={item.isThird ? '#8b5cf6' : '#10b981'}/>
-                            <path d="M2 4l1.5 1.5L6 2.5" stroke="#fff" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
-                          </svg>
-                          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.name}</span>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: item.isThird ? '#a855f7' : '#10b981', borderRadius: '50%', width: 16, height: 16, flexShrink: 0 }}>
+                             <Check size={10} color="#fff" strokeWidth={3} />
+                          </div>
+                          <span>{item.name}</span>
                         </div>
                       ))}
                     </div>
@@ -471,7 +470,7 @@ export default function VehicleServiceReport() {
                 Opp. KTM Bike Showroom, Chankai, Marthandam, Tamil Nadu 629155.
               </div>
               <div style={{ textAlign: 'right' }}>
-                Ph: +91 9994122652 | Email: detailingmasters@gmail.com<br/>
+                Ph: +91 9994122652 | Email: detailingmasters2024@gmail.com<br/>
                 Thank you for choosing premium auto detailing quality!
               </div>
            </div>
@@ -574,10 +573,11 @@ const bar = {
 const doc = {
   wrap: {
     width: '210mm',
+    minHeight: '296mm',
     boxSizing: 'border-box',
     margin: '0 auto',
-    background: '#EBEBED',
-    boxShadow: '0 12px 40px rgba(0,0,0,0.06)',
+    background: '#FFFFFF',
+    boxShadow: '0 15px 50px rgba(0,0,0,0.1)',
     fontFamily: "'Inter', system-ui, sans-serif",
     position: 'relative',
     border: '1px solid #e5e7eb',

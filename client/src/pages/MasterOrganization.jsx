@@ -6,6 +6,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useOrganizations } from '../hooks/useQueries.js';
 import { useDebouncedValue } from '../hooks/useDebouncedValue.js';
 import { queryKeys } from '../api/queryKeys.js';
+import { usePermissions } from '../hooks/usePermissions.js';
 
 import OrganizationTable from '../components/organizations/OrganizationTable.jsx';
 import OrganizationFormModal from '../components/organizations/OrganizationFormModal.jsx';
@@ -13,6 +14,7 @@ import OrganizationFormModal from '../components/organizations/OrganizationFormM
 export default function MasterOrganization() {
   const queryClient = useQueryClient();
   const { data: organizations = [], isLoading: loadingOrganizations } = useOrganizations();
+  const { can_delete } = usePermissions('Organizations');
 
   const [search, setSearch] = useState('');
   const debouncedSearch = useDebouncedValue(search, 250);
@@ -112,6 +114,17 @@ export default function MasterOrganization() {
     }
     setFormVehicles(fv => fv.filter((_, i) => i !== idx));
   }
+  
+  async function handleDelete(id) {
+    if (!window.confirm('Are you sure you want to delete this organization?')) return;
+    try {
+      await api.delete('/organizations/' + id);
+      toast.success('Organization deleted');
+      queryClient.invalidateQueries({ queryKey: queryKeys.organizations.all });
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Error deleting organization');
+    }
+  }
 
   function handleAdd() {
     setEditId(null);
@@ -193,6 +206,8 @@ export default function MasterOrganization() {
           <OrganizationTable
             rows={enrichedRows}
             onEdit={handleEdit}
+            onDelete={handleDelete}
+            canDelete={can_delete}
           />
         )}
       </div>

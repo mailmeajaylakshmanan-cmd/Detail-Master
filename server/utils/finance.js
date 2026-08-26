@@ -15,14 +15,22 @@ async function recalculateInvoiceTotals(invoiceId, executor = db) {
     `SELECT
        (SELECT COALESCE(SUM(unit_price), 0) FROM invoice_services WHERE invoice_order_id = $1) AS services_total,
        (SELECT COALESCE(SUM(selling_price), 0) FROM invoice_third_party_services WHERE invoice_order_id = $1) AS third_party_total,
-       (SELECT COALESCE(SUM(amount), 0) FROM payments WHERE invoice_order_id = $1 AND is_active = TRUE) AS amount_paid,
-       (SELECT COALESCE(discount, 0) FROM invoices WHERE id = $1) AS discount`,
+       (SELECT COALESCE(SUM(amount), 0) FROM payments WHERE invoice_order_id = $1) AS amount_paid,
+       (SELECT COALESCE(discount, 0) FROM invoices WHERE id = $1) AS discount,
+       (SELECT sub_total FROM invoices WHERE id = $1) AS original_sub_total,
+       EXISTS(SELECT 1 FROM assigned_offers WHERE purchase_invoice_order_id = $1) AS is_offer_purchase`,
     [invoiceId]
   );
 
   const services_total = parseFloat(rows[0]?.services_total) || 0;
   const third_party_total = parseFloat(rows[0]?.third_party_total) || 0;
-  const sub_total = services_total + third_party_total;
+  
+  let sub_total;
+  if (rows[0]?.is_offer_purchase) {
+    sub_total = parseFloat(rows[0]?.original_sub_total) || 0;
+  } else {
+    sub_total = services_total + third_party_total;
+  }
   const amount_paid = parseFloat(rows[0]?.amount_paid) || 0;
   const discount = parseFloat(rows[0]?.discount) || 0;
   const grand_total = Math.max(0, sub_total - discount);

@@ -6,10 +6,12 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useVehicleTypes } from '../hooks/useQueries.js';
 import { useDebouncedValue } from '../hooks/useDebouncedValue.js';
 import { queryKeys } from '../api/queryKeys.js';
+import { usePermissions } from '../hooks/usePermissions.js';
 
 export default function MasterVehicleType() {
   const queryClient = useQueryClient();
   const { data: vehicleTypes = [], isLoading: loading } = useVehicleTypes();
+  const { can_delete } = usePermissions('Vehicle Types');
 
   const [searchQuery, setSearchQuery] = useState('');
   const debouncedSearch = useDebouncedValue(searchQuery, 250);
@@ -185,13 +187,15 @@ export default function MasterVehicleType() {
                 >
                   {vt.isActive ? 'Deactivate' : 'Activate'}
                 </button>
-                <button
-                  onClick={(e) => handleDeleteClick(e, vt.id)}
-                  className="w-7 h-7 rounded-full bg-red-50 text-red-600 flex items-center justify-center hover:bg-red-100 transition-colors"
-                  title="Delete Vehicle Type"
-                >
-                  <Trash2 size={14} />
-                </button>
+                {can_delete && (
+                  <button
+                    onClick={(e) => handleDeleteClick(e, vt.id)}
+                    className="w-7 h-7 rounded-full bg-red-50 text-red-600 flex items-center justify-center hover:bg-red-100 transition-colors"
+                    title="Delete Vehicle Type"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                )}
               </div>
             </div>
           </div>
