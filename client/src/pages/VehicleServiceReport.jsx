@@ -463,16 +463,10 @@ export default function VehicleServiceReport() {
         )}
 
         {/* FOOTER */}
-        <div style={{ position: 'relative', width: '100%', marginTop: 'auto', overflow: 'hidden', borderTop: '1px solid #e2e8f0', backgroundColor: '#fafafa' }}>
-           <div style={{ margin: '15px 40px 25px 40px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 11, color: '#64748b' }}>
-              <div>
-                <strong>Detailing Masters Studio</strong><br/>
-                Opp. KTM Bike Showroom, Chankai, Marthandam, Tamil Nadu 629155.
-              </div>
-              <div style={{ textAlign: 'right' }}>
-                Ph: +91 9994122652 | Email: detailingmasters2024@gmail.com<br/>
-                Thank you for choosing premium auto detailing quality!
-              </div>
+        <div style={{ position: 'relative', width: '100%', marginTop: 'auto', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+           <div style={{ margin: '0 40px', borderTop: '1.5px solid #111', paddingTop: '15px', paddingBottom: '30px', textAlign: 'center', fontSize: 13, color: '#111', zIndex: 10, position: 'relative' }}>
+              <strong>Detailing Masters</strong>, Opposite KTM Bike Showroom, Chankai, Marthandam, Tamil Nadu 629155.<br/>
+              Ph: +91 9994122652 | E-mail: detailingmasters2024@gmail.com
            </div>
         </div>
 
