@@ -913,7 +913,7 @@ router.get('/:id/service-report/pdf', async (req, res) => {
 
     // Force a single-page PDF that only contains the report
     const { height, width } = await page.evaluate(() => {
-      const report = document.getElementById('report-print');
+      const report = document.getElementById('invoice-print');
       if (report) {
         // Clear everything else from the DOM
         document.body.innerHTML = '';

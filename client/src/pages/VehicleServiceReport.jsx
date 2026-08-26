@@ -485,6 +485,7 @@ export default function VehicleServiceReport() {
         @keyframes spin { to { transform: rotate(360deg); } }
 
         @media print {
+          @page { margin: 0; size: A4; }
           .print\\:hidden { display: none !important; }
           body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
           #invoice-print {
@@ -573,7 +574,7 @@ const bar = {
 const doc = {
   wrap: {
     width: '210mm',
-    minHeight: '296mm',
+    minHeight: '290mm',
     boxSizing: 'border-box',
     margin: '0 auto',
     background: '#FFFFFF',
