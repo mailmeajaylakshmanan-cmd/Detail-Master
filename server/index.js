@@ -43,10 +43,12 @@ app.use('/api/web_bookings', require('./routes/web_bookings'));
 
 app.use(csrfProtection);
 
+// Services (GET is public; mutations are protected within the router)
+app.use('/api/services', require('./routes/services'));
+
 // Protected Routes
 app.use('/api/clients', protect, require('./routes/clients'));
 app.use('/api/vehicles', protect, require('./routes/vehicles'));
-app.use('/api/services', protect, require('./routes/services'));
 app.use('/api/job_orders', protect, require('./routes/job_orders'));
 app.use('/api/job_order_services', protect, require('./routes/job_order_services'));
 app.use('/api/invoices', protect, require('./routes/invoices'));

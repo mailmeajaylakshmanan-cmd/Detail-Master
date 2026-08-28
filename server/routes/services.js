@@ -1,9 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../db');
+const { protect } = require('../middleware/auth');
 const { requirePermission } = require('../middleware/permissions');
-
-router.use(requirePermission('Services'));
 
 async function saveVehiclePrices(serviceId, vehiclePrices) {
   if (!Array.isArray(vehiclePrices)) return;
@@ -20,10 +19,14 @@ async function saveVehiclePrices(serviceId, vehiclePrices) {
   }
 }
 
-// GET all services (with vehicle_prices)
+// ✅ PUBLIC ROUTE: Anyone (including website visitors) can fetch services
 router.get('/', async (req, res) => {
   try {
-    const { rows: services } = await db.query('SELECT * FROM services ORDER BY created_at DESC');
+    const { active_only } = req.query;
+    const query = active_only === 'true'
+      ? 'SELECT * FROM services WHERE is_active = true ORDER BY id ASC'
+      : 'SELECT * FROM services ORDER BY created_at DESC';
+    const { rows: services } = await db.query(query);
     const { rows: vpRows } = await db.query(`
       SELECT svp.id, svp.service_id, svp.vehicle_type_id, vt.name AS vehicle_type_name, svp.price
       FROM service_vehicle_prices svp
@@ -43,17 +46,18 @@ router.get('/', async (req, res) => {
 
     const result = services.map(s => ({
       ...s,
+      base_price: s.base_price !== undefined ? s.base_price : 0,
       vehicle_prices: vpMap[s.id] || []
     }));
 
     res.json(result);
   } catch (err) {
-    console.error(err);
+    console.error('Error fetching services:', err);
     res.status(500).json({ message: 'Server error' });
   }
 });
 
-// GET a single service
+// ✅ PUBLIC ROUTE: GET a single service
 router.get('/:id', async (req, res) => {
   try {
     const { id } = req.params;
@@ -82,8 +86,8 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// CREATE a service
-router.post('/', async (req, res) => {
+// 🔒 PROTECTED ROUTES: Only logged-in admin can create/edit/delete services
+router.post('/', protect, requirePermission('Services'), async (req, res) => {
   try {
     const { service_name, category, is_active, estimate_time, vehicle_prices } = req.body;
     if (!service_name) return res.status(400).json({ message: 'service_name is required' });
@@ -121,8 +125,8 @@ router.post('/', async (req, res) => {
   }
 });
 
-// UPDATE a service
-router.put('/:id', async (req, res) => {
+// 🔒 PROTECTED ROUTE: UPDATE a service
+router.put('/:id', protect, requirePermission('Services'), async (req, res) => {
   try {
     const { id } = req.params;
     const { service_name, category, is_active, estimate_time, vehicle_prices } = req.body;
@@ -161,8 +165,8 @@ router.put('/:id', async (req, res) => {
   }
 });
 
-// GET dependencies for a service before deletion
-router.get('/:id/dependencies', async (req, res) => {
+// 🔒 PROTECTED ROUTE: GET dependencies for a service before deletion
+router.get('/:id/dependencies', protect, requirePermission('Services'), async (req, res) => {
   try {
     const { id } = req.params;
     
@@ -187,8 +191,8 @@ router.get('/:id/dependencies', async (req, res) => {
   }
 });
 
-// DELETE a service (Soft Delete)
-router.delete('/:id', async (req, res) => {
+// 🔒 PROTECTED ROUTE: DELETE a service (Soft Delete)
+router.delete('/:id', protect, requirePermission('Services'), async (req, res) => {
   try {
     const { id } = req.params;
     const { rowCount } = await db.query('UPDATE services SET is_active = false WHERE id = $1', [id]);
