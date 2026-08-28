@@ -4,19 +4,34 @@ const db = require('../db');
 const { pool } = require('../db');
 const { recalculateInvoiceTotals } = require('../utils/finance');
 const { sendScheduleEmail } = require('../utils/mailer');
+const { sendBookingWhatsAppNotification } = require('../utils/whatsapp');
 
 // Helper to build invoice number
 function buildInvoiceNumber() {
   return `INV-DM-${Date.now()}`;
 }
 
-// GET all web bookings
+// GET all web bookings (aggregating multiple services from web_booking_services)
 router.get('/', async (req, res) => {
   try {
     const query = `
-      SELECT wb.*, s.service_name
+      SELECT wb.*,
+             COALESCE(
+               (SELECT string_agg(s.service_name, ', ')
+                FROM web_booking_services wbs
+                JOIN services s ON wbs.service_id = s.id
+                WHERE wbs.booking_id = wb.booking_id),
+               s_single.service_name
+             ) AS service_name,
+             COALESCE(
+               (SELECT json_agg(json_build_object('id', s.id, 'service_name', s.service_name, 'category', s.category))
+                FROM web_booking_services wbs
+                JOIN services s ON wbs.service_id = s.id
+                WHERE wbs.booking_id = wb.booking_id),
+               CASE WHEN s_single.id IS NOT NULL THEN json_build_array(json_build_object('id', s_single.id, 'service_name', s_single.service_name, 'category', s_single.category)) ELSE '[]'::json END
+             ) AS services
       FROM web_bookings wb
-      LEFT JOIN services s ON wb.service_id = s.id
+      LEFT JOIN services s_single ON wb.service_id = s_single.id
       ORDER BY wb.created_at DESC
     `;
     const { rows } = await db.query(query);
@@ -27,8 +42,7 @@ router.get('/', async (req, res) => {
   }
 });
 
-// List existing active bookings for a service on a given day, so staff can see
-// what's already taken before picking an allocated time (not just after).
+// List existing active bookings for a service on a given day
 router.get('/busy-slots', async (req, res) => {
   try {
     const { service_id, date } = req.query;
@@ -56,11 +70,7 @@ router.get('/busy-slots', async (req, res) => {
   }
 });
 
-// Check for schedule conflicts before confirming a pending booking.
-// Bookings have no vehicle_id yet and no checkout time, so the window is
-// treated as a fixed 2-hour block from allocated_time, and any other active
-// booking/invoice for the same service overlapping that block is a conflict
-// (vehicle isn't known yet, so it can't be excluded like the invoice-form check does).
+// Check for schedule conflicts before confirming a pending booking
 router.post('/check-conflicts', async (req, res) => {
   try {
     const { service_id, preferred_date, allocated_time } = req.body;
@@ -95,9 +105,23 @@ router.get('/:id', async (req, res) => {
   try {
     const { id } = req.params;
     const query = `
-      SELECT wb.*, s.service_name
+      SELECT wb.*,
+             COALESCE(
+               (SELECT string_agg(s.service_name, ', ')
+                FROM web_booking_services wbs
+                JOIN services s ON wbs.service_id = s.id
+                WHERE wbs.booking_id = wb.booking_id),
+               s_single.service_name
+             ) AS service_name,
+             COALESCE(
+               (SELECT json_agg(json_build_object('id', s.id, 'service_name', s.service_name, 'category', s.category))
+                FROM web_booking_services wbs
+                JOIN services s ON wbs.service_id = s.id
+                WHERE wbs.booking_id = wb.booking_id),
+               CASE WHEN s_single.id IS NOT NULL THEN json_build_array(json_build_object('id', s_single.id, 'service_name', s_single.service_name, 'category', s_single.category)) ELSE '[]'::json END
+             ) AS services
       FROM web_bookings wb
-      LEFT JOIN services s ON wb.service_id = s.id
+      LEFT JOIN services s_single ON wb.service_id = s_single.id
       WHERE wb.booking_id = $1
     `;
     const { rows } = await db.query(query, [id]);
@@ -121,6 +145,7 @@ router.post('/', async (req, res) => {
       vehicle_brand,
       vehicle_model,
       vehicle_type,
+      vehicle_type_id,
       service_id,
       service_ids,
       services,
@@ -128,14 +153,28 @@ router.post('/', async (req, res) => {
       preferred_time_period,
       additional_notes
     } = req.body;
-    // 1. Determine primary service ID (single integer for web_bookings table)
+
+    // 1. Resolve vehicle_type_id
+    let resolvedVehicleTypeId = vehicle_type_id ? Number(vehicle_type_id) : null;
+    if (!resolvedVehicleTypeId && vehicle_type) {
+      const vtRes = await client.query(
+        'SELECT id FROM vehicle_types WHERE LOWER(name) = LOWER($1) LIMIT 1',
+        [String(vehicle_type).trim()]
+      );
+      if (vtRes.rows.length > 0) {
+        resolvedVehicleTypeId = vtRes.rows[0].id;
+      }
+    }
+
+    // 2. Determine primary service ID (single integer for web_bookings table)
     const primaryServiceId = Number(
       service_id ||
       (Array.isArray(service_ids) && service_ids[0]) ||
-      (Array.isArray(services) && services[0]) ||
+      (Array.isArray(services) && (services[0]?.id || services[0]?.service_id || services[0])) ||
       1
     );
-    // 2. Insert into web_bookings
+
+    // 3. Insert into web_bookings
     const insertBookingQuery = `
       INSERT INTO web_bookings (
         full_name,
@@ -144,12 +183,13 @@ router.post('/', async (req, res) => {
         vehicle_brand,
         vehicle_model,
         vehicle_type,
+        vehicle_type_id,
         service_id,
         preferred_date,
         preferred_time_period,
         additional_notes,
         status
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'pending')
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, 'pending')
       RETURNING *
     `;
     const bookingRes = await client.query(insertBookingQuery, [
@@ -159,6 +199,7 @@ router.post('/', async (req, res) => {
       vehicle_brand || null,
       vehicle_model || null,
       vehicle_type || null,
+      resolvedVehicleTypeId,
       primaryServiceId,
       preferred_date || null,
       preferred_time_period || null,
@@ -166,7 +207,8 @@ router.post('/', async (req, res) => {
     ]);
     const newBooking = bookingRes.rows[0];
     const newBookingId = newBooking.booking_id;
-    // 3. Insert all selected services into web_booking_services junction table
+
+    // 4. Insert all selected services into web_booking_services junction table
     const allServices = service_ids || services || (service_id ? [service_id] : [primaryServiceId]);
     const serviceArray = Array.isArray(allServices) ? allServices : [allServices];
     for (const item of serviceArray) {
@@ -181,14 +223,11 @@ router.post('/', async (req, res) => {
       }
     }
     await client.query('COMMIT');
-    // 4. Send email notification safely (won't crash booking if SMTP fails)
-    try {
-      if (typeof sendBookingNotification === 'function') {
-        await sendBookingNotification(newBooking, serviceArray);
-      }
-    } catch (emailError) {
-      console.warn('Booking created, but email notification failed:', emailError.message);
-    }
+
+    // 5. Send notifications safely (won't crash booking if SMTP/WhatsApp fails)
+    sendScheduleEmail(newBooking, 'created').catch(err => console.error('sendScheduleEmail (create) failed:', err));
+    sendBookingWhatsAppNotification(newBooking, serviceArray, 'created').catch(err => console.error('sendBookingWhatsAppNotification (create) failed:', err));
+
     return res.status(201).json({
       success: true,
       message: 'Booking created successfully',
@@ -203,7 +242,6 @@ router.post('/', async (req, res) => {
     client.release();
   }
 });
-
 
 // UPDATE a web booking (status, reschedule, allocated_time, cancel_reason, or invoice_order_id)
 router.put('/:id', async (req, res) => {
@@ -244,8 +282,10 @@ router.put('/:id', async (req, res) => {
 
     if (isReschedule) {
       sendScheduleEmail(updatedBooking, 'rescheduled').catch(err => console.error('sendScheduleEmail (reschedule) failed:', err));
+      sendBookingWhatsAppNotification(updatedBooking, [], 'rescheduled').catch(err => console.error('sendBookingWhatsAppNotification (reschedule) failed:', err));
     } else if (isStatusChange) {
       sendScheduleEmail(updatedBooking, updatedBooking.status).catch(err => console.error('sendScheduleEmail (status) failed:', err));
+      sendBookingWhatsAppNotification(updatedBooking, [], updatedBooking.status).catch(err => console.error('sendBookingWhatsAppNotification (status) failed:', err));
     }
 
     res.json(updatedBooking);
@@ -289,78 +329,135 @@ router.post('/:id/convert', async (req, res) => {
       return res.status(400).json({ message: 'Booking is already converted' });
     }
 
-    // 2. Find or Create Client by Phone
+    // 2. Resolve Vehicle Type ID
+    let vehicleTypeId = booking.vehicle_type_id || null;
+    if (!vehicleTypeId && booking.vehicle_type) {
+      const vtRes = await client.query(
+        'SELECT id FROM vehicle_types WHERE LOWER(name) = LOWER($1) LIMIT 1',
+        [booking.vehicle_type.trim()]
+      );
+      if (vtRes.rows.length > 0) {
+        vehicleTypeId = vtRes.rows[0].id;
+      }
+    }
+
+    // 3. Find or Create Client by Phone
     let clientId;
     const clientRes = await client.query('SELECT id FROM clients WHERE phone = $1', [booking.phone]);
     if (clientRes.rows.length > 0) {
       clientId = clientRes.rows[0].id;
+      if (booking.email || booking.full_name) {
+        await client.query(
+          `UPDATE clients
+           SET full_name = COALESCE(NULLIF(full_name, ''), $1),
+               email = COALESCE(NULLIF(email, ''), $2)
+           WHERE id = $3`,
+          [booking.full_name, booking.email || null, clientId]
+        );
+      }
     } else {
       const newClientRes = await client.query(
         'INSERT INTO clients (full_name, phone, email) VALUES ($1, $2, $3) RETURNING id',
-        [booking.full_name, booking.phone, booking.email]
+        [booking.full_name, booking.phone, booking.email || null]
       );
       clientId = newClientRes.rows[0].id;
     }
 
-    // 3. Find or Create Vehicle for this Client
+    // 4. Find or Create Vehicle for this Client
     let vehicleId;
-    const makeModel = `${booking.vehicle_brand || ''} ${booking.vehicle_model || ''}`.trim();
-    if (makeModel) {
-      const vehicleRes = await client.query(
-        'SELECT id FROM vehicles WHERE client_id = $1 AND LOWER(make_model) = LOWER($2)',
-        [clientId, makeModel]
-      );
-      if (vehicleRes.rows.length > 0) {
-        vehicleId = vehicleRes.rows[0].id;
-      } else {
-        const newVehicleRes = await client.query(
-          'INSERT INTO vehicles (client_id, make_model, license_vin) VALUES ($1, $2, $3) RETURNING id',
-          [clientId, makeModel, 'TBD']
+    const makeModel = `${booking.vehicle_brand || ''} ${booking.vehicle_model || ''}`.trim() || 'Unknown Vehicle';
+    const vehicleRes = await client.query(
+      'SELECT id, vehicle_type_id FROM vehicles WHERE client_id = $1 AND LOWER(make_model) = LOWER($2)',
+      [clientId, makeModel]
+    );
+    if (vehicleRes.rows.length > 0) {
+      vehicleId = vehicleRes.rows[0].id;
+      if (!vehicleRes.rows[0].vehicle_type_id && vehicleTypeId) {
+        await client.query(
+          'UPDATE vehicles SET vehicle_type_id = $1, vehicle_type = COALESCE(vehicle_type, $2) WHERE id = $3',
+          [vehicleTypeId, booking.vehicle_type || null, vehicleId]
         );
-        vehicleId = newVehicleRes.rows[0].id;
       }
     } else {
-      // Create an "Unknown Vehicle" if nothing is provided so that FK constraints are satisfied if necessary
       const newVehicleRes = await client.query(
-        'INSERT INTO vehicles (client_id, make_model, license_vin) VALUES ($1, $2, $3) RETURNING id',
-        [clientId, 'Unknown Vehicle', 'TBD']
+        'INSERT INTO vehicles (client_id, make_model, license_vin, vehicle_type_id, vehicle_type) VALUES ($1, $2, $3, $4, $5) RETURNING id',
+        [clientId, makeModel, 'TBD', vehicleTypeId, booking.vehicle_type || null]
       );
       vehicleId = newVehicleRes.rows[0].id;
     }
 
-    // 4. Create Invoice
+    // 5. Create Invoice
     const invoiceNumber = buildInvoiceNumber();
     const discountAmt = Number(discount) || 0;
 
-    // Status is 'open' initially, will be recalculated if fully paid
     const invRes = await client.query(
       `INSERT INTO invoices (
          invoice_number, client_id, vehicle_id, status,
          discount, special_notes, include_terms
        ) VALUES (
-         $1, $2, $3, $4,
-         $5, $6, $7
+         $1, $2, $3, 'open',
+         $4, $5, true
        ) RETURNING id`,
       [
-        invoiceNumber, clientId, vehicleId, 'open',
-        discountAmt, special_notes || booking.additional_notes || null, true
+        invoiceNumber, clientId, vehicleId,
+        discountAmt, special_notes || booking.additional_notes || null
       ]
     );
     const invoiceId = invRes.rows[0].id;
 
-    // 5. Insert Invoice Service if applicable
-    if (booking.service_id) {
-      // Base price is no longer available; use 0 or fetch from vehicle_prices if needed
-      // Default to 0 for now
-      const basePrice = 0;
+    // 6. Record Vehicle Visit in invoice_vehicles
+    const checkinTime = booking.preferred_date
+      ? (booking.allocated_time ? `${new Date(booking.preferred_date).toISOString().split('T')[0]} ${booking.allocated_time}` : booking.preferred_date)
+      : null;
+
+    await client.query(
+      `INSERT INTO invoice_vehicles (invoice_order_id, vehicle_id, visitor_name, visitor_phone, checkin_time)
+       VALUES ($1, $2, $3, $4, $5)`,
+      [invoiceId, vehicleId, booking.full_name, booking.phone, checkinTime]
+    );
+
+    // 7. Get all service IDs from web_booking_services (fallback to booking.service_id)
+    const bookingServicesRes = await client.query(
+      'SELECT service_id FROM web_booking_services WHERE booking_id = $1',
+      [id]
+    );
+
+    let serviceIds = bookingServicesRes.rows.map(r => Number(r.service_id)).filter(Boolean);
+    if (serviceIds.length === 0 && booking.service_id) {
+      serviceIds = [Number(booking.service_id)];
+    }
+
+    // 8. Insert each service into invoice_services with price for this vehicle type
+    for (const sId of serviceIds) {
+      let unitPrice = 0;
+      if (vehicleTypeId) {
+        const priceRes = await client.query(
+          'SELECT price FROM service_vehicle_prices WHERE service_id = $1 AND vehicle_type_id = $2',
+          [sId, vehicleTypeId]
+        );
+        if (priceRes.rows.length > 0) {
+          unitPrice = Number(priceRes.rows[0].price) || 0;
+        }
+      }
+
+      if (unitPrice === 0) {
+        const fallbackRes = await client.query(
+          'SELECT price FROM service_vehicle_prices WHERE service_id = $1 ORDER BY price ASC LIMIT 1',
+          [sId]
+        );
+        if (fallbackRes.rows.length > 0) {
+          unitPrice = Number(fallbackRes.rows[0].price) || 0;
+        }
+      }
 
       await client.query(
-        'INSERT INTO invoice_services (invoice_order_id, service_id, unit_price) VALUES ($1, $2, $3)',
-        [invoiceId, booking.service_id, basePrice]
+        `INSERT INTO invoice_services (invoice_order_id, service_id, unit_price, quantity, vehicle_id)
+         VALUES ($1, $2, $3, 1, $4)`,
+        [invoiceId, sId, unitPrice, vehicleId]
       );
     }
 
-    // 6. Insert Payment if amount_paid > 0
+    // 9. Insert Payment if amount_paid > 0
     const paidAmt = Number(amount_paid) || 0;
     if (paidAmt > 0) {
       const pm = String(payment_method || 'cash').toLowerCase().replace(/\s+/g, '_');
@@ -370,10 +467,10 @@ router.post('/:id/convert', async (req, res) => {
       );
     }
 
-    // 7. Recalculate invoice totals (this updates sub_total, grand_total, balance_due, and auto-completes status if balance is 0)
+    // 10. Recalculate invoice totals
     await recalculateInvoiceTotals(invoiceId, client);
 
-    // 8. Update Web Booking status to converted
+    // 11. Update Web Booking status to converted
     const { rows: updatedBookingRows } = await client.query(
       'UPDATE web_bookings SET status = $1, invoice_order_id = $2 WHERE booking_id = $3 RETURNING *',
       ['converted', invoiceId, id]
@@ -388,6 +485,7 @@ router.post('/:id/convert', async (req, res) => {
     await client.query('COMMIT');
 
     sendScheduleEmail(convertedBooking, 'converted').catch(err => console.error('sendScheduleEmail (converted) failed:', err));
+    sendBookingWhatsAppNotification(convertedBooking, [], 'converted').catch(err => console.error('sendBookingWhatsAppNotification (converted) failed:', err));
 
     res.json({ message: 'Booking converted successfully', invoice_id: invoiceId });
   } catch (err) {

@@ -6,6 +6,7 @@ const { requirePermission } = require('../middleware/permissions');
 router.use(requirePermission('Dashboard'));
 const { protect } = require('../middleware/auth');
 const { sendReadyForPickupEmail } = require('../utils/mailer');
+const { sendReadyForPickupWhatsApp } = require('../utils/whatsapp');
 
 router.use(protect);
 
@@ -99,6 +100,13 @@ async function afterItemResolved(invoiceOrderId, vehicleId) {
     vehicleLabel,
     invoiceNumber: inv.invoice_number,
   }).catch(err => console.error('sendReadyForPickupEmail failed:', err));
+
+  sendReadyForPickupWhatsApp({
+    toPhone: inv.client_phone || inv.org_phone,
+    customerName: inv.client_name || inv.org_name,
+    vehicleLabel,
+    invoiceNumber: inv.invoice_number,
+  }).catch(err => console.error('sendReadyForPickupWhatsApp failed:', err));
 }
 
 router.post('/service-items/:id/complete', async (req, res) => {
