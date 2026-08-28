@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../db');
+const { pool } = require('../db');
 const { recalculateInvoiceTotals } = require('../utils/finance');
 const { sendScheduleEmail } = require('../utils/mailer');
 
@@ -109,67 +110,97 @@ router.get('/:id', async (req, res) => {
 });
 
 // CREATE a web booking
-const rateLimit = require('express-rate-limit');
-
-const bookingLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5, // Limit each IP to 5 booking requests per `window` (here, per 15 minutes)
-  message: { message: 'Too many booking requests from this IP, please try again after 15 minutes' },
-  standardHeaders: true, 
-  legacyHeaders: false,
-});
-
-router.post('/', bookingLimiter, async (req, res) => {
+router.post('/', async (req, res) => {
+  const client = await pool.connect();
   try {
+    await client.query('BEGIN');
     const {
-      full_name, phone, email, vehicle_brand, vehicle_model,
-      vehicle_type, service_id, preferred_date, preferred_time_period, additional_notes, status
+      full_name,
+      phone,
+      email,
+      vehicle_brand,
+      vehicle_model,
+      vehicle_type,
+      service_id,
+      service_ids,
+      services,
+      preferred_date,
+      preferred_time_period,
+      additional_notes
     } = req.body;
-
-    if (!full_name || !phone) {
-      return res.status(400).json({ message: 'full_name and phone are required' });
-    }
-
-    // Basic format checks
-    const phoneRegex = /^[0-9\+\-\s\(\)]{7,20}$/;
-    if (!phoneRegex.test(phone)) {
-      return res.status(400).json({ message: 'Invalid phone number format' });
-    }
-    
-    if (email) {
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(email)) {
-        return res.status(400).json({ message: 'Invalid email format' });
-      }
-    }
-
-    const insertQuery = `
+    // 1. Determine primary service ID (single integer for web_bookings table)
+    const primaryServiceId = Number(
+      service_id ||
+      (Array.isArray(service_ids) && service_ids[0]) ||
+      (Array.isArray(services) && services[0]) ||
+      1
+    );
+    // 2. Insert into web_bookings
+    const insertBookingQuery = `
       INSERT INTO web_bookings (
-        full_name, phone, email, vehicle_brand, vehicle_model,
-        vehicle_type, service_id, preferred_date, preferred_time_period, additional_notes, status
-      )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, COALESCE($11, 'pending'))
+        full_name,
+        phone,
+        email,
+        vehicle_brand,
+        vehicle_model,
+        vehicle_type,
+        service_id,
+        preferred_date,
+        preferred_time_period,
+        additional_notes,
+        status
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'pending')
       RETURNING *
     `;
-    const values = [
-      full_name, phone, email, vehicle_brand, vehicle_model,
-      vehicle_type, service_id || null, preferred_date || null, preferred_time_period || null, additional_notes, status
-    ];
-
-    const { rows } = await db.query(insertQuery, values);
-    const booking = rows[0];
-
-    if (booking.service_id) {
-      const sRes = await db.query('SELECT service_name FROM services WHERE id = $1', [booking.service_id]);
-      if (sRes.rows.length > 0) booking.service_name = sRes.rows[0].service_name;
+    const bookingRes = await client.query(insertBookingQuery, [
+      full_name,
+      phone,
+      email || null,
+      vehicle_brand || null,
+      vehicle_model || null,
+      vehicle_type || null,
+      primaryServiceId,
+      preferred_date || null,
+      preferred_time_period || null,
+      additional_notes || null
+    ]);
+    const newBooking = bookingRes.rows[0];
+    const newBookingId = newBooking.booking_id;
+    // 3. Insert all selected services into web_booking_services junction table
+    const allServices = service_ids || services || (service_id ? [service_id] : [primaryServiceId]);
+    const serviceArray = Array.isArray(allServices) ? allServices : [allServices];
+    for (const item of serviceArray) {
+      const sId = typeof item === 'object' ? Number(item.service_id || item.id) : Number(item);
+      if (!isNaN(sId) && sId > 0) {
+        await client.query(
+          `INSERT INTO web_booking_services (booking_id, service_id)
+           VALUES ($1, $2)
+           ON CONFLICT (booking_id, service_id) DO NOTHING`,
+          [newBookingId, sId]
+        );
+      }
     }
-
-    sendScheduleEmail(booking, 'created').catch(err => console.error('sendScheduleEmail (create) failed:', err));
-
-    res.status(201).json(booking);
-  } catch (err) {
-    console.error('Error creating web booking:', err);
-    res.status(500).json({ message: 'Server error' });
+    await client.query('COMMIT');
+    // 4. Send email notification safely (won't crash booking if SMTP fails)
+    try {
+      if (typeof sendBookingNotification === 'function') {
+        await sendBookingNotification(newBooking, serviceArray);
+      }
+    } catch (emailError) {
+      console.warn('Booking created, but email notification failed:', emailError.message);
+    }
+    return res.status(201).json({
+      success: true,
+      message: 'Booking created successfully',
+      booking: newBooking,
+      service_ids: serviceArray
+    });
+  } catch (error) {
+    await client.query('ROLLBACK');
+    console.error('Error creating web booking:', error);
+    return res.status(500).json({ message: 'Failed to create booking', error: error.message });
+  } finally {
+    client.release();
   }
 });
 
