@@ -232,6 +232,7 @@ router.post('/', async (req, res) => {
     await client.query('COMMIT');
 
     // 5. Fetch full service names and send notifications safely (timeout-bounded for serverless & fast delivery)
+    // 5. Fetch full service names and send notifications reliably
     const { rows: svcRows } = await client.query(
       `SELECT string_agg(s.service_name, ', ') AS service_name
        FROM web_booking_services wbs
@@ -242,18 +243,14 @@ router.post('/', async (req, res) => {
     newBooking.service_name = svcRows[0]?.service_name || 'General Detailing';
 
     try {
-      const notifyPromise = Promise.allSettled([
-        sendScheduleEmail(newBooking, 'created'),
-        sendBookingWhatsAppNotification(newBooking, serviceArray, 'created')
-      ]);
-      // Give notifications up to 5s to dispatch before returning response
-      await Promise.race([
-        notifyPromise,
-        new Promise(resolve => setTimeout(resolve, 5000))
-      ]);
+      await sendScheduleEmail(newBooking, 'created');
     } catch (err) {
-      console.error('[web_bookings] Notification dispatch error:', err);
+      console.error('[web_bookings] Created notification email error:', err);
     }
+
+    sendBookingWhatsAppNotification(newBooking, serviceArray, 'created').catch(err => {
+      console.error('[web_bookings] Created WhatsApp notification error:', err);
+    });
 
     return res.status(201).json({
       success: true,
@@ -320,17 +317,13 @@ router.put('/:id', async (req, res) => {
     if (isReschedule || isStatusChange) {
       const eventType = isReschedule ? 'rescheduled' : updatedBooking.status;
       try {
-        const notifyPromise = Promise.allSettled([
-          sendScheduleEmail(updatedBooking, eventType),
-          sendBookingWhatsAppNotification(updatedBooking, [], eventType)
-        ]);
-        await Promise.race([
-          notifyPromise,
-          new Promise(resolve => setTimeout(resolve, 5000))
-        ]);
+        await sendScheduleEmail(updatedBooking, eventType);
       } catch (err) {
-        console.error('[web_bookings] Update notification dispatch error:', err);
+        console.error('[web_bookings] Update email dispatch error:', err);
       }
+      sendBookingWhatsAppNotification(updatedBooking, [], eventType).catch(err => {
+        console.error('[web_bookings] Update WhatsApp dispatch error:', err);
+      });
     }
 
     res.json(updatedBooking);
@@ -584,17 +577,13 @@ router.post('/:id/convert', async (req, res) => {
     await client.query('COMMIT');
 
     try {
-      const notifyPromise = Promise.allSettled([
-        sendScheduleEmail(convertedBooking, 'converted'),
-        sendBookingWhatsAppNotification(convertedBooking, [], 'converted')
-      ]);
-      await Promise.race([
-        notifyPromise,
-        new Promise(resolve => setTimeout(resolve, 5000))
-      ]);
+      await sendScheduleEmail(convertedBooking, 'converted');
     } catch (err) {
-      console.error('[web_bookings] Convert notification error:', err);
+      console.error('[web_bookings] Convert email dispatch error:', err);
     }
+    sendBookingWhatsAppNotification(convertedBooking, [], 'converted').catch(err => {
+      console.error('[web_bookings] Convert WhatsApp dispatch error:', err);
+    });
 
     res.json({ message: 'Booking converted successfully', invoice_id: invoiceId });
   } catch (err) {

@@ -22,10 +22,21 @@ const transporter = nodemailer.createTransport({
   tls: {
     rejectUnauthorized: false
   },
-  connectionTimeout: 6000,
-  greetingTimeout: 5000,
-  socketTimeout: 10000
+  connectionTimeout: 10000,
+  greetingTimeout: 10000,
+  socketTimeout: 20000
 });
+
+// Warm up the SMTP connection pool on startup
+if (process.env.SMTP_USER && process.env.SMTP_PASS) {
+  transporter.verify((err) => {
+    if (err) {
+      console.error('[mailer] SMTP verify error on initialization:', err.message);
+    } else {
+      console.log('[mailer] SMTP connection pool is ready and verified.');
+    }
+  });
+}
 
 // Helper to get invoice shield logo CID attachment
 function getLogoAttachments() {
