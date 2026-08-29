@@ -143,14 +143,26 @@ router.get('/services-pdf', async (req, res) => {
       </div>
     `;
 
-    let logoBase64 = '';
-    try {
-      const logoPath = path.join(__dirname, '../../client/src/assets/brand-logo-for-invoice.png');
-      const logoFile = fs.readFileSync(logoPath);
-      logoBase64 = `data:image/png;base64,${logoFile.toString('base64')}`;
-    } catch (e) {
-      console.error('Failed to load logo', e);
+    function getBase64Image(filename) {
+      const possiblePaths = [
+        path.join(__dirname, '../assets', filename),
+        path.join(__dirname, '../../client/src/assets', filename),
+        path.join(process.cwd(), 'server/assets', filename),
+        path.join(process.cwd(), 'client/src/assets', filename),
+        path.join(process.cwd(), 'assets', filename)
+      ];
+
+      for (const p of possiblePaths) {
+        try {
+          if (fs.existsSync(p)) {
+            return `data:image/png;base64,${fs.readFileSync(p).toString('base64')}`;
+          }
+        } catch (e) {}
+      }
+      return '';
     }
+
+    const logoBase64 = getBase64Image('brand-logo-for-invoice.png');
 
     const html = `
       <!DOCTYPE html>
@@ -179,7 +191,7 @@ router.get('/services-pdf', async (req, res) => {
             <p>${timeframe.charAt(0).toUpperCase() + timeframe.slice(1)} · Generated ${new Date().toLocaleDateString('en-GB')}</p>
           </div>
           <div style="display: flex; align-items: center; gap: 16px;">
-            ${logoBase64 ? `<img src="${logoBase64}" alt="Detailing Masters" style="height: 44px; width: auto; object-fit: contain;" />` : '<div class="badge">Detailing Masters</div>'}
+            ${logoBase64 ? `<img src="${logoBase64}" alt="Detailing Masters" style="height: 52px; width: auto; object-fit: contain; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.15));" />` : '<div class="badge">Detailing Masters</div>'}
           </div>
         </div>
 
