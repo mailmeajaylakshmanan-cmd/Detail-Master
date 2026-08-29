@@ -440,14 +440,6 @@ router.post('/:id/convert', async (req, res) => {
     }
 
     // 4. Find or Create Vehicle for this Client with proper license plate
-    const targetLicensePlate = String(
-      vehicle_number ||
-      license_vin ||
-      license_plate ||
-      booking.vehicle_number ||
-      ''
-    ).trim();
-
     let vehicleId;
     const makeModel = `${booking.vehicle_brand || ''} ${booking.vehicle_model || ''}`.trim() || 'Unknown Vehicle';
     

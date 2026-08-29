@@ -818,6 +818,9 @@ function getClientUrl(req) {
     if (prod) return prod.replace(/\/+$/, '');
     if (list[0]) return list[0].replace(/\/+$/, '');
   }
+  return 'https://manage.detailingmasters.in';
+}
+
 async function fetchInvoiceDataForPdf(id) {
   const invRes = await db.query(
     `SELECT
