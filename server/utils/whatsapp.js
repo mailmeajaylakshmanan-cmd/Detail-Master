@@ -78,54 +78,77 @@ async function sendBookingWhatsAppNotification(booking, servicesList = [], event
 
   switch (eventType) {
     case 'created':
-      message = `✨ *Detailing Masters - Appointment Request Received* ✨\n\n` +
-        `Hi *${booking.full_name || 'Customer'}*,\n` +
-        `Thank you for booking with us! We have received your appointment request.\n\n` +
-        `🚗 *Vehicle:* ${vehicleStr}\n` +
-        `🛠️ *Services:* ${serviceNames}\n` +
-        `📅 *Date:* ${dateStr}\n` +
-        `⏰ *Requested Slot:* ${booking.preferred_time_period || 'Standard'}\n` +
-        `📌 *Status:* Pending Confirmation\n\n` +
-        `Our team will review your slot and send you a confirmation message shortly.`;
+      message = `✨ *DETAILING MASTERS* | *APPOINTMENT REQUEST* ✨\n` +
+        `━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
+        `Dear *${booking.full_name || 'Valued Customer'}*,\n\n` +
+        `Thank you for contacting *Detailing Masters*. We have successfully received your service booking request.\n\n` +
+        `📋 *BOOKING SUMMARY*\n` +
+        `• *Vehicle:* ${vehicleStr}\n` +
+        `• *Services:* ${serviceNames}\n` +
+        `• *Requested Date:* ${dateStr}\n` +
+        `• *Preferred Slot:* ${booking.preferred_time_period || 'Standard / Flexible'}\n` +
+        `• *Status:* ⏳ Pending Confirmation\n\n` +
+        `Our detailing manager will review bay availability and confirm your check-in time slot shortly.\n\n` +
+        `📍 *Studio Location:* Opp. KTM Showroom, Chankai, Marthandam\n` +
+        `📞 *Helpline:* +91 99941 22652\n` +
+        `━━━━━━━━━━━━━━━━━━━━━━━\n` +
+        `_Precision Automotive Detailing & Ceramic Coatings_`;
       break;
 
     case 'confirmed':
-      message = `✅ *Detailing Masters - Booking Confirmed!* ✅\n\n` +
-        `Hi *${booking.full_name || 'Customer'}*,\n` +
-        `Your appointment is now *CONFIRMED*!\n\n` +
-        `🚗 *Vehicle:* ${vehicleStr}\n` +
-        `🛠️ *Services:* ${serviceNames}\n` +
-        `📅 *Date:* ${dateStr}\n` +
-        `⏰ *Allocated Time:* ${booking.allocated_time || booking.preferred_time_period || 'As scheduled'}\n\n` +
-        `📍 *Location:* Opposite KTM Bike Showroom, Chankai, Marthandam\n` +
-        `📞 *Contact:* +91 9994122652\n\n` +
-        `We look forward to giving your car the master shine!`;
+      message = `✨ *DETAILING MASTERS* | *BOOKING CONFIRMATION* ✨\n` +
+        `━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
+        `Dear *${booking.full_name || 'Valued Customer'}*,\n\n` +
+        `Thank you for choosing *Detailing Masters*. We are pleased to confirm your vehicle detailing appointment!\n\n` +
+        `📋 *APPOINTMENT SUMMARY*\n` +
+        `• *Vehicle:* ${vehicleStr}\n` +
+        `• *Services:* ${serviceNames}\n` +
+        `• *Date:* ${dateStr}\n` +
+        `• *Allocated Slot:* ${booking.allocated_time || booking.preferred_time_period || 'As scheduled'}\n` +
+        `• *Status:* ✅ Confirmed\n\n` +
+        `📍 *STUDIO LOCATION*\n` +
+        `Detailing Masters, Opposite KTM Bike Showroom,\n` +
+        `Chankai, Marthandam, Tamil Nadu 629155\n` +
+        `📞 *Helpdesk:* +91 99941 22652\n\n` +
+        `━━━━━━━━━━━━━━━━━━━━━━━\n` +
+        `_We look forward to delivering the ultimate shine and protection for your machine!_`;
       break;
 
     case 'rescheduled':
-      message = `🗓️ *Detailing Masters - Appointment Rescheduled*\n\n` +
-        `Hi *${booking.full_name || 'Customer'}*,\n` +
-        `Your appointment has been rescheduled to *${dateStr}*.\n\n` +
-        `🚗 *Vehicle:* ${vehicleStr}\n` +
+      message = `🗓️ *DETAILING MASTERS* | *APPOINTMENT RESCHEDULED*\n` +
+        `━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
+        `Dear *${booking.full_name || 'Valued Customer'}*,\n\n` +
+        `Your detailing appointment for *${vehicleStr}* has been rescheduled:\n\n` +
+        `📅 *New Date:* ${dateStr}\n` +
         `🛠️ *Services:* ${serviceNames}\n` +
-        `⏰ *Time Slot:* ${booking.allocated_time || 'Will be updated shortly'}\n\n` +
-        `Feel free to reach out to us at +91 9994122652 if you need any adjustments.`;
+        `⏰ *Time Slot:* ${booking.allocated_time || 'Will be confirmed shortly'}\n\n` +
+        `📍 *Studio Location:* Opp. KTM Showroom, Chankai, Marthandam\n` +
+        `📞 *Support Helpline:* +91 99941 22652\n\n` +
+        `━━━━━━━━━━━━━━━━━━━━━━━\n` +
+        `_If you need any further adjustments, feel free to reply directly to this chat._`;
       break;
 
     case 'cancelled':
-      message = `❌ *Detailing Masters - Appointment Cancelled*\n\n` +
-        `Hi *${booking.full_name || 'Customer'}*,\n` +
-        `Your booking for *${dateStr}* has been cancelled.\n` +
-        (booking.cancel_reason ? `Reason: ${booking.cancel_reason}\n\n` : `\n`) +
-        `Feel free to rebook anytime at detailingmasters.in or call +91 9994122652.`;
+      message = `❌ *DETAILING MASTERS* | *BOOKING CANCELLATION*\n` +
+        `━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
+        `Dear *${booking.full_name || 'Valued Customer'}*,\n\n` +
+        `Your detailing appointment for *${vehicleStr}* scheduled for *${dateStr}* has been cancelled.\n` +
+        (booking.cancel_reason ? `• *Reason:* ${booking.cancel_reason}\n\n` : `\n`) +
+        `If you would like to reschedule or explore other slots, please visit *detailingmasters.in* or contact us at *+91 99941 22652*.\n\n` +
+        `━━━━━━━━━━━━━━━━━━━━━━━\n` +
+        `_Detailing Masters · Precision Automotive Refinishing_`;
       break;
 
     case 'converted':
-      message = `📋 *Detailing Masters - Job Order Created*\n\n` +
-        `Hi *${booking.full_name || 'Customer'}*,\n` +
+      message = `📋 *DETAILING MASTERS* | *JOB ORDER CREATED*\n` +
+        `━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
+        `Dear *${booking.full_name || 'Valued Customer'}*,\n\n` +
         `Your vehicle *${vehicleStr}* is checked in and work has started on:\n` +
-        `🛠️ ${serviceNames}\n\n` +
-        `We will notify you as soon as your vehicle is ready for pickup!`;
+        `🛠️ *Services:* ${serviceNames}\n\n` +
+        `Our certified specialists are treating your vehicle. We will notify you as soon as it is ready for pickup!\n\n` +
+        `📞 *Helpdesk:* +91 99941 22652\n` +
+        `━━━━━━━━━━━━━━━━━━━━━━━\n` +
+        `_Detailing Masters · Ceramic Coatings & Paint Protection_`;
       break;
 
     default:

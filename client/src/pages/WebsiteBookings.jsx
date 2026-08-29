@@ -36,6 +36,78 @@ function formatDate(d) {
   }
 }
 
+// ── Professional WhatsApp message formatters ──
+function getVehicleLabel(b) {
+  return [b.vehicle_brand, b.vehicle_model].filter(Boolean).join(' ') || 'Your Vehicle';
+}
+
+function buildWAConfirmation(b, time) {
+  const vehicle = getVehicleLabel(b);
+  const dateFormatted = formatDate(b.preferred_date);
+  const services = b.service_name || 'General Detailing';
+
+  return `✨ *DETAILING MASTERS* | *APPOINTMENT CONFIRMATION* ✨\n` +
+    `━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
+    `Dear *${b.full_name || 'Valued Customer'}*,\n\n` +
+    `Thank you for choosing *Detailing Masters*. We are pleased to confirm your vehicle detailing appointment!\n\n` +
+    `📋 *APPOINTMENT SUMMARY*\n` +
+    `• *Vehicle:* ${vehicle}\n` +
+    `• *Services:* ${services}\n` +
+    `• *Date:* ${dateFormatted}\n` +
+    `• *Allocated Slot:* ${time}\n` +
+    `• *Status:* ✅ Confirmed\n\n` +
+    `📍 *STUDIO LOCATION*\n` +
+    `Detailing Masters, Opposite KTM Bike Showroom,\n` +
+    `Chankai, Marthandam, Tamil Nadu 629155\n` +
+    `📞 *Helpline:* +91 99941 22652\n\n` +
+    `━━━━━━━━━━━━━━━━━━━━━━━\n` +
+    `_We look forward to delivering the ultimate shine and protection for your machine!_`;
+}
+
+function buildWAReschedule(b, newDate) {
+  const vehicle = getVehicleLabel(b);
+  const dateFormatted = formatDate(newDate);
+  const services = b.service_name || 'General Detailing';
+
+  return `🗓️ *DETAILING MASTERS* | *APPOINTMENT RESCHEDULED*\n` +
+    `━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
+    `Dear *${b.full_name || 'Valued Customer'}*,\n\n` +
+    `Your detailing appointment for *${vehicle}* has been rescheduled:\n\n` +
+    `📅 *New Date:* ${dateFormatted}\n` +
+    `🛠️ *Services:* ${services}\n` +
+    `⏰ *Time Slot:* ${b.allocated_time || 'Will be confirmed shortly'}\n\n` +
+    `📍 *Studio Location:* Opp. KTM Showroom, Chankai, Marthandam\n` +
+    `📞 *Support Helpline:* +91 99941 22652\n\n` +
+    `━━━━━━━━━━━━━━━━━━━━━━━\n` +
+    `_If you need any further adjustments, feel free to reply directly to this chat._`;
+}
+
+function buildWACancellation(b, reason) {
+  const vehicle = getVehicleLabel(b);
+  const dateFormatted = formatDate(b.preferred_date);
+
+  return `❌ *DETAILING MASTERS* | *BOOKING CANCELLATION*\n` +
+    `━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
+    `Dear *${b.full_name || 'Valued Customer'}*,\n\n` +
+    `Your detailing appointment for *${vehicle}* scheduled for *${dateFormatted}* has been cancelled.\n` +
+    (reason ? `• *Reason:* ${reason}\n\n` : `\n`) +
+    `If you would like to reschedule or explore another slot, please visit *detailingmasters.in* or reach us at *+91 99941 22652*.\n\n` +
+    `━━━━━━━━━━━━━━━━━━━━━━━\n` +
+    `_Detailing Masters · Precision Automotive Refinishing_`;
+}
+
+function buildWAInquiry(b) {
+  const vehicle = getVehicleLabel(b);
+  const dateFormatted = formatDate(b.preferred_date);
+  const services = b.service_name || 'Detailing Service';
+
+  return `👋 *Hello ${b.full_name || 'Valued Customer'}*,\n\n` +
+    `Greetings from *Detailing Masters*!\n\n` +
+    `We are following up regarding your booking inquiry for *${vehicle}* (*${services}*) scheduled for *${dateFormatted}*.\n\n` +
+    `How may we assist you today?\n\n` +
+    `📞 *Helpline:* +91 99941 22652`;
+}
+
 const TIME_PRESETS = ['09:30', '11:00', '14:00', '16:30'];
 
 const CANCEL_REASONS = [
@@ -132,7 +204,7 @@ export default function WebsiteBookings() {
       {
         onSuccess: () => {
           toast.success('Booking rescheduled — customer notified');
-          const msg = `Hi ${booking.full_name}, your Detailing Masters booking for ${booking.service_name || 'General Detailing'} has been rescheduled to ${formatDate(rescheduleValue)}. We'll confirm the time slot separately.`;
+          const msg = buildWAReschedule(booking, rescheduleValue);
           if (waWindow) waWindow.location.href = waLink(booking.phone, msg);
         },
         onError: () => { if (waWindow) waWindow.close(); }
@@ -170,7 +242,7 @@ export default function WebsiteBookings() {
       {
         onSuccess: () => {
           toast.success('Booking confirmed — customer notified');
-          const msg = `Hi ${booking.full_name}, your Detailing Masters booking for ${booking.service_name || 'General Detailing'} is confirmed for ${formatDate(booking.preferred_date)} at ${time}. See you then!`;
+          const msg = buildWAConfirmation(booking, time);
           if (waWindow) waWindow.location.href = waLink(booking.phone, msg);
         },
         onError: () => { if (waWindow) waWindow.close(); }
@@ -228,7 +300,7 @@ export default function WebsiteBookings() {
       {
         onSuccess: () => {
           toast.success('Booking cancelled — customer notified');
-          const msg = `Hi ${booking.full_name}, your Detailing Masters booking for ${booking.service_name || 'General Detailing'} has been cancelled.${cancelReason ? ` Reason: ${cancelReason}` : ''} Please contact us if you'd like to rebook.`;
+          const msg = buildWACancellation(booking, cancelReason);
           if (waWindow) waWindow.location.href = waLink(booking.phone, msg);
         },
         onError: () => { if (waWindow) waWindow.close(); }
@@ -594,7 +666,7 @@ export default function WebsiteBookings() {
                             
                             {/* WhatsApp Button */}
                             <a
-                              href={waLink(booking.phone, `Hi ${booking.full_name}, regarding your Detailing Masters booking for ${booking.service_name || 'Detailing'} on ${formatDate(booking.preferred_date)}:`)}
+                              href={waLink(booking.phone, buildWAInquiry(booking))}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="px-2 py-1.5 bg-[#25D366] hover:bg-[#20ba59] text-white text-[11px] font-black rounded-lg transition-all shadow-xs flex items-center gap-1 shrink-0"
@@ -790,7 +862,7 @@ export default function WebsiteBookings() {
                                 {/* Drawer Fast Actions */}
                                 <div className="flex items-center gap-2 pt-2">
                                   <a
-                                    href={waLink(booking.phone, `Hi ${booking.full_name}, regarding your Detailing Masters appointment for ${booking.service_name || 'Detailing'}:`)}
+                                    href={waLink(booking.phone, buildWAInquiry(booking))}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="flex-1 py-1.5 bg-[#25D366] hover:bg-[#20ba59] text-white text-[11px] font-black rounded-lg flex items-center justify-center gap-1 shadow-xs"
@@ -896,7 +968,7 @@ export default function WebsiteBookings() {
                   {/* Action Bar */}
                   <div className="flex items-center gap-2 pt-1">
                     <a
-                      href={waLink(booking.phone, `Hi ${booking.full_name}, regarding your Detailing Masters booking for ${booking.service_name || 'Detailing'} on ${formatDate(booking.preferred_date)}:`)}
+                      href={waLink(booking.phone, buildWAInquiry(booking))}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="px-3 py-2 bg-[#25D366] text-white text-[12px] font-black rounded-xl flex items-center justify-center gap-1 shadow-xs"
