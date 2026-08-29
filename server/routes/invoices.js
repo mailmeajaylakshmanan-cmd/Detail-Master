@@ -799,6 +799,27 @@ router.put('/:id', async (req, res) => {
   }
 });
 
+function getClientUrl(req) {
+  const origin = req.get('origin');
+  if (origin && (origin.startsWith('http://') || origin.startsWith('https://'))) {
+    return origin.replace(/\/+$/, '');
+  }
+  const referer = req.get('referer');
+  if (referer && (referer.startsWith('http://') || referer.startsWith('https://'))) {
+    try {
+      const u = new URL(referer);
+      return u.origin.replace(/\/+$/, '');
+    } catch {}
+  }
+  if (process.env.CLIENT_URL) {
+    const list = process.env.CLIENT_URL.split(',').map(s => s.trim()).filter(Boolean);
+    const prod = list.find(u => u.startsWith('https://'));
+    if (prod) return prod.replace(/\/+$/, '');
+    if (list[0]) return list[0].replace(/\/+$/, '');
+  }
+  return 'https://manage.detailingmasters.in';
+}
+
 // PDF Generation Endpoint
 router.get('/:id/pdf', async (req, res) => {
   try {
@@ -807,10 +828,9 @@ router.get('/:id/pdf', async (req, res) => {
     const page = await browser.newPage();
     
     // Dynamically match the frontend's origin URL
-    let clientUrl = process.env.CLIENT_URL ? process.env.CLIENT_URL.split(',')[0] : 'http://localhost:5173';
+    const clientUrl = getClientUrl(req);
     
-    console.log(`[PDF] Generating for Invoice ID: ${id}`);
-    console.log(`[PDF] Using Client URL: ${clientUrl}`);
+    console.log(`[PDF] Generating for Invoice ID: ${id} using URL: ${clientUrl}`);
     
     // Inject the authentication token so puppeteer isn't redirected to /login
     const token = req.header('Authorization')?.replace('Bearer ', '');
@@ -822,7 +842,7 @@ router.get('/:id/pdf', async (req, res) => {
     }
     
     // Navigate to the invoice view page
-    await page.goto(`${clientUrl}/invoices/${id}`, { waitUntil: 'networkidle0' });
+    await page.goto(`${clientUrl}/invoices/${id}`, { waitUntil: ['domcontentloaded', 'networkidle2'], timeout: 25000 });
     
     // Wait for the invoice to render
     try {
@@ -834,14 +854,12 @@ router.get('/:id/pdf', async (req, res) => {
     }
 
     // Force a single-page PDF that only contains the invoice
-    const { height, width } = await page.evaluate(() => {
+    await page.evaluate(() => {
       const invoice = document.getElementById('invoice-print');
       if (invoice) {
-        // Clear everything else from the DOM
         document.body.innerHTML = '';
         document.body.appendChild(invoice);
         
-        // Remove all margins/paddings from body/html
         document.body.style.margin = '0';
         document.body.style.padding = '0';
         document.body.style.background = '#fff';
@@ -849,15 +867,8 @@ router.get('/:id/pdf', async (req, res) => {
         document.documentElement.style.padding = '0';
         document.documentElement.style.background = '#fff';
         
-        // Remove print:hidden elements inside the invoice just in case
         document.querySelectorAll('.print\\:hidden').forEach(e => e.remove());
       }
-      
-      // Return dimensions to set the exact PDF size dynamically
-      return {
-        height: document.body.scrollHeight || 1123,
-        width: document.body.scrollWidth || 794
-      };
     });
 
     const pdfBuffer = await page.pdf({ 
@@ -868,12 +879,10 @@ router.get('/:id/pdf', async (req, res) => {
     
     await page.close();
     
-    // Send as base64 to match frontend expectation
-    // Convert Uint8Array to Buffer first, because Uint8Array.toString('base64') does not exist
     res.json({ base64: Buffer.from(pdfBuffer).toString('base64') });
   } catch (err) {
     console.error('Invoice PDF Generation Error:', err);
-    res.status(500).json({ message: 'Error generating PDF' });
+    res.status(500).json({ message: 'Error generating PDF: ' + err.message });
   }
 });
 
@@ -885,10 +894,9 @@ router.get('/:id/service-report/pdf', async (req, res) => {
     const page = await browser.newPage();
     
     // Dynamically match the frontend's origin URL
-    let clientUrl = process.env.CLIENT_URL ? process.env.CLIENT_URL.split(',')[0] : 'http://localhost:5173';
+    const clientUrl = getClientUrl(req);
     
-    console.log(`[PDF] Generating Service Report for Invoice ID: ${id}`);
-    console.log(`[PDF] Using Client URL: ${clientUrl}`);
+    console.log(`[PDF] Generating Service Report for Invoice ID: ${id} using URL: ${clientUrl}`);
     
     // Inject the authentication token so puppeteer isn't redirected to /login
     const token = req.header('Authorization')?.replace('Bearer ', '');
@@ -900,7 +908,7 @@ router.get('/:id/service-report/pdf', async (req, res) => {
     }
     
     // Navigate to the service report page
-    await page.goto(`${clientUrl}/invoices/${id}/service-report`, { waitUntil: 'networkidle0' });
+    await page.goto(`${clientUrl}/invoices/${id}/service-report`, { waitUntil: ['domcontentloaded', 'networkidle2'], timeout: 25000 });
     
     // Wait for the report to render
     try {
@@ -912,14 +920,12 @@ router.get('/:id/service-report/pdf', async (req, res) => {
     }
 
     // Force a single-page PDF that only contains the report
-    const { height, width } = await page.evaluate(() => {
+    await page.evaluate(() => {
       const report = document.getElementById('invoice-print');
       if (report) {
-        // Clear everything else from the DOM
         document.body.innerHTML = '';
         document.body.appendChild(report);
         
-        // Remove all margins/paddings from body/html
         document.body.style.margin = '0';
         document.body.style.padding = '0';
         document.body.style.background = '#fff';
@@ -927,14 +933,8 @@ router.get('/:id/service-report/pdf', async (req, res) => {
         document.documentElement.style.padding = '0';
         document.documentElement.style.background = '#fff';
         
-        // Remove print:hidden elements inside the report just in case
         document.querySelectorAll('.print\\:hidden').forEach(e => e.remove());
       }
-      
-      return {
-        height: document.body.scrollHeight || 1123,
-        width: document.body.scrollWidth || 794
-      };
     });
 
     const pdfBuffer = await page.pdf({ 
@@ -948,7 +948,7 @@ router.get('/:id/service-report/pdf', async (req, res) => {
     res.json({ base64: Buffer.from(pdfBuffer).toString('base64') });
   } catch (err) {
     console.error('Service Report PDF Generation Error:', err);
-    res.status(500).json({ message: 'Error generating PDF' });
+    res.status(500).json({ message: 'Error generating PDF: ' + err.message });
   }
 });
 

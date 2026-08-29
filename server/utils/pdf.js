@@ -1,24 +1,39 @@
 const puppeteer = require('puppeteer');
+const fs = require('fs');
 
-// Shared browser instance. Launching Chrome is the single most expensive step
-// in PDF generation (2-5s+ per request), so reuse one browser across requests.
+// Shared browser instance to avoid re-launching Chrome on every request
 let browserPromise = null;
 let browser = null;
 
-const fs = require('fs');
-
 function getExecutablePath() {
-  const winPath = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
-  const winPathx86 = 'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe';
-  if (process.platform === 'win32') {
-    if (fs.existsSync(winPath)) return winPath;
-    if (fs.existsSync(winPathx86)) return winPathx86;
+  if (process.env.PUPPETEER_EXECUTABLE_PATH) {
+    return process.env.PUPPETEER_EXECUTABLE_PATH;
   }
-  return undefined; // Let puppeteer use its bundled chromium
+  const winPaths = [
+    'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+    'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe'
+  ];
+  if (process.platform === 'win32') {
+    for (const p of winPaths) {
+      if (fs.existsSync(p)) return p;
+    }
+  }
+  const linuxPaths = [
+    '/usr/bin/google-chrome-stable',
+    '/usr/bin/google-chrome',
+    '/usr/bin/chromium',
+    '/usr/bin/chromium-browser'
+  ];
+  if (process.platform === 'linux') {
+    for (const p of linuxPaths) {
+      if (fs.existsSync(p)) return p;
+    }
+  }
+  return undefined; // Let puppeteer use its bundled/cached chromium
 }
 
 function launchOptions() {
-  return {
+  const opts = {
     headless: true,
     ignoreHTTPSErrors: true,
     args: [
@@ -27,9 +42,16 @@ function launchOptions() {
       '--disable-dev-shm-usage',
       '--ignore-certificate-errors',
       '--disable-gpu',
-      '--pipe',
-    ],
+      '--disable-software-rasterizer',
+      '--no-first-run',
+      '--disable-extensions'
+    ]
   };
+  const execPath = getExecutablePath();
+  if (execPath) {
+    opts.executablePath = execPath;
+  }
+  return opts;
 }
 
 async function getBrowser() {
@@ -50,7 +72,7 @@ async function getBrowser() {
     browser = await browserPromise;
   } catch (err) {
     browserPromise = null;
-    require('fs').writeFileSync('C:/Users/ajay2/.gemini/antigravity-ide/brain/16e8cef9-ae0d-4e43-9a46-2cd6a34d58a8/scratch/puppeteer_error.txt', String(err.stack));
+    console.error('[PDF/Puppeteer] Failed to launch browser:', err);
     throw err;
   }
   return browser;

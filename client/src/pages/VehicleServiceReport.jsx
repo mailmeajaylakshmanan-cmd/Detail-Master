@@ -36,6 +36,8 @@ function normalizeInvoice(row) {
     carMake: parts[0] || row.carMake || '',
     carModel: parts.slice(1).join(' ') || row.carModel || '',
     licensePlate: row.license_vin || row.licensePlate || '',
+    vehicle_name: row.vehicle_name || row.make_model || '',
+    vehicleVisits: row.vehicleVisits || [],
     total: Number(row.grand_total ?? row.total) || 0,
     discount: Number(row.discount) || 0,
     balance: Number(row.balance_due ?? row.balance) || 0,
@@ -71,9 +73,10 @@ export default function VehicleServiceReport() {
   const vehicles = invoice
     ? (invoice.vehicleVisits && invoice.vehicleVisits.length > 0
         ? invoice.vehicleVisits.map(v => ({ make_model: v.make_model, license_vin: v.license_vin }))
-        : (invoice.vehicle_name || invoice.license_vin
-            ? [{ make_model: invoice.vehicle_name, license_vin: invoice.license_vin }]
-            : []))
+        : ([{
+            make_model: [invoice.carMake, invoice.carModel].filter(Boolean).join(' ') || invoice.vehicle_name || 'Vehicle',
+            license_vin: invoice.licensePlate || invoice.license_vin || '—'
+          }]))
     : [];
 
   const isMultiVehicle = vehicles.length > 1;
