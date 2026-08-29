@@ -196,12 +196,11 @@ function renderInvoiceHtml(inv) {
       @page { size: A4 portrait; margin: 0; }
       body { margin: 0; padding: 0; background: #ffffff; font-family: 'Inter', 'Segoe UI', Roboto, sans-serif; color: #111827; }
       .invoice-container { width: 820px; margin: 0 auto; background: #ffffff; min-height: 1120px; display: flex; flex-direction: column; position: relative; }
-      .header-wrap { position: relative; height: 115px; background-color: #EBEBED; width: 100%; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-      .layer2 { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #000000; clip-path: polygon(65% 0, 100% 0, 100% 75%, 57.5% 75%); -webkit-clip-path: polygon(65% 0, 100% 0, 100% 75%, 57.5% 75%); z-index: 2; }
-      .layer3 { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #FFD700; clip-path: polygon(57.5% 75%, 100% 75%, 100% 85%, 56.5% 85%); -webkit-clip-path: polygon(57.5% 75%, 100% 75%, 100% 85%, 56.5% 85%); z-index: 3; }
-      .layer4 { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #000000; clip-path: polygon(50% 0, 65% 0, 49% 100%, 35% 100%); -webkit-clip-path: polygon(50% 0, 65% 0, 49% 100%, 35% 100%); z-index: 4; }
-      .layer5 { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #FFD700; clip-path: polygon(50% 0, 61% 0, 49% 100%, 35% 100%); -webkit-clip-path: polygon(50% 0, 61% 0, 49% 100%, 35% 100%); z-index: 5; }
-      .layer6 { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #2B2A2A; clip-path: polygon(0 0, 60% 0, 45% 100%, 0 100%); -webkit-clip-path: polygon(0 0, 60% 0, 45% 100%, 0 100%); z-index: 6; }
+      .header-wrap { position: relative; height: 115px; background-color: #000000; width: 100%; -webkit-print-color-adjust: exact; print-color-adjust: exact; overflow: hidden; }
+      .layer2 { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #000000; clip-path: polygon(62% 0, 100% 0, 100% 100%, 48% 100%); -webkit-clip-path: polygon(62% 0, 100% 0, 100% 100%, 48% 100%); z-index: 2; }
+      .layer3 { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #FFD700; clip-path: polygon(56% 80%, 100% 80%, 100% 88%, 55% 88%); -webkit-clip-path: polygon(56% 80%, 100% 80%, 100% 88%, 55% 88%); z-index: 3; }
+      .layer5 { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #FFD700; clip-path: polygon(58% 0, 63% 0, 49% 100%, 44% 100%); -webkit-clip-path: polygon(58% 0, 63% 0, 49% 100%, 44% 100%); z-index: 4; }
+      .layer6 { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #2B2A2A; clip-path: polygon(0 0, 58% 0, 44% 100%, 0 100%); -webkit-clip-path: polygon(0 0, 58% 0, 44% 100%, 0 100%); z-index: 5; }
       
       .brand-grad-span {
         display: inline-block;
@@ -224,7 +223,6 @@ function renderInvoiceHtml(inv) {
       <div class="header-wrap">
         <div class="layer2"></div>
         <div class="layer3"></div>
-        <div class="layer4"></div>
         <div class="layer5"></div>
         <div class="layer6"></div>
 
