@@ -514,16 +514,32 @@ router.post('/:id/convert', async (req, res) => {
       ['converted', invoiceId, id]
     );
     const convertedBooking = updatedBookingRows[0];
-    if (convertedBooking.service_id) {
-      const sRes = await client.query('SELECT service_name FROM services WHERE id = $1', [convertedBooking.service_id]);
-      if (sRes.rows.length > 0) convertedBooking.service_name = sRes.rows[0].service_name;
-    }
+    
+    // Fetch full aggregated service names
+    const { rows: svcRows } = await client.query(
+      `SELECT string_agg(s.service_name, ', ') AS service_name
+       FROM web_booking_services wbs
+       JOIN services s ON wbs.service_id = s.id
+       WHERE wbs.booking_id = $1`,
+      [id]
+    );
+    convertedBooking.service_name = svcRows[0]?.service_name || convertedBooking.service_name || 'General Detailing';
 
     // Commit Transaction
     await client.query('COMMIT');
 
-    sendScheduleEmail(convertedBooking, 'converted').catch(err => console.error('sendScheduleEmail (converted) failed:', err));
-    sendBookingWhatsAppNotification(convertedBooking, [], 'converted').catch(err => console.error('sendBookingWhatsAppNotification (converted) failed:', err));
+    try {
+      const notifyPromise = Promise.allSettled([
+        sendScheduleEmail(convertedBooking, 'converted'),
+        sendBookingWhatsAppNotification(convertedBooking, [], 'converted')
+      ]);
+      await Promise.race([
+        notifyPromise,
+        new Promise(resolve => setTimeout(resolve, 5000))
+      ]);
+    } catch (err) {
+      console.error('[web_bookings] Convert notification error:', err);
+    }
 
     res.json({ message: 'Booking converted successfully', invoice_id: invoiceId });
   } catch (err) {

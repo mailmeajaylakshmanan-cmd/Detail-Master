@@ -73,13 +73,18 @@ const MESSAGES = {
   },
   converted: {
     subject: 'Your Detailing Masters job order has been created',
-    headline: 'Job order created',
-    body: (b) => `Hi ${b.full_name}, your booking has been converted into a live job order. Thank you for choosing Detailing Masters!`
+    headline: 'Job Order Created',
+    body: (b) => `Hi ${b.full_name}, your booking has been converted into a live job order. Our detailing specialists have received your vehicle details and preparations are underway!`
+  },
+  completed: {
+    subject: 'Your Detailing Masters detailing service is complete!',
+    headline: 'Service Completed',
+    body: (b) => `Dear ${b.full_name}, great news! All scheduled detailing services on your vehicle are complete. Thank you for choosing Detailing Masters!`
   },
   cancelled: {
     subject: 'Your Detailing Masters appointment has been cancelled',
-    headline: 'Appointment cancelled',
-    body: (b, dateStr) => `Hi ${b.full_name}, your appointment for ${dateStr} has been cancelled.${b.cancel_reason ? ` Reason: ${b.cancel_reason}` : ''} Please contact us if you would like to reschedule.`
+    headline: 'Appointment Cancelled',
+    body: (b, dateStr) => `Hi ${b.full_name}, your appointment for ${dateStr} has been cancelled.${b.cancel_reason ? ` Reason: ${b.cancel_reason}.` : ''} Please contact us anytime if you would like to rebook.`
   }
 };
 
