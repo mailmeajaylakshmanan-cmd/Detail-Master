@@ -373,7 +373,34 @@ router.post('/:id/convert', async (req, res) => {
       return res.status(404).json({ message: 'Booking not found' });
     }
     const booking = bookingRes.rows[0];
-    if (booking.status === 'converted' || booking.invoice_order_id) {
+
+    const targetLicensePlate = String(
+      vehicle_number ||
+      license_vin ||
+      license_plate ||
+      booking.vehicle_number ||
+      ''
+    ).trim().toUpperCase();
+
+    // If already converted or linked to an existing invoice, update plate/discount and open it seamlessly
+    if (booking.invoice_order_id) {
+      const existingInvRes = await client.query('SELECT id, vehicle_id FROM invoices WHERE id = $1', [booking.invoice_order_id]);
+      if (existingInvRes.rows.length > 0) {
+        const inv = existingInvRes.rows[0];
+        if (targetLicensePlate && inv.vehicle_id) {
+          await client.query('UPDATE vehicles SET license_vin = $1 WHERE id = $2', [targetLicensePlate, inv.vehicle_id]);
+        }
+        if (discount !== undefined && discount !== '') {
+          await client.query('UPDATE invoices SET discount = $1 WHERE id = $2', [Number(discount) || 0, inv.id]);
+          await recalculateInvoiceTotals(inv.id, client);
+        }
+        await client.query('UPDATE web_bookings SET status = $1, vehicle_number = COALESCE($2, vehicle_number) WHERE booking_id = $3', ['converted', targetLicensePlate || null, id]);
+        await client.query('COMMIT');
+        return res.json({ message: 'Invoice ready', invoice_id: inv.id });
+      }
+    }
+
+    if (booking.status === 'converted') {
       await client.query('ROLLBACK');
       return res.status(400).json({ message: 'Booking is already converted' });
     }
