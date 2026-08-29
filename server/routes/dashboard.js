@@ -57,7 +57,14 @@ router.get('/stats', async (req, res) => {
       db.query(`
         SELECT 
           w.booking_id, w.full_name, w.vehicle_brand, w.vehicle_model, w.preferred_date, w.allocated_time,
-          s.service_name
+          COALESCE(
+            (SELECT string_agg(s.service_name, ', ')
+             FROM web_booking_services wbs
+             JOIN services s ON wbs.service_id = s.id
+             WHERE wbs.booking_id = w.booking_id),
+            s.service_name,
+            'General Detailing'
+          ) AS service_name
         FROM web_bookings w
         LEFT JOIN services s ON w.service_id = s.id
         WHERE w.status NOT IN ('cancelled', 'completed')

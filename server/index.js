@@ -30,6 +30,12 @@ app.head('/', (req, res) => res.sendStatus(200));
 app.head('/health', (req, res) => res.sendStatus(200));
 
 app.use(compression());
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  next();
+});
 app.use(cors({
   origin(origin, cb) {
     // Allow same-origin / server-to-server / local tools with no Origin header

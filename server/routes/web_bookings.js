@@ -5,14 +5,26 @@ const { pool } = require('../db');
 const { recalculateInvoiceTotals } = require('../utils/finance');
 const { sendScheduleEmail } = require('../utils/mailer');
 const { sendBookingWhatsAppNotification } = require('../utils/whatsapp');
+const { protect } = require('../middleware/auth');
+const { requirePermission } = require('../middleware/permissions');
+const rateLimit = require('express-rate-limit');
+
+// Rate limiter for public appointment submissions from website
+const bookingSubmitLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 30, // Limit each IP to 30 booking submissions per 15 minutes
+  message: { message: 'Too many booking requests from this network. Please try again in 15 minutes.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 
 // Helper to build invoice number
 function buildInvoiceNumber() {
   return `INV-DM-${Date.now()}`;
 }
 
-// GET all web bookings (aggregating multiple services from web_booking_services)
-router.get('/', async (req, res) => {
+// GET all web bookings (aggregating multiple services from web_booking_services) - 🔒 PROTECTED
+router.get('/', protect, requirePermission('Online Booking'), async (req, res) => {
   try {
     const query = `
       SELECT wb.*,
@@ -71,7 +83,7 @@ router.get('/busy-slots', async (req, res) => {
 });
 
 // Check for schedule conflicts before confirming a pending booking
-router.post('/check-conflicts', async (req, res) => {
+router.post('/check-conflicts', protect, requirePermission('Online Booking'), async (req, res) => {
   try {
     const { service_id, preferred_date, allocated_time } = req.body;
     if (!service_id || !preferred_date || !allocated_time) return res.json({ conflicts: [] });
@@ -100,8 +112,8 @@ router.post('/check-conflicts', async (req, res) => {
   }
 });
 
-// GET a single web booking
-router.get('/:id', async (req, res) => {
+// GET a single web booking - 🔒 PROTECTED
+router.get('/:id', protect, requirePermission('Online Booking'), async (req, res) => {
   try {
     const { id } = req.params;
     const query = `
@@ -133,8 +145,8 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// CREATE a web booking
-router.post('/', async (req, res) => {
+// CREATE a web booking - 🌐 PUBLIC (with Rate Limit)
+router.post('/', bookingSubmitLimiter, async (req, res) => {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
@@ -267,8 +279,8 @@ router.post('/', async (req, res) => {
   }
 });
 
-// UPDATE a web booking (status, reschedule, allocated_time, cancel_reason, or invoice_order_id)
-router.put('/:id', async (req, res) => {
+// UPDATE a web booking - 🔒 PROTECTED
+router.put('/:id', protect, requirePermission('Online Booking'), async (req, res) => {
   try {
     const { id } = req.params;
     const { status, invoice_order_id, preferred_date, allocated_time, cancel_reason } = req.body;
@@ -333,8 +345,8 @@ router.put('/:id', async (req, res) => {
   }
 });
 
-// DELETE a web booking
-router.delete('/:id', async (req, res) => {
+// DELETE a web booking - 🔒 PROTECTED
+router.delete('/:id', protect, requirePermission('Online Booking'), async (req, res) => {
   try {
     const { id } = req.params;
     const { rowCount } = await db.query('DELETE FROM web_bookings WHERE booking_id = $1', [id]);
@@ -346,8 +358,8 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
-// CONVERT a web booking into an invoice
-router.post('/:id/convert', async (req, res) => {
+// CONVERT a web booking into an invoice - 🔒 PROTECTED
+router.post('/:id/convert', protect, requirePermission('Online Booking'), async (req, res) => {
   const client = await db.pool.connect();
   try {
     const { id } = req.params;

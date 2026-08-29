@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
-import { Plus, Search, Filter, ArrowUpDown, ChevronLeft, ChevronRight, Eye, Pencil, ClipboardList, Car, Calendar, User, XCircle } from 'lucide-react';
+import { Plus, Search, Filter, ArrowUpDown, ChevronLeft, ChevronRight, Eye, Pencil, ClipboardList, Car, Calendar, User, XCircle, Download } from 'lucide-react';
 import { useInvoices } from '../hooks/useQueries.js';
 import { useDebouncedValue } from '../hooks/useDebouncedValue.js';
 import { parseSafeDate } from '../utils/dateFormatter.js';
@@ -59,6 +59,36 @@ export default function InvoiceList() {
     status: status === 'All' ? '' : status,
   });
 
+  const handleExportCSV = () => {
+    if (!invoices || invoices.length === 0) {
+      toast.error('No invoices to export');
+      return;
+    }
+    const headers = ['Invoice Number', 'Date', 'Customer', 'Vehicle Make/Model', 'Vehicle Plate', 'Subtotal (INR)', 'Discount (INR)', 'Grand Total (INR)', 'Amount Paid (INR)', 'Balance Due (INR)', 'Status'];
+    const rows = invoices.map(inv => [
+      inv.invoice_number || `INV-${inv.id}`,
+      formatDate(inv.created_at),
+      `"${(inv.customer_name || 'Valued Customer').replace(/"/g, '""')}"`,
+      `"${(inv.vehicle_name || '').replace(/"/g, '""')}"`,
+      inv.license_vin || '',
+      inv.sub_total || 0,
+      inv.discount || 0,
+      inv.grand_total || 0,
+      inv.amount_paid || 0,
+      inv.balance_due || 0,
+      inv.status || 'open'
+    ]);
+    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `Detailing_Masters_Invoices_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast.success('Invoices exported successfully!');
+  };
+
   const invoices = data?.invoices || [];
   const pagination = data?.pagination || { page: 1, totalPages: 1, total: 0 };
   const totalResults = pagination.total || 0;
@@ -109,7 +139,13 @@ export default function InvoiceList() {
           </div>
         </div>
 
-        <div className="flex w-full sm:w-auto shrink-0">
+        <div className="flex items-center gap-2 w-full sm:w-auto shrink-0">
+          <button
+            onClick={handleExportCSV}
+            className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 active:scale-[0.98] transition-all font-bold text-[12px] shadow-sm whitespace-nowrap w-full sm:w-auto"
+          >
+            <Download size={14} strokeWidth={2.5} className="text-slate-500" /> Export CSV
+          </button>
           <Link
             to="/invoices/new"
             className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-black text-[#F6CB59] hover:scale-[1.02] active:scale-[0.98] transition-all font-bold text-[12px] shadow-md whitespace-nowrap w-full sm:w-auto"
