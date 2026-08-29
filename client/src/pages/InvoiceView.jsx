@@ -11,7 +11,7 @@ import toast from 'react-hot-toast';
 import brandLogo from '../assets/brand-logo-for-invoice.png';
 import goldenCar from '../assets/new-invoice-add.png';
 import ResponsiveDocumentWrapper from '../components/ResponsiveDocumentWrapper.jsx';
-import DocumentHeader from '../components/DocumentHeader.jsx';
+
 import { generatePDFBlob, downloadElementPDF } from '../utils/pdfGenerator.js';
 
 function fmt(n) {
@@ -379,7 +379,86 @@ export default function InvoiceView() {
       <ResponsiveDocumentWrapper documentWidth={820}>
         <div id="invoice-print" style={doc.wrap}>
         {/* HEADER */}
-        <DocumentHeader title="INVOICE" />
+        <div style={{ position: 'relative', height: '115px', backgroundColor: '#EBEBED', width: '100%', WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>
+          {/* Layer 1: Top Left Yellow Square */}
+          <div style={{ position: 'absolute', top: 0, left: 0, width: '100px', height: '100px', background: '#FFD700', zIndex: 1 }}></div>
+
+          {/* Layer 2: Right Black Polygon */}
+          <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: '#000000', clipPath: 'polygon(65% 0, 100% 0, 100% 75%, 57.5% 75%)', zIndex: 2 }}></div>
+          
+          {/* Layer 3: Right Yellow Bar */}
+          <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: '#FFD700', clipPath: 'polygon(57.5% 75%, 100% 75%, 100% 85%, 56.5% 85%)', zIndex: 3 }}></div>
+
+          {/* Layer 4: Black Splinter */}
+          <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: '#000000', clipPath: 'polygon(50% 0, 65% 0, 49% 100%, 35% 100%)', zIndex: 4 }}></div>
+
+          {/* Layer 5: Yellow Stripe */}
+          <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: '#FFD700', clipPath: 'polygon(50% 0, 61% 0, 49% 100%, 35% 100%)', zIndex: 5 }}></div>
+
+          {/* Layer 6: Main Left Black Polygon */}
+          <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: '#2B2A2A', clipPath: 'polygon(4% 0, 60% 0, 45% 100%, 0 100%, 0 25%)', zIndex: 6 }}></div>
+
+          <div className="invoice-header-grid" style={{ position: 'relative', zIndex: 10, display: 'flex', justifyContent: 'space-between', padding: '2px 40px 2px 45px', height: '100%' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
+              {/* Logo with pure white shield background */}
+              <div style={{ position: 'relative', filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.5))', zIndex: 20 }}>
+                <svg width="0" height="0" style={{ position: 'absolute' }}>
+                  <clipPath id="shield-clip" clipPathUnits="objectBoundingBox">
+                    <path d="M 0 0.02 Q 0.5 -0.02 1 0.02 L 1 0.65 C 1 0.88 0.7 1 0.5 1 C 0.3 1 0 0.88 0 0.65 Z" />
+                  </clipPath>
+                </svg>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'transparent', clipPath: 'url(#shield-clip)', width: 88, height: 108, WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>
+                  <img src={brandLogo} alt="Logo" style={{ height: '100%', width: '100%', objectFit: 'fill', filter: 'drop-shadow(0 0 1px #fff) drop-shadow(0 0 2px rgba(255,255,255,0.9))' }} />
+                </div>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1 }}>
+                <span style={{ 
+                    fontFamily: "'Cinzel', 'Trajan Pro', 'Georgia', serif", 
+                    fontSize: 28, 
+                    margin: 0, 
+                    letterSpacing: '3px', 
+                    fontWeight: 600,
+                    background: 'linear-gradient(to right, #BF953F, #FCF6BA, #B38728, #FBF5B7, #AA771C)',
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
+                    WebkitPrintColorAdjust: 'exact',
+                    printColorAdjust: 'exact',
+                }}>DETAILING</span>
+                <span style={{ 
+                    fontFamily: "'Cinzel', 'Trajan Pro', 'Georgia', serif", 
+                    fontSize: 28, 
+                    margin: 0, 
+                    letterSpacing: '3px', 
+                    fontWeight: 600,
+                    background: 'linear-gradient(to right, #BF953F, #FCF6BA, #B38728, #FBF5B7, #AA771C)',
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
+                    WebkitPrintColorAdjust: 'exact',
+                    printColorAdjust: 'exact',
+                }}>MASTERS</span>
+              </div>
+            </div>
+
+            {/* Center Accent Logo */}
+            <div style={{ flex: 1, position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+               <img src={goldenCar} alt="Car Accent" style={{ height: '80px', objectFit: 'contain', filter: 'drop-shadow(2px 2px 4px rgba(0,0,0,0.4))', position: 'relative', left: '20%', top: '10px' }} />
+            </div>
+
+            <div className="invoice-header-title" style={{ display: 'flex', alignItems: 'flex-start', paddingRight: '15px', paddingTop: '20px' }}>
+              <h1 style={{ 
+                  fontFamily: "'Montserrat', 'Open Sans', sans-serif",
+                  fontSize: 36, 
+                  fontWeight: 500, 
+                  margin: 0, 
+                  letterSpacing: '0.05em',
+                  color: '#FFFFFF',
+                  WebkitPrintColorAdjust: 'exact',
+                  printColorAdjust: 'exact',
+                  filter: 'drop-shadow(1px 1px 2px rgba(0,0,0,0.6))'
+              }}>INVOICE</h1>
+            </div>
+          </div>
+        </div>
 
         {/* Global Watermark */}
         <div style={{ position: 'absolute', top: '115px', bottom: 0, left: 0, right: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none', zIndex: 50 }}>
