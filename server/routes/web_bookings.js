@@ -374,7 +374,7 @@ router.post('/:id/convert', async (req, res) => {
     }
     const booking = bookingRes.rows[0];
 
-    const targetLicensePlate = String(
+    const preliminaryTargetLicensePlate = String(
       vehicle_number ||
       license_vin ||
       license_plate ||
@@ -387,14 +387,14 @@ router.post('/:id/convert', async (req, res) => {
       const existingInvRes = await client.query('SELECT id, vehicle_id FROM invoices WHERE id = $1', [booking.invoice_order_id]);
       if (existingInvRes.rows.length > 0) {
         const inv = existingInvRes.rows[0];
-        if (targetLicensePlate && inv.vehicle_id) {
-          await client.query('UPDATE vehicles SET license_vin = $1 WHERE id = $2', [targetLicensePlate, inv.vehicle_id]);
+        if (preliminaryTargetLicensePlate && inv.vehicle_id) {
+          await client.query('UPDATE vehicles SET license_vin = $1 WHERE id = $2', [preliminaryTargetLicensePlate, inv.vehicle_id]);
         }
         if (discount !== undefined && discount !== '') {
           await client.query('UPDATE invoices SET discount = $1 WHERE id = $2', [Number(discount) || 0, inv.id]);
           await recalculateInvoiceTotals(inv.id, client);
         }
-        await client.query('UPDATE web_bookings SET status = $1, vehicle_number = COALESCE($2, vehicle_number) WHERE booking_id = $3', ['converted', targetLicensePlate || null, id]);
+        await client.query('UPDATE web_bookings SET status = $1, vehicle_number = COALESCE($2, vehicle_number) WHERE booking_id = $3', ['converted', preliminaryTargetLicensePlate || null, id]);
         await client.query('COMMIT');
         return res.json({ message: 'Invoice ready', invoice_id: inv.id });
       }
@@ -623,3 +623,4 @@ router.post('/:id/convert', async (req, res) => {
 });
 
 module.exports = router;
+
