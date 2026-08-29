@@ -11,6 +11,7 @@ import toast from 'react-hot-toast';
 import brandLogo from '../assets/brand-logo-for-invoice.png';
 import goldenCar from '../assets/new-invoice-add.png';
 import ResponsiveDocumentWrapper from '../components/ResponsiveDocumentWrapper.jsx';
+import DocumentHeader from '../components/DocumentHeader.jsx';
 import { generatePDFBlob, downloadElementPDF } from '../utils/pdfGenerator.js';
 
 function fmtDate(d) {
@@ -253,75 +254,7 @@ export default function VehicleServiceReport() {
       <div className="pb-8">
       <ResponsiveDocumentWrapper documentWidth={820}>
         <div id="invoice-print" style={doc.wrap}>
-        
-        <div style={{ position: 'relative', height: '115px', backgroundColor: '#EBEBED', width: '100%', WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>
-          <div style={{ position: 'absolute', top: 0, left: 0, width: '100px', height: '100px', background: '#FFD700', zIndex: 1 }}></div>
-          <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: '#000000', clipPath: 'polygon(65% 0, 100% 0, 100% 75%, 57.5% 75%)', zIndex: 2 }}></div>
-          <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: '#FFD700', clipPath: 'polygon(57.5% 75%, 100% 75%, 100% 85%, 56.5% 85%)', zIndex: 3 }}></div>
-          <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: '#000000', clipPath: 'polygon(50% 0, 65% 0, 49% 100%, 35% 100%)', zIndex: 4 }}></div>
-          <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: '#FFD700', clipPath: 'polygon(50% 0, 61% 0, 49% 100%, 35% 100%)', zIndex: 5 }}></div>
-          <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: '#2B2A2A', clipPath: 'polygon(4% 0, 60% 0, 45% 100%, 0 100%, 0 25%)', zIndex: 6 }}></div>
-
-          <div style={{ position: 'relative', zIndex: 10, display: 'flex', justifyContent: 'space-between', padding: '2px 40px 2px 45px', height: '100%' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
-              <div style={{ position: 'relative', filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.5))', zIndex: 20 }}>
-                <svg width="0" height="0" style={{ position: 'absolute' }}>
-                  <clipPath id="shield-clip" clipPathUnits="objectBoundingBox">
-                    <path d="M 0 0.02 Q 0.5 -0.02 1 0.02 L 1 0.65 C 1 0.88 0.7 1 0.5 1 C 0.3 1 0 0.88 0 0.65 Z" />
-                  </clipPath>
-                </svg>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'transparent', clipPath: 'url(#shield-clip)', width: 88, height: 108, WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>
-                  <img src={brandLogo} alt="Logo" style={{ height: '100%', width: '100%', objectFit: 'fill', filter: 'drop-shadow(0 0 1px #fff) drop-shadow(0 0 2px rgba(255,255,255,0.9))' }} />
-                </div>
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1 }}>
-                <span style={{ 
-                    fontFamily: "'Cinzel', 'Trajan Pro', 'Georgia', serif", 
-                    fontSize: 28, 
-                    margin: 0, 
-                    letterSpacing: '3px', 
-                    fontWeight: 600,
-                    background: 'linear-gradient(to right, #BF953F, #FCF6BA, #B38728, #FBF5B7, #AA771C)',
-                    WebkitBackgroundClip: 'text',
-                    WebkitTextFillColor: 'transparent',
-                    WebkitPrintColorAdjust: 'exact',
-                    printColorAdjust: 'exact',
-                }}>DETAILING</span>
-                <span style={{ 
-                    fontFamily: "'Cinzel', 'Trajan Pro', 'Georgia', serif", 
-                    fontSize: 28, 
-                    margin: 0, 
-                    letterSpacing: '3px', 
-                    fontWeight: 600,
-                    background: 'linear-gradient(to right, #BF953F, #FCF6BA, #B38728, #FBF5B7, #AA771C)',
-                    WebkitBackgroundClip: 'text',
-                    WebkitTextFillColor: 'transparent',
-                    WebkitPrintColorAdjust: 'exact',
-                    printColorAdjust: 'exact',
-                }}>MASTERS</span>
-              </div>
-            </div>
-
-            <div style={{ flex: 1, position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-               <img src={goldenCar} alt="Car Accent" style={{ height: '80px', objectFit: 'contain', filter: 'drop-shadow(2px 2px 4px rgba(0,0,0,0.4))', position: 'relative', left: '45%', top: 'calc(10px + 5%)' }} />
-            </div>
-
-            <div style={{ display: 'flex', alignItems: 'flex-start', paddingRight: '5px', paddingTop: '20px' }}>
-              <h1 style={{ 
-                  fontFamily: "'Montserrat', 'Open Sans', sans-serif",
-                  fontSize: 26, 
-                  fontWeight: 500, 
-                  margin: 0, 
-                  letterSpacing: '0.05em',
-                  color: '#FFFFFF',
-                  WebkitPrintColorAdjust: 'exact',
-                  printColorAdjust: 'exact',
-                  filter: 'drop-shadow(1px 1px 2px rgba(0,0,0,0.6))',
-                  textAlign: 'right'
-              }}>VEHICLE REPORT</h1>
-            </div>
-          </div>
-        </div>
+        <DocumentHeader title="VEHICLE REPORT" />
 
         <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', pointerEvents: 'none', zIndex: 50 }}>
            <img src={brandLogo} style={{ width: '380px', opacity: 0.03, filter: 'grayscale(100%)' }} />
