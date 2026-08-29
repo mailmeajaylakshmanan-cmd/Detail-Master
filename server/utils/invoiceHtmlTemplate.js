@@ -1,18 +1,27 @@
 const fs = require('fs');
 const path = require('path');
 
-function getBase64Image(relativePath) {
-  try {
-    const p = path.join(__dirname, relativePath);
-    if (fs.existsSync(p)) {
-      return `data:image/png;base64,${fs.readFileSync(p).toString('base64')}`;
-    }
-  } catch (e) {}
+function getBase64Image(filename) {
+  const possiblePaths = [
+    path.join(__dirname, '../assets', filename),
+    path.join(__dirname, '../../client/src/assets', filename),
+    path.join(process.cwd(), 'server/assets', filename),
+    path.join(process.cwd(), 'client/src/assets', filename),
+    path.join(process.cwd(), 'assets', filename)
+  ];
+
+  for (const p of possiblePaths) {
+    try {
+      if (fs.existsSync(p)) {
+        return `data:image/png;base64,${fs.readFileSync(p).toString('base64')}`;
+      }
+    } catch (e) {}
+  }
   return '';
 }
 
-const logoBase64 = getBase64Image('../../client/src/assets/brand-logo-for-invoice.png');
-const goldenCarBase64 = getBase64Image('../../client/src/assets/new-invoice-add.png');
+const logoBase64 = getBase64Image('brand-logo-for-invoice.png');
+const goldenCarBase64 = getBase64Image('new-invoice-add.png');
 
 function fmt(n) {
   return Number(n || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
