@@ -11,6 +11,7 @@ import api from '../api/axios.js';
 import toast from 'react-hot-toast';
 import brandLogo from '../assets/brand-logo-for-invoice.png';
 import ResponsiveDocumentWrapper from '../components/ResponsiveDocumentWrapper.jsx';
+import { generatePDFBlob, downloadElementPDF } from '../utils/pdfGenerator.js';
 
 // ─── color palette ───────────────────────────────────────────────────────────
 const C = {
@@ -108,43 +109,42 @@ export default function QuotationView() {
   }
 
   async function fetchPDFBlob() {
-    const response = await api.get(`/invoices/${id}/quotation/pdf`);
-    const base64 = response.data.base64;
-
-    // Decode base64 to Blob
-    const byteCharacters = atob(base64);
-    const byteNumbers = new Array(byteCharacters.length);
-    for (let i = 0; i < byteCharacters.length; i++) {
-      byteNumbers[i] = byteCharacters.charCodeAt(i);
+    try {
+      return await generatePDFBlob('quotation-print', `DETAILING MASTERS-Quotation-${quotation?.invoiceNo || id}.pdf`);
+    } catch (err) {
+      console.warn('[PDF] Client generation fallback, attempting server...', err);
+      const response = await api.get(`/invoices/${id}/quotation/pdf`);
+      const base64 = response.data.base64;
+      const byteCharacters = atob(base64);
+      const byteNumbers = new Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+      return new Blob([new Uint8Array(byteNumbers)], { type: 'application/pdf' });
     }
-    const byteArray = new Uint8Array(byteNumbers);
-    return new Blob([byteArray], { type: 'application/pdf' });
   }
 
   async function handleDownloadPDF() {
     if (!quotation) return;
     setDownloading(true);
     try {
-      const blob = await fetchPDFBlob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `DETAILING MASTERS-Quotation-${quotation.invoiceNo}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      await downloadElementPDF('quotation-print', `DETAILING MASTERS-Quotation-${quotation.invoiceNo}.pdf`);
+      toast.success('Quotation downloaded successfully!');
     } catch (err) {
-      console.error("PDF Download Error:", err);
-      let errMsg = 'Could not download PDF';
-      if (err.response?.data) {
-        try {
-          const decodedString = String.fromCharCode.apply(null, new Uint8Array(err.response.data));
-          const errorData = JSON.parse(decodedString);
-          errMsg = errorData.error || errorData.message || errMsg;
-        } catch (e) { }
+      console.warn('[PDF] Direct download failed, falling back to blob...', err);
+      try {
+        const blob = await fetchPDFBlob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `DETAILING MASTERS-Quotation-${quotation.invoiceNo}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      } catch (blobErr) {
+        toast.error('Could not download PDF');
       }
-      toast.error(errMsg);
     } finally {
       setDownloading(false);
     }

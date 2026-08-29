@@ -12,6 +12,8 @@ import brandLogo from '../assets/brand-logo-for-invoice.png';
 import goldenCar from '../assets/new-invoice-add.png';
 import ResponsiveDocumentWrapper from '../components/ResponsiveDocumentWrapper.jsx';
 
+import { generatePDFBlob, downloadElementPDF } from '../utils/pdfGenerator.js';
+
 function fmt(n) {
   return Number(n || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
@@ -197,30 +199,40 @@ export default function InvoiceView() {
   }
 
   async function fetchPDFBlob() {
-    const response = await api.get(`/invoices/${id}/pdf`);
-    const base64 = response.data.base64;
-    const byteCharacters = atob(base64);
-    const byteNumbers = new Array(byteCharacters.length);
-    for (let i = 0; i < byteCharacters.length; i++) {
-      byteNumbers[i] = byteCharacters.charCodeAt(i);
+    try {
+      return await generatePDFBlob('invoice-print', `DETAILING MASTERS-Invoice-${invoice?.invoiceNo || id}.pdf`);
+    } catch (err) {
+      console.warn('[PDF] Client generation fallback, attempting server...', err);
+      const response = await api.get(`/invoices/${id}/pdf`);
+      const base64 = response.data.base64;
+      const byteCharacters = atob(base64);
+      const byteNumbers = new Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+      return new Blob([new Uint8Array(byteNumbers)], { type: 'application/pdf' });
     }
-    const byteArray = new Uint8Array(byteNumbers);
-    return new Blob([byteArray], { type: 'application/pdf' });
   }
 
   async function handleDownloadPDF() {
     if (!invoice) return;
     setDownloading(true);
     try {
-      const blob = await fetchPDFBlob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `DETAILING MASTERS-Invoice-${invoice.invoiceNo}.pdf`;
-      a.click();
-      URL.revokeObjectURL(url);
+      await downloadElementPDF('invoice-print', `DETAILING MASTERS-Invoice-${invoice.invoiceNo}.pdf`);
+      toast.success('PDF downloaded successfully!');
     } catch (err) {
-      toast.error('Could not download PDF');
+      console.warn('[PDF] Direct download failed, falling back to blob...', err);
+      try {
+        const blob = await fetchPDFBlob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `DETAILING MASTERS-Invoice-${invoice.invoiceNo}.pdf`;
+        a.click();
+        URL.revokeObjectURL(url);
+      } catch (blobErr) {
+        toast.error('Could not download PDF');
+      }
     } finally {
       setDownloading(false);
     }
