@@ -365,7 +365,10 @@ router.post('/:id/convert', async (req, res) => {
       special_notes,
       vehicle_number,
       license_vin,
-      license_plate
+      license_plate,
+      checkout_time,
+      checkoutTime,
+      delivery_time
     } = req.body;
 
     await client.query('BEGIN');
@@ -481,15 +484,29 @@ router.post('/:id/convert', async (req, res) => {
     );
     const invoiceId = invRes.rows[0].id;
 
-    // 6. Record Vehicle Visit in invoice_vehicles
+    // 6. Record Vehicle Visit in invoice_vehicles with Check-in and Expected Checkout Time
     const checkinTime = booking.preferred_date
       ? (booking.allocated_time ? `${new Date(booking.preferred_date).toISOString().split('T')[0]} ${booking.allocated_time}` : booking.preferred_date)
-      : null;
+      : new Date().toISOString();
+
+    const rawCheckout = (checkout_time || checkoutTime || delivery_time || '').trim();
+    let resolvedCheckoutTime = null;
+    if (rawCheckout) {
+      if (rawCheckout.includes('-') || rawCheckout.includes('/')) {
+        resolvedCheckoutTime = new Date(rawCheckout);
+      } else if (booking.preferred_date) {
+        const datePart = new Date(booking.preferred_date).toISOString().split('T')[0];
+        resolvedCheckoutTime = `${datePart} ${rawCheckout}`;
+      } else {
+        const todayPart = new Date().toISOString().split('T')[0];
+        resolvedCheckoutTime = `${todayPart} ${rawCheckout}`;
+      }
+    }
 
     await client.query(
-      `INSERT INTO invoice_vehicles (invoice_order_id, vehicle_id, visitor_name, visitor_phone, checkin_time)
-       VALUES ($1, $2, $3, $4, $5)`,
-      [invoiceId, vehicleId, booking.full_name, booking.phone, checkinTime]
+      `INSERT INTO invoice_vehicles (invoice_order_id, vehicle_id, visitor_name, visitor_phone, checkin_time, checkout_time)
+       VALUES ($1, $2, $3, $4, $5, $6)`,
+      [invoiceId, vehicleId, booking.full_name, booking.phone, checkinTime, resolvedCheckoutTime]
     );
 
     // 7. Get all service IDs from web_booking_services (fallback to booking.service_id)

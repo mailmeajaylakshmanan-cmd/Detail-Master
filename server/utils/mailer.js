@@ -72,9 +72,9 @@ const MESSAGES = {
     body: (b, dateStr) => `Hi ${b.full_name}, your appointment for ${dateStr}${b.allocated_time ? ` at ${b.allocated_time}` : ''} is confirmed. We look forward to detailing your vehicle!`
   },
   converted: {
-    subject: 'Your Detailing Masters job order has been created',
-    headline: 'Job Order Created',
-    body: (b) => `Hi ${b.full_name}, your booking has been converted into a live job order. Our detailing specialists have received your vehicle details and preparations are underway!`
+    subject: 'Your Detailing Masters appointment is confirmed — In Service',
+    headline: 'Booking Confirmed',
+    body: (b) => `Dear ${b.full_name}, thank you for choosing Detailing Masters. Your booking is confirmed and your vehicle is checked in for detailing. Our certified specialists are now treating your car!`
   },
   completed: {
     subject: 'Your Detailing Masters detailing service is complete!',

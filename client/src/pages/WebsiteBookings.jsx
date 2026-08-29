@@ -137,6 +137,7 @@ export default function WebsiteBookings() {
 
   const [convertingBooking, setConvertingBooking] = useState(null);
   const [convertVehicleNumber, setConvertVehicleNumber] = useState('');
+  const [convertCheckoutTime, setConvertCheckoutTime] = useState('');
   const [convertDiscount, setConvertDiscount] = useState('');
   const [convertNotes, setConvertNotes] = useState('');
 
@@ -166,9 +167,10 @@ export default function WebsiteBookings() {
   });
 
   const convertBookingMutation = useMutation({
-    mutationFn: async ({ id, vehicle_number, discount, special_notes }) => {
+    mutationFn: async ({ id, vehicle_number, checkout_time, discount, special_notes }) => {
       const res = await api.post(`/web_bookings/${id}/convert`, {
         vehicle_number,
+        checkout_time,
         discount,
         special_notes
       });
@@ -191,6 +193,7 @@ export default function WebsiteBookings() {
     if (e) e.stopPropagation();
     setConvertingBooking(booking);
     setConvertVehicleNumber(booking.vehicle_number || '');
+    setConvertCheckoutTime('');
     setConvertDiscount('');
     setConvertNotes(booking.additional_notes || '');
   };
@@ -201,6 +204,7 @@ export default function WebsiteBookings() {
     convertBookingMutation.mutate({
       id: convertingBooking.booking_id,
       vehicle_number: convertVehicleNumber.trim().toUpperCase(),
+      checkout_time: convertCheckoutTime,
       discount: convertDiscount,
       special_notes: convertNotes
     });
@@ -724,27 +728,18 @@ export default function WebsiteBookings() {
                             )}
 
                             {activeTab === 'confirmed' && (
-                              <>
-                                <button
-                                  onClick={(e) => startConvert(booking, e)}
-                                  disabled={convertBookingMutation.isPending}
-                                  className="px-2.5 py-1.5 bg-black hover:bg-gray-900 text-[#F6CB59] text-[11px] font-black rounded-lg transition-all shadow-xs flex items-center gap-1 disabled:opacity-50 shrink-0 hover:scale-[1.02] active:scale-[0.98]"
-                                >
-                                  {convertBookingMutation.isPending && convertBookingMutation.variables?.id === booking.booking_id ? (
-                                    <Globe className="animate-spin" size={11} />
-                                  ) : (
-                                    <Sparkles size={11} />
-                                  )}
-                                  <span>Convert</span>
-                                </button>
-                                <button
-                                  onClick={(e) => plainStatusChange(booking, 'pending', e)}
-                                  className="px-2 py-1.5 bg-white hover:bg-gray-100 text-gray-600 border border-gray-200 text-[11px] font-bold rounded-lg transition-all shrink-0"
-                                  title="Revert to Pending"
-                                >
-                                  Revert
-                                </button>
-                              </>
+                              <button
+                                onClick={(e) => startConvert(booking, e)}
+                                disabled={convertBookingMutation.isPending}
+                                className="px-2.5 py-1.5 bg-black hover:bg-gray-900 text-[#F6CB59] text-[11px] font-black rounded-lg transition-all shadow-xs flex items-center gap-1 disabled:opacity-50 shrink-0 hover:scale-[1.02] active:scale-[0.98]"
+                              >
+                                {convertBookingMutation.isPending && convertBookingMutation.variables?.id === booking.booking_id ? (
+                                  <Globe className="animate-spin" size={11} />
+                                ) : (
+                                  <Sparkles size={11} />
+                                )}
+                                <span>Convert</span>
+                              </button>
                             )}
 
                             {(activeTab === 'converted' || activeTab === 'cancelled') && (
@@ -1016,22 +1011,14 @@ export default function WebsiteBookings() {
                     )}
 
                     {activeTab === 'confirmed' && (
-                      <>
-                        <button
-                          onClick={(e) => startConvert(booking, e)}
-                          disabled={convertBookingMutation.isPending}
-                          className="flex-1 py-2 bg-black text-[#F6CB59] text-[12px] font-black rounded-xl shadow-xs flex items-center justify-center gap-1.5"
-                        >
-                          <Sparkles size={13} />
-                          <span>Convert to Invoice</span>
-                        </button>
-                        <button
-                          onClick={(e) => plainStatusChange(booking, 'pending', e)}
-                          className="px-3 py-2 bg-white text-gray-600 border border-gray-200 text-[12px] font-bold rounded-xl"
-                        >
-                          Revert
-                        </button>
-                      </>
+                      <button
+                        onClick={(e) => startConvert(booking, e)}
+                        disabled={convertBookingMutation.isPending}
+                        className="flex-1 py-2 bg-black text-[#F6CB59] text-[12px] font-black rounded-xl shadow-xs flex items-center justify-center gap-1.5"
+                      >
+                        <Sparkles size={13} />
+                        <span>Convert to Invoice</span>
+                      </button>
                     )}
 
                     {(activeTab === 'converted' || activeTab === 'cancelled') && (
@@ -1319,20 +1306,36 @@ export default function WebsiteBookings() {
             </div>
 
             <form onSubmit={submitConvert} className="space-y-3">
-              {/* Vehicle Registration Number (License Plate) */}
-              <div>
-                <label className="text-[10px] font-black uppercase text-gray-700 tracking-wider mb-1 block">
-                  Vehicle Registration No. / Plate <span className="text-rose-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  required
-                  autoFocus
-                  placeholder="e.g. TN 75 AA 1234"
-                  value={convertVehicleNumber}
-                  onChange={(e) => setConvertVehicleNumber(e.target.value.toUpperCase())}
-                  className="w-full text-sm font-black text-gray-900 bg-gray-50 px-3.5 py-2.5 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-black focus:border-black uppercase tracking-wider"
-                />
+              {/* Vehicle Registration & Checkout Time */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                {/* Vehicle Registration Number (License Plate) */}
+                <div>
+                  <label className="text-[10px] font-black uppercase text-gray-700 tracking-wider mb-1 block">
+                    Vehicle Reg No. <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    autoFocus
+                    placeholder="e.g. TN 75 AA 1234"
+                    value={convertVehicleNumber}
+                    onChange={(e) => setConvertVehicleNumber(e.target.value.toUpperCase())}
+                    className="w-full text-xs font-black text-gray-900 bg-gray-50 px-3 py-2 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-black focus:border-black uppercase tracking-wider"
+                  />
+                </div>
+
+                {/* Estimated Delivery / Checkout Time */}
+                <div>
+                  <label className="text-[10px] font-black uppercase text-gray-700 tracking-wider mb-1 block">
+                    Checkout / Delivery Time
+                  </label>
+                  <input
+                    type="time"
+                    value={convertCheckoutTime}
+                    onChange={(e) => setConvertCheckoutTime(e.target.value)}
+                    className="w-full text-xs font-bold text-gray-900 bg-gray-50 px-3 py-2 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-black focus:border-black"
+                  />
+                </div>
               </div>
 
               {/* Initial Discount */}
@@ -1346,7 +1349,7 @@ export default function WebsiteBookings() {
                   min="0"
                   value={convertDiscount}
                   onChange={(e) => setConvertDiscount(e.target.value)}
-                  className="w-full text-sm font-bold text-gray-800 bg-gray-50 px-3.5 py-2 rounded-xl border border-gray-200 focus:outline-none focus:ring-1 focus:ring-black focus:border-black"
+                  className="w-full text-xs font-bold text-gray-800 bg-gray-50 px-3 py-2 rounded-xl border border-gray-200 focus:outline-none focus:ring-1 focus:ring-black focus:border-black"
                 />
               </div>
 

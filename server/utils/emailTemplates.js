@@ -19,7 +19,7 @@ const STATUS_BADGE = {
   pending: { label: 'Pending Confirmation', bg: '#F6CB5920', color: '#F6CB59', border: '#F6CB5960' },
   created: { label: 'Request Received', bg: '#F6CB5920', color: '#F6CB59', border: '#F6CB5960' },
   confirmed: { label: 'Booking Confirmed', bg: '#3B82F620', color: '#60A5FA', border: '#3B82F660' },
-  converted: { label: 'Job Order Created', bg: '#10B98120', color: '#34D399', border: '#10B98160' },
+  converted: { label: 'Booking Confirmed', bg: '#10B98120', color: '#34D399', border: '#10B98160' },
   completed: { label: 'Service Completed', bg: '#10B98120', color: '#34D399', border: '#10B98160' },
   cancelled: { label: 'Cancelled', bg: '#EF444420', color: '#F87171', border: '#EF444460' },
   rescheduled: { label: 'Rescheduled', bg: '#8B5CF620', color: '#A78BFA', border: '#8B5CF660' }
