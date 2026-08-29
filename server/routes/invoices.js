@@ -4,6 +4,7 @@ const db = require('../db');
 const { recalculateInvoiceTotals } = require('../utils/finance');
 const { buildBulkInsert } = require('../utils/db');
 const { getBrowser } = require('../utils/pdf');
+const { renderInvoiceHtml, renderServiceReportHtml } = require('../utils/invoiceHtmlTemplate');
 const { requirePermission } = require('../middleware/permissions');
 
 router.use(requirePermission('Invoicing & Records'));
@@ -817,68 +818,75 @@ function getClientUrl(req) {
     if (prod) return prod.replace(/\/+$/, '');
     if (list[0]) return list[0].replace(/\/+$/, '');
   }
-  return 'https://manage.detailingmasters.in';
+async function fetchInvoiceDataForPdf(id) {
+  const invRes = await db.query(
+    `SELECT
+       i.*,
+       c.full_name AS client_name, c.phone AS client_phone, c.email AS client_email, c.address AS client_address,
+       o.org_name AS organization_name, o.phone AS organization_phone, o.email AS organization_email, o.address AS organization_address,
+       v.make_model AS vehicle_name, v.license_vin, v.vehicle_type
+     FROM invoices i
+     LEFT JOIN clients c ON i.client_id = c.id
+     LEFT JOIN organizations o ON i.organization_id = o.id
+     LEFT JOIN vehicles v ON i.vehicle_id = v.id
+     WHERE i.id = $1`,
+    [id]
+  );
+  if (invRes.rows.length === 0) return null;
+  const invoice = invRes.rows[0];
+
+  const [servicesRes, thirdPartyRes, paymentsRes] = await Promise.all([
+    db.query(
+      `SELECT isv.*, isv.grand_total AS total, s.service_name, s.category, v.license_vin AS vehicle_plate,
+              v.make_model AS vehicle_name
+       FROM invoice_services isv
+       JOIN services s ON isv.service_id = s.id
+       LEFT JOIN vehicles v ON isv.vehicle_id = v.id
+       WHERE isv.invoice_order_id = $1
+       ORDER BY isv.id ASC`,
+      [id]
+    ),
+    db.query(
+      `SELECT itp.*, v.license_vin AS vehicle_plate,
+              v.make_model AS vehicle_name
+       FROM invoice_third_party_services itp
+       LEFT JOIN vehicles v ON itp.vehicle_id = v.id
+       WHERE itp.invoice_order_id = $1
+       ORDER BY itp.id ASC`,
+      [id]
+    ),
+    db.query(
+      `SELECT * FROM payments
+       WHERE invoice_order_id = $1
+       ORDER BY payment_date DESC`,
+      [id]
+    )
+  ]);
+
+  invoice.services = servicesRes.rows;
+  invoice.thirdPartyServices = thirdPartyRes.rows;
+  invoice.payments = paymentsRes.rows;
+  return invoice;
 }
 
-// PDF Generation Endpoint
+// Puppeteer PDF Generation Endpoint for Invoice
 router.get('/:id/pdf', async (req, res) => {
   try {
     const { id } = req.params;
+    const invoice = await fetchInvoiceDataForPdf(id);
+    if (!invoice) return res.status(404).json({ message: 'Invoice not found' });
+
+    const html = renderInvoiceHtml(invoice);
     const browser = await getBrowser();
     const page = await browser.newPage();
-    
-    // Dynamically match the frontend's origin URL
-    const clientUrl = getClientUrl(req);
-    
-    console.log(`[PDF] Generating for Invoice ID: ${id} using URL: ${clientUrl}`);
-    
-    // Inject the authentication token so puppeteer isn't redirected to /login
-    const token = req.header('Authorization')?.replace('Bearer ', '');
-    if (token) {
-      await page.evaluateOnNewDocument((authToken) => {
-        localStorage.setItem('token', authToken);
-        localStorage.setItem('isAuthenticated', 'true');
-      }, token);
-    }
-    
-    // Navigate to the invoice view page
-    await page.goto(`${clientUrl}/invoices/${id}`, { waitUntil: ['domcontentloaded', 'networkidle2'], timeout: 25000 });
-    
-    // Wait for the invoice to render
-    try {
-      await page.waitForSelector('#invoice-print', { timeout: 15000 });
-    } catch (err) {
-      const html = await page.content();
-      console.error("[PDF] Timeout waiting for #invoice-print. Page HTML snippet:", html.substring(0, 1500));
-      throw err;
-    }
-
-    // Force a single-page PDF that only contains the invoice
-    await page.evaluate(() => {
-      const invoice = document.getElementById('invoice-print');
-      if (invoice) {
-        document.body.innerHTML = '';
-        document.body.appendChild(invoice);
-        
-        document.body.style.margin = '0';
-        document.body.style.padding = '0';
-        document.body.style.background = '#fff';
-        document.documentElement.style.margin = '0';
-        document.documentElement.style.padding = '0';
-        document.documentElement.style.background = '#fff';
-        
-        document.querySelectorAll('.print\\:hidden').forEach(e => e.remove());
-      }
-    });
-
-    const pdfBuffer = await page.pdf({ 
+    await page.setContent(html, { waitUntil: 'load' });
+    const pdfBuffer = await page.pdf({
       format: 'A4',
       printBackground: true,
       margin: { top: '0', bottom: '0', left: '0', right: '0' }
     });
-    
     await page.close();
-    
+
     res.json({ base64: Buffer.from(pdfBuffer).toString('base64') });
   } catch (err) {
     console.error('Invoice PDF Generation Error:', err);
@@ -886,68 +894,52 @@ router.get('/:id/pdf', async (req, res) => {
   }
 });
 
-// PDF Generation Endpoint for Service Report
+// Puppeteer PDF Generation Endpoint for Service Report
 router.get('/:id/service-report/pdf', async (req, res) => {
   try {
     const { id } = req.params;
+    const invoice = await fetchInvoiceDataForPdf(id);
+    if (!invoice) return res.status(404).json({ message: 'Invoice not found' });
+
+    const html = renderServiceReportHtml(invoice);
     const browser = await getBrowser();
     const page = await browser.newPage();
-    
-    // Dynamically match the frontend's origin URL
-    const clientUrl = getClientUrl(req);
-    
-    console.log(`[PDF] Generating Service Report for Invoice ID: ${id} using URL: ${clientUrl}`);
-    
-    // Inject the authentication token so puppeteer isn't redirected to /login
-    const token = req.header('Authorization')?.replace('Bearer ', '');
-    if (token) {
-      await page.evaluateOnNewDocument((authToken) => {
-        localStorage.setItem('token', authToken);
-        localStorage.setItem('isAuthenticated', 'true');
-      }, token);
-    }
-    
-    // Navigate to the service report page
-    await page.goto(`${clientUrl}/invoices/${id}/service-report`, { waitUntil: ['domcontentloaded', 'networkidle2'], timeout: 25000 });
-    
-    // Wait for the report to render
-    try {
-      await page.waitForSelector('#invoice-print', { timeout: 15000 });
-    } catch (err) {
-      const html = await page.content();
-      console.error("[PDF] Timeout waiting for #invoice-print. Page HTML snippet:", html.substring(0, 1500));
-      throw err;
-    }
-
-    // Force a single-page PDF that only contains the report
-    await page.evaluate(() => {
-      const report = document.getElementById('invoice-print');
-      if (report) {
-        document.body.innerHTML = '';
-        document.body.appendChild(report);
-        
-        document.body.style.margin = '0';
-        document.body.style.padding = '0';
-        document.body.style.background = '#fff';
-        document.documentElement.style.margin = '0';
-        document.documentElement.style.padding = '0';
-        document.documentElement.style.background = '#fff';
-        
-        document.querySelectorAll('.print\\:hidden').forEach(e => e.remove());
-      }
-    });
-
-    const pdfBuffer = await page.pdf({ 
+    await page.setContent(html, { waitUntil: 'load' });
+    const pdfBuffer = await page.pdf({
       format: 'A4',
       printBackground: true,
       margin: { top: '0', bottom: '0', left: '0', right: '0' }
     });
-    
     await page.close();
-    
+
     res.json({ base64: Buffer.from(pdfBuffer).toString('base64') });
   } catch (err) {
     console.error('Service Report PDF Generation Error:', err);
+    res.status(500).json({ message: 'Error generating PDF: ' + err.message });
+  }
+});
+
+// Puppeteer PDF Generation Endpoint for Quotation
+router.get('/:id/quotation/pdf', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const invoice = await fetchInvoiceDataForPdf(id);
+    if (!invoice) return res.status(404).json({ message: 'Quotation not found' });
+
+    const html = renderInvoiceHtml(invoice);
+    const browser = await getBrowser();
+    const page = await browser.newPage();
+    await page.setContent(html, { waitUntil: 'load' });
+    const pdfBuffer = await page.pdf({
+      format: 'A4',
+      printBackground: true,
+      margin: { top: '0', bottom: '0', left: '0', right: '0' }
+    });
+    await page.close();
+
+    res.json({ base64: Buffer.from(pdfBuffer).toString('base64') });
+  } catch (err) {
+    console.error('Quotation PDF Generation Error:', err);
     res.status(500).json({ message: 'Error generating PDF: ' + err.message });
   }
 });
