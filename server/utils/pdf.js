@@ -5,52 +5,76 @@ const fs = require('fs');
 let browserPromise = null;
 let browser = null;
 
-function getExecutablePath() {
-  if (process.env.PUPPETEER_EXECUTABLE_PATH) {
-    return process.env.PUPPETEER_EXECUTABLE_PATH;
-  }
-  const winPaths = [
-    'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
-    'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe'
+async function getLaunchOptions() {
+  let execPath = null;
+  let customArgs = [
+    '--no-sandbox',
+    '--disable-setuid-sandbox',
+    '--disable-dev-shm-usage',
+    '--ignore-certificate-errors',
+    '--disable-gpu',
+    '--disable-software-rasterizer',
+    '--no-first-run',
+    '--disable-extensions',
+    '--hide-scrollbars',
+    '--mute-audio'
   ];
-  if (process.platform === 'win32') {
-    for (const p of winPaths) {
-      if (fs.existsSync(p)) return p;
-    }
-  }
-  const linuxPaths = [
-    '/usr/bin/google-chrome-stable',
-    '/usr/bin/google-chrome',
-    '/usr/bin/chromium',
-    '/usr/bin/chromium-browser'
-  ];
-  if (process.platform === 'linux') {
-    for (const p of linuxPaths) {
-      if (fs.existsSync(p)) return p;
-    }
-  }
-  return undefined; // Let puppeteer use its bundled/cached chromium
-}
 
-function launchOptions() {
+  if (process.env.PUPPETEER_EXECUTABLE_PATH) {
+    execPath = process.env.PUPPETEER_EXECUTABLE_PATH;
+  } else if (process.platform === 'win32') {
+    const winPaths = [
+      'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+      'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe'
+    ];
+    for (const p of winPaths) {
+      if (fs.existsSync(p)) {
+        execPath = p;
+        break;
+      }
+    }
+  } else {
+    // Linux / Railway / Container production environment
+    const linuxSystemPaths = [
+      '/usr/bin/google-chrome-stable',
+      '/usr/bin/google-chrome',
+      '/usr/bin/chromium',
+      '/usr/bin/chromium-browser'
+    ];
+    for (const p of linuxSystemPaths) {
+      if (fs.existsSync(p)) {
+        execPath = p;
+        break;
+      }
+    }
+
+    if (!execPath) {
+      try {
+        const chromiumPkg = require('@sparticuz/chromium');
+        const chromium = chromiumPkg.default || chromiumPkg;
+        execPath = await chromium.executablePath();
+        if (Array.isArray(chromium.args)) {
+          customArgs = Array.from(new Set([...customArgs, ...chromium.args]));
+        }
+      } catch (err) {
+        console.warn('[PDF] @sparticuz/chromium path lookup error:', err.message);
+      }
+    }
+  }
+
   const opts = {
     headless: true,
     ignoreHTTPSErrors: true,
-    args: [
-      '--no-sandbox',
-      '--disable-setuid-sandbox',
-      '--disable-dev-shm-usage',
-      '--ignore-certificate-errors',
-      '--disable-gpu',
-      '--disable-software-rasterizer',
-      '--no-first-run',
-      '--disable-extensions'
-    ]
+    args: customArgs
   };
-  const execPath = getExecutablePath();
+
   if (execPath) {
+    console.log(`[PDF] Using executable: ${execPath}`);
     opts.executablePath = execPath;
+  } else {
+    console.log('[PDF] Using default bundled puppeteer chromium');
   }
+
   return opts;
 }
 
@@ -58,14 +82,16 @@ async function getBrowser() {
   if (browser && browser.connected) return browser;
 
   if (!browserPromise) {
-    browserPromise = puppeteer.launch(launchOptions()).then((b) => {
+    browserPromise = (async () => {
+      const opts = await getLaunchOptions();
+      const b = await puppeteer.launch(opts);
       browser = b;
       browserPromise = null;
       browser.on('disconnected', () => {
         browser = null;
       });
       return browser;
-    });
+    })();
   }
 
   try {
