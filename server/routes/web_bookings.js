@@ -239,10 +239,10 @@ router.post('/', async (req, res) => {
         sendScheduleEmail(newBooking, 'created'),
         sendBookingWhatsAppNotification(newBooking, serviceArray, 'created')
       ]);
-      // Give notifications up to 2.5s to dispatch before returning response
+      // Give notifications up to 5s to dispatch before returning response
       await Promise.race([
         notifyPromise,
-        new Promise(resolve => setTimeout(resolve, 2500))
+        new Promise(resolve => setTimeout(resolve, 5000))
       ]);
     } catch (err) {
       console.error('[web_bookings] Notification dispatch error:', err);
@@ -319,7 +319,7 @@ router.put('/:id', async (req, res) => {
         ]);
         await Promise.race([
           notifyPromise,
-          new Promise(resolve => setTimeout(resolve, 2500))
+          new Promise(resolve => setTimeout(resolve, 5000))
         ]);
       } catch (err) {
         console.error('[web_bookings] Update notification dispatch error:', err);
