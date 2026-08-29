@@ -5,19 +5,18 @@ if (!connectionString) {
   console.warn('DATABASE_URL is not set — API cannot reach Postgres');
 }
 
-// Pool sized for Railway + Neon. Batching (utils/db.js) keeps round-trips low,
-// so a slightly larger pool absorbs burst traffic without exhausting Neon limits.
+// Optimized connection pool for Railway + Neon PostgreSQL
 const pool = new Pool({
   connectionString,
   ssl: connectionString?.includes('localhost')
     ? false
     : { rejectUnauthorized: false },
-  max: Number(process.env.PG_POOL_MAX || 10),
+  max: Number(process.env.PG_POOL_MAX || 20),
   idleTimeoutMillis: 30_000,
-  connectionTimeoutMillis: 10_000,
-  statement_timeout: Number(process.env.PG_STATEMENT_TIMEOUT_MS || 15_000),
-  query_timeout: Number(process.env.PG_QUERY_TIMEOUT_MS || 15_000),
-  application_name: 'detailing-masters-api',
+  connectionTimeoutMillis: 5_000,
+  statement_timeout: Number(process.env.PG_STATEMENT_TIMEOUT_MS || 30_000),
+  query_timeout: Number(process.env.PG_QUERY_TIMEOUT_MS || 30_000),
+  application_name: 'detail-master',
   allowExitOnIdle: true,
 });
 
