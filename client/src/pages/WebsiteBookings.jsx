@@ -135,6 +135,11 @@ export default function WebsiteBookings() {
   const [cancellingId, setCancellingId] = useState(null);
   const [cancelReason, setCancelReason] = useState('');
 
+  const [convertingBooking, setConvertingBooking] = useState(null);
+  const [convertVehicleNumber, setConvertVehicleNumber] = useState('');
+  const [convertDiscount, setConvertDiscount] = useState('');
+  const [convertNotes, setConvertNotes] = useState('');
+
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const { can_delete } = usePermissions('Online Booking');
@@ -161,13 +166,18 @@ export default function WebsiteBookings() {
   });
 
   const convertBookingMutation = useMutation({
-    mutationFn: async (id) => {
-      const res = await api.post(`/web_bookings/${id}/convert`, {});
+    mutationFn: async ({ id, vehicle_number, discount, special_notes }) => {
+      const res = await api.post(`/web_bookings/${id}/convert`, {
+        vehicle_number,
+        discount,
+        special_notes
+      });
       return res.data;
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries(['web_bookings']);
       toast.success('Booking converted to invoice!');
+      setConvertingBooking(null);
       if (data.invoice_id) {
         navigate(`/invoices/${data.invoice_id}`);
       }
@@ -176,6 +186,25 @@ export default function WebsiteBookings() {
       toast.error(err.response?.data?.message || 'Failed to convert booking.');
     }
   });
+
+  const startConvert = (booking, e) => {
+    if (e) e.stopPropagation();
+    setConvertingBooking(booking);
+    setConvertVehicleNumber(booking.vehicle_number || '');
+    setConvertDiscount('');
+    setConvertNotes(booking.additional_notes || '');
+  };
+
+  const submitConvert = (e) => {
+    if (e) e.preventDefault();
+    if (!convertingBooking) return;
+    convertBookingMutation.mutate({
+      id: convertingBooking.booking_id,
+      vehicle_number: convertVehicleNumber.trim().toUpperCase(),
+      discount: convertDiscount,
+      special_notes: convertNotes
+    });
+  };
 
   const rescheduleMutation = useMutation({
     mutationFn: async ({ id, preferred_date }) => {
@@ -697,16 +726,11 @@ export default function WebsiteBookings() {
                             {activeTab === 'confirmed' && (
                               <>
                                 <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    if (window.confirm('Convert this booking into an invoice?')) {
-                                      convertBookingMutation.mutate(booking.booking_id);
-                                    }
-                                  }}
+                                  onClick={(e) => startConvert(booking, e)}
                                   disabled={convertBookingMutation.isPending}
                                   className="px-2.5 py-1.5 bg-black hover:bg-gray-900 text-[#F6CB59] text-[11px] font-black rounded-lg transition-all shadow-xs flex items-center gap-1 disabled:opacity-50 shrink-0 hover:scale-[1.02] active:scale-[0.98]"
                                 >
-                                  {convertBookingMutation.isPending && convertBookingMutation.variables === booking.booking_id ? (
+                                  {convertBookingMutation.isPending && convertBookingMutation.variables?.id === booking.booking_id ? (
                                     <Globe className="animate-spin" size={11} />
                                   ) : (
                                     <Sparkles size={11} />
@@ -882,10 +906,7 @@ export default function WebsiteBookings() {
 
                                   {activeTab === 'confirmed' && (
                                     <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        if (window.confirm('Convert booking into invoice?')) convertBookingMutation.mutate(booking.booking_id);
-                                      }}
+                                      onClick={(e) => startConvert(booking, e)}
                                       className="flex-1 py-1.5 bg-black hover:bg-gray-900 text-[#F6CB59] text-[11px] font-black rounded-lg shadow-xs flex items-center justify-center gap-1"
                                     >
                                       <Sparkles size={11} />
@@ -997,10 +1018,7 @@ export default function WebsiteBookings() {
                     {activeTab === 'confirmed' && (
                       <>
                         <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (window.confirm('Convert booking into invoice?')) convertBookingMutation.mutate(booking.booking_id);
-                          }}
+                          onClick={(e) => startConvert(booking, e)}
                           disabled={convertBookingMutation.isPending}
                           className="flex-1 py-2 bg-black text-[#F6CB59] text-[12px] font-black rounded-xl shadow-xs flex items-center justify-center gap-1.5"
                         >
@@ -1259,6 +1277,117 @@ export default function WebsiteBookings() {
                 Confirm Cancellation
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Convert to Live Invoice Modal (Prompt for Vehicle License Plate) ── */}
+      {convertingBooking && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-fade-in">
+          <div className="bg-white rounded-2xl p-5 sm:p-6 w-full max-w-md shadow-2xl border border-gray-100">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-base font-black text-gray-900 flex items-center gap-2">
+                <Sparkles className="text-amber-500" size={20} />
+                Convert to Live Invoice
+              </h3>
+              <button
+                onClick={() => setConvertingBooking(null)}
+                className="text-gray-400 hover:text-gray-600 p-1 rounded-lg"
+              >
+                <XIcon size={18} />
+              </button>
+            </div>
+
+            <p className="text-[12px] font-bold text-gray-500 mb-3">
+              Confirm vehicle registration and job order details before opening the invoice.
+            </p>
+
+            {/* Client & Car Summary Card */}
+            <div className="bg-gray-50 p-3 rounded-xl border border-gray-200/80 mb-3.5 space-y-1 text-[11px]">
+              <div className="flex justify-between">
+                <span className="text-gray-500 font-bold">Client:</span>
+                <span className="font-extrabold text-gray-900">{convertingBooking.full_name} ({convertingBooking.phone})</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-500 font-bold">Vehicle:</span>
+                <span className="font-extrabold text-gray-900">{convertingBooking.vehicle_brand} {convertingBooking.vehicle_model} {convertingBooking.vehicle_type ? `(${convertingBooking.vehicle_type})` : ''}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-500 font-bold">Service:</span>
+                <span className="font-extrabold text-[#7A5000]">{convertingBooking.service_name || 'General Detailing'}</span>
+              </div>
+            </div>
+
+            <form onSubmit={submitConvert} className="space-y-3">
+              {/* Vehicle Registration Number (License Plate) */}
+              <div>
+                <label className="text-[10px] font-black uppercase text-gray-700 tracking-wider mb-1 block">
+                  Vehicle Registration No. / Plate <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  autoFocus
+                  placeholder="e.g. TN 75 AA 1234"
+                  value={convertVehicleNumber}
+                  onChange={(e) => setConvertVehicleNumber(e.target.value.toUpperCase())}
+                  className="w-full text-sm font-black text-gray-900 bg-gray-50 px-3.5 py-2.5 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-black focus:border-black uppercase tracking-wider"
+                />
+              </div>
+
+              {/* Initial Discount */}
+              <div>
+                <label className="text-[10px] font-black uppercase text-gray-500 tracking-wider mb-1 block">
+                  Initial Discount (₹) <span className="text-gray-400 font-normal">(Optional)</span>
+                </label>
+                <input
+                  type="number"
+                  placeholder="0"
+                  min="0"
+                  value={convertDiscount}
+                  onChange={(e) => setConvertDiscount(e.target.value)}
+                  className="w-full text-sm font-bold text-gray-800 bg-gray-50 px-3.5 py-2 rounded-xl border border-gray-200 focus:outline-none focus:ring-1 focus:ring-black focus:border-black"
+                />
+              </div>
+
+              {/* Job Notes */}
+              <div>
+                <label className="text-[10px] font-black uppercase text-gray-500 tracking-wider mb-1 block">
+                  Special Notes / Instructions
+                </label>
+                <textarea
+                  rows={2}
+                  placeholder="Customer requests, drop-off instructions..."
+                  value={convertNotes}
+                  onChange={(e) => setConvertNotes(e.target.value)}
+                  className="w-full text-[12px] font-medium text-gray-800 bg-gray-50 px-3 py-2 rounded-xl border border-gray-200 focus:outline-none focus:ring-1 focus:ring-black focus:border-black resize-none"
+                />
+              </div>
+
+              <div className="flex gap-2 pt-2 border-t border-gray-100">
+                <button
+                  type="button"
+                  onClick={() => setConvertingBooking(null)}
+                  className="flex-1 py-2.5 rounded-xl text-[12px] font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={convertBookingMutation.isPending}
+                  className="flex-1 py-2.5 rounded-xl text-[12px] font-black text-black bg-[#F6CB59] hover:bg-[#ebd545] transition-all shadow-md flex items-center justify-center gap-1.5 disabled:opacity-50"
+                >
+                  {convertBookingMutation.isPending ? (
+                    <>
+                      <Globe className="animate-spin" size={13} />
+                      <span>Generating Invoice…</span>
+                    </>
+                  ) : (
+                    <span>Convert & Open Invoice</span>
+                  )}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

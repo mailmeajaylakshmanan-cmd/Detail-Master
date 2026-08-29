@@ -146,6 +146,9 @@ router.post('/', async (req, res) => {
       vehicle_model,
       vehicle_type,
       vehicle_type_id,
+      vehicle_number,
+      license_vin,
+      license_plate,
       service_id,
       service_ids,
       services,
@@ -174,6 +177,8 @@ router.post('/', async (req, res) => {
       1
     );
 
+    const vehicleRegNo = (vehicle_number || license_vin || license_plate || '').trim() || null;
+
     // 3. Insert into web_bookings
     const insertBookingQuery = `
       INSERT INTO web_bookings (
@@ -184,12 +189,13 @@ router.post('/', async (req, res) => {
         vehicle_model,
         vehicle_type,
         vehicle_type_id,
+        vehicle_number,
         service_id,
         preferred_date,
         preferred_time_period,
         additional_notes,
         status
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, 'pending')
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, 'pending')
       RETURNING *
     `;
     const bookingRes = await client.query(insertBookingQuery, [
@@ -200,6 +206,7 @@ router.post('/', async (req, res) => {
       vehicle_model || null,
       vehicle_type || null,
       resolvedVehicleTypeId,
+      vehicleRegNo,
       primaryServiceId,
       preferred_date || null,
       preferred_time_period || null,
@@ -351,7 +358,15 @@ router.post('/:id/convert', async (req, res) => {
   const client = await db.pool.connect();
   try {
     const { id } = req.params;
-    const { amount_paid, payment_method, discount, special_notes } = req.body;
+    const {
+      amount_paid,
+      payment_method,
+      discount,
+      special_notes,
+      vehicle_number,
+      license_vin,
+      license_plate
+    } = req.body;
 
     await client.query('BEGIN');
 
@@ -401,15 +416,38 @@ router.post('/:id/convert', async (req, res) => {
       clientId = newClientRes.rows[0].id;
     }
 
-    // 4. Find or Create Vehicle for this Client
+    // 4. Find or Create Vehicle for this Client with proper license plate
+    const targetLicensePlate = String(
+      vehicle_number ||
+      license_vin ||
+      license_plate ||
+      booking.vehicle_number ||
+      ''
+    ).trim();
+
     let vehicleId;
     const makeModel = `${booking.vehicle_brand || ''} ${booking.vehicle_model || ''}`.trim() || 'Unknown Vehicle';
-    const vehicleRes = await client.query(
-      'SELECT id, vehicle_type_id FROM vehicles WHERE client_id = $1 AND LOWER(make_model) = LOWER($2)',
-      [clientId, makeModel]
-    );
+    
+    let vehicleRes;
+    if (targetLicensePlate && targetLicensePlate.toUpperCase() !== 'TBD') {
+      vehicleRes = await client.query(
+        'SELECT id, vehicle_type_id, license_vin FROM vehicles WHERE client_id = $1 AND UPPER(license_vin) = UPPER($2)',
+        [clientId, targetLicensePlate]
+      );
+    }
+    if (!vehicleRes || vehicleRes.rows.length === 0) {
+      vehicleRes = await client.query(
+        'SELECT id, vehicle_type_id, license_vin FROM vehicles WHERE client_id = $1 AND LOWER(make_model) = LOWER($2)',
+        [clientId, makeModel]
+      );
+    }
+
     if (vehicleRes.rows.length > 0) {
       vehicleId = vehicleRes.rows[0].id;
+      const existingPlate = vehicleRes.rows[0].license_vin;
+      if (targetLicensePlate && (!existingPlate || existingPlate.toUpperCase() === 'TBD')) {
+        await client.query('UPDATE vehicles SET license_vin = $1 WHERE id = $2', [targetLicensePlate, vehicleId]);
+      }
       if (!vehicleRes.rows[0].vehicle_type_id && vehicleTypeId) {
         await client.query(
           'UPDATE vehicles SET vehicle_type_id = $1, vehicle_type = COALESCE(vehicle_type, $2) WHERE id = $3',
@@ -419,7 +457,7 @@ router.post('/:id/convert', async (req, res) => {
     } else {
       const newVehicleRes = await client.query(
         'INSERT INTO vehicles (client_id, make_model, license_vin, vehicle_type_id, vehicle_type) VALUES ($1, $2, $3, $4, $5) RETURNING id',
-        [clientId, makeModel, 'TBD', vehicleTypeId, booking.vehicle_type || null]
+        [clientId, makeModel, targetLicensePlate || 'TBD', vehicleTypeId, booking.vehicle_type || null]
       );
       vehicleId = newVehicleRes.rows[0].id;
     }
