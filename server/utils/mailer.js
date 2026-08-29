@@ -3,7 +3,7 @@ const path = require('path');
 const fs = require('fs');
 const { renderBookingEmail, renderSimpleEmail } = require('./emailTemplates');
 
-const smtpPort = Number(process.env.SMTP_PORT) || 587;
+const smtpPort = Number(process.env.SMTP_PORT) || 465;
 const isSecure = smtpPort === 465;
 
 const transporter = nodemailer.createTransport({
@@ -14,7 +14,7 @@ const transporter = nodemailer.createTransport({
   maxConnections: 5,
   maxMessages: 100,
   rateDelta: 1000,
-  rateLimit: 5,
+  rateLimit: 10,
   auth: {
     user: process.env.SMTP_USER,
     pass: process.env.SMTP_PASS
@@ -22,9 +22,9 @@ const transporter = nodemailer.createTransport({
   tls: {
     rejectUnauthorized: false
   },
-  connectionTimeout: 10000,
-  greetingTimeout: 10000,
-  socketTimeout: 20000
+  connectionTimeout: 5000,
+  greetingTimeout: 5000,
+  socketTimeout: 10000
 });
 
 // Warm up the SMTP connection pool on startup
@@ -33,29 +33,33 @@ if (process.env.SMTP_USER && process.env.SMTP_PASS) {
     if (err) {
       console.error('[mailer] SMTP verify error on initialization:', err.message);
     } else {
-      console.log('[mailer] SMTP connection pool is ready and verified.');
+      console.log('[mailer] SMTP connection pool is ready and verified on port ' + smtpPort);
     }
   });
 }
 
-// Helper to get invoice shield logo CID attachment
+// Helper to get invoice shield logo CID attachment (ultra-lightweight web asset)
 function getLogoAttachments() {
   const possiblePaths = [
-    path.join(__dirname, '../assets/brand-logo-for-invoice.png'),
-    path.join(__dirname, '../../client/src/assets/brand-logo-for-invoice.png'),
-    path.join(__dirname, '../../client/src/assets/brand_logo.png')
+    path.join(__dirname, '../assets/email-logo.png'),
+    path.join(__dirname, '../../client/src/assets/brand_logo.png'),
+    path.join(__dirname, '../assets/brand_logo.png'),
+    path.join(process.cwd(), 'server/assets/email-logo.png'),
+    path.join(process.cwd(), 'client/src/assets/brand_logo.png')
   ];
 
   for (const p of possiblePaths) {
-    if (fs.existsSync(p)) {
-      return [
-        {
-          filename: 'brand-logo-for-invoice.png',
-          path: p,
-          cid: 'invoiceBrandLogo'
-        }
-      ];
-    }
+    try {
+      if (fs.existsSync(p)) {
+        return [
+          {
+            filename: 'brand-logo.png',
+            path: p,
+            cid: 'invoiceBrandLogo'
+          }
+        ];
+      }
+    } catch (e) {}
   }
   return [];
 }

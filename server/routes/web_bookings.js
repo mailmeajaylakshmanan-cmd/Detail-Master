@@ -254,11 +254,9 @@ router.post('/', bookingSubmitLimiter, async (req, res) => {
     );
     newBooking.service_name = svcRows[0]?.service_name || 'General Detailing';
 
-    try {
-      await sendScheduleEmail(newBooking, 'created');
-    } catch (err) {
+    sendScheduleEmail(newBooking, 'created').catch(err => {
       console.error('[web_bookings] Created notification email error:', err);
-    }
+    });
 
     sendBookingWhatsAppNotification(newBooking, serviceArray, 'created').catch(err => {
       console.error('[web_bookings] Created WhatsApp notification error:', err);
@@ -328,11 +326,9 @@ router.put('/:id', protect, requirePermission('Online Booking'), async (req, res
 
     if (isReschedule || isStatusChange) {
       const eventType = isReschedule ? 'rescheduled' : updatedBooking.status;
-      try {
-        await sendScheduleEmail(updatedBooking, eventType);
-      } catch (err) {
+      sendScheduleEmail(updatedBooking, eventType).catch(err => {
         console.error('[web_bookings] Update email dispatch error:', err);
-      }
+      });
       sendBookingWhatsAppNotification(updatedBooking, [], eventType).catch(err => {
         console.error('[web_bookings] Update WhatsApp dispatch error:', err);
       });
@@ -607,11 +603,9 @@ router.post('/:id/convert', protect, requirePermission('Online Booking'), async 
     // Commit Transaction
     await client.query('COMMIT');
 
-    try {
-      await sendScheduleEmail(convertedBooking, 'converted');
-    } catch (err) {
+    sendScheduleEmail(convertedBooking, 'converted').catch(err => {
       console.error('[web_bookings] Convert email dispatch error:', err);
-    }
+    });
     sendBookingWhatsAppNotification(convertedBooking, [], 'converted').catch(err => {
       console.error('[web_bookings] Convert WhatsApp dispatch error:', err);
     });
