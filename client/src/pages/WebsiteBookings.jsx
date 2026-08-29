@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
-  Globe, Search, Calendar, Car, Phone, Clock,
-  CheckCircle2, XCircle, Clock4, CheckSquare, PenSquare, Check, X as XIcon, AlertCircle, Trash2,
-  MessageSquare, Sparkles, User, FileText, ChevronRight, RefreshCw, AlertTriangle
+  Globe, Search, Calendar, Car, Phone, Clock, Mail,
+  CheckCircle2, XCircle, CheckSquare, PenSquare, Check, X as XIcon, Trash2,
+  MessageSquare, Sparkles, User, FileText, ChevronDown, ChevronUp, RefreshCw, AlertTriangle,
+  ExternalLink, ArrowRight, ShieldCheck, Tag
 } from 'lucide-react';
 import api from '../api/axios';
 import { usePermissions } from '../hooks/usePermissions.js';
@@ -47,6 +48,7 @@ const CANCEL_REASONS = [
 export default function WebsiteBookings() {
   const [activeTab, setActiveTab] = useState('pending');
   const [searchQuery, setSearchQuery] = useState('');
+  const [expandedRowId, setExpandedRowId] = useState(null);
 
   const [reschedulingId, setReschedulingId] = useState(null);
   const [rescheduleValue, setRescheduleValue] = useState('');
@@ -115,12 +117,14 @@ export default function WebsiteBookings() {
   });
 
   // ── Reschedule ──
-  const startReschedule = (booking) => {
+  const startReschedule = (booking, e) => {
+    if (e) e.stopPropagation();
     setReschedulingId(booking.booking_id);
     setRescheduleValue(booking.preferred_date ? booking.preferred_date.slice(0, 10) : '');
   };
 
-  const confirmReschedule = (booking) => {
+  const confirmReschedule = (booking, e) => {
+    if (e) e.stopPropagation();
     if (!rescheduleValue) return;
     const waWindow = openWhatsAppLazy();
     rescheduleMutation.mutate(
@@ -138,7 +142,8 @@ export default function WebsiteBookings() {
   };
 
   // ── Confirm ──
-  const startConfirm = async (booking) => {
+  const startConfirm = async (booking, e) => {
+    if (e) e.stopPropagation();
     setConfirmingId(booking.booking_id);
     setConfirmTime('');
     setBusySlots([]);
@@ -210,7 +215,8 @@ export default function WebsiteBookings() {
   };
 
   // ── Cancel ──
-  const startCancel = (booking) => {
+  const startCancel = (booking, e) => {
+    if (e) e.stopPropagation();
     setCancellingId(booking.booking_id);
     setCancelReason('');
   };
@@ -231,14 +237,16 @@ export default function WebsiteBookings() {
     setCancellingId(null);
   };
 
-  const plainStatusChange = (booking, status) => {
+  const plainStatusChange = (booking, status, e) => {
+    if (e) e.stopPropagation();
     updateStatusMutation.mutate(
       { id: booking.booking_id, status },
       { onSuccess: () => toast.success(`Booking status updated to ${status}!`) }
     );
   };
   
-  const handleDelete = async (id) => {
+  const handleDelete = async (id, e) => {
+    if (e) e.stopPropagation();
     if (!window.confirm('Are you sure you want to delete this booking?')) return;
     try {
       await api.delete('/web_bookings/' + id);
@@ -247,6 +255,10 @@ export default function WebsiteBookings() {
     } catch (err) {
       toast.error(err.response?.data?.message || 'Error deleting booking');
     }
+  };
+
+  const toggleRowExpansion = (id) => {
+    setExpandedRowId(prev => (prev === id ? null : id));
   };
 
   // Filter logic
@@ -284,7 +296,7 @@ export default function WebsiteBookings() {
     <div className="w-full max-w-full space-y-4 animate-fade-in">
 
       {/* ── Top Header & Executive Toolbar ── */}
-      <div className="bg-white/75 backdrop-blur-2xl rounded-2xl shadow-[0_4px_24px_rgba(0,0,0,0.04)] border border-white/90 p-4 lg:p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="bg-white/80 backdrop-blur-2xl rounded-2xl shadow-[0_4px_24px_rgba(0,0,0,0.04)] border border-white p-4 lg:p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
         
         {/* Title & Pipeline Badge */}
         <div className="flex items-center gap-3.5 min-w-0">
@@ -298,11 +310,11 @@ export default function WebsiteBookings() {
               </h1>
               <span className="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200/60">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping"></span>
-                Live Leads
+                Live Dispatch
               </span>
             </div>
             <p className="text-[11px] font-bold text-gray-500 mt-0.5 tracking-wide uppercase">
-              Web & WhatsApp Inquiries Dispatch
+              Online Inquiries & Appointment Dispatch
             </p>
           </div>
         </div>
@@ -312,8 +324,8 @@ export default function WebsiteBookings() {
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
           <input
             type="text"
-            className="w-full pl-9 pr-8 py-2 bg-white/90 border border-gray-200/80 rounded-xl text-[12px] font-bold text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent transition-all shadow-xs"
-            placeholder="Search name, phone, car..."
+            className="w-full pl-9 pr-8 py-2 bg-white border border-gray-200/80 rounded-xl text-[12px] font-bold text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent transition-all shadow-xs"
+            placeholder="Search name, phone, car, service..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
@@ -331,7 +343,7 @@ export default function WebsiteBookings() {
       {/* ── Segmented Status Tabs Ribbon ── */}
       <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto pb-1 hide-scrollbar">
         <button
-          onClick={() => setActiveTab('pending')}
+          onClick={() => { setActiveTab('pending'); setExpandedRowId(null); }}
           className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-[12px] font-black transition-all whitespace-nowrap shadow-xs ${
             activeTab === 'pending'
               ? 'bg-black text-[#F6CB59] shadow-md border border-gray-900 ring-2 ring-black/10'
@@ -348,7 +360,7 @@ export default function WebsiteBookings() {
         </button>
 
         <button
-          onClick={() => setActiveTab('confirmed')}
+          onClick={() => { setActiveTab('confirmed'); setExpandedRowId(null); }}
           className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-[12px] font-black transition-all whitespace-nowrap shadow-xs ${
             activeTab === 'confirmed'
               ? 'bg-black text-[#F6CB59] shadow-md border border-gray-900 ring-2 ring-black/10'
@@ -365,7 +377,7 @@ export default function WebsiteBookings() {
         </button>
 
         <button
-          onClick={() => setActiveTab('converted')}
+          onClick={() => { setActiveTab('converted'); setExpandedRowId(null); }}
           className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-[12px] font-black transition-all whitespace-nowrap shadow-xs ${
             activeTab === 'converted'
               ? 'bg-black text-[#F6CB59] shadow-md border border-gray-900 ring-2 ring-black/10'
@@ -373,7 +385,7 @@ export default function WebsiteBookings() {
           }`}
         >
           <Sparkles size={13} className={activeTab === 'converted' ? 'text-[#F6CB59]' : 'text-emerald-500'} />
-          <span>Converted to Invoice</span>
+          <span>Invoiced / Completed</span>
           <span className={`px-2 py-0.5 rounded-md text-[10px] font-black ${
             activeTab === 'converted' ? 'bg-[#F6CB59] text-black' : 'bg-gray-100 text-gray-800'
           }`}>
@@ -382,7 +394,7 @@ export default function WebsiteBookings() {
         </button>
 
         <button
-          onClick={() => setActiveTab('cancelled')}
+          onClick={() => { setActiveTab('cancelled'); setExpandedRowId(null); }}
           className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-[12px] font-black transition-all whitespace-nowrap shadow-xs ${
             activeTab === 'cancelled'
               ? 'bg-black text-[#F6CB59] shadow-md border border-gray-900 ring-2 ring-black/10'
@@ -399,7 +411,7 @@ export default function WebsiteBookings() {
         </button>
       </div>
 
-      {/* ── Main Data Matrix (Desktop Table & Mobile Cards) ── */}
+      {/* ── Main Data Matrix (Desktop Table with Accordion Drawer) ── */}
       {isLoading ? (
         <div className="bg-white/60 backdrop-blur-xl rounded-2xl border border-white/80 shadow-sm p-16 flex flex-col items-center justify-center">
           <Globe className="animate-spin text-gray-900 mb-3" size={32} />
@@ -411,7 +423,7 @@ export default function WebsiteBookings() {
             <Globe className="text-gray-400" size={30} />
           </div>
           <h2 className="text-base font-black text-gray-900 mb-1">
-            No {activeTab === 'converted' ? 'converted' : activeTab} bookings found
+            No {activeTab === 'converted' ? 'completed' : activeTab} bookings found
           </h2>
           <p className="text-[12px] font-bold text-gray-500">
             {searchQuery ? `No matching results for "${searchQuery}"` : `There are currently no bookings in this status.`}
@@ -420,233 +432,403 @@ export default function WebsiteBookings() {
       ) : (
         <>
           {/* Desktop Table: 100% width, table-fixed, zero horizontal overflow */}
-          <div className="hidden lg:block bg-white/80 backdrop-blur-2xl rounded-2xl border border-white shadow-[0_4px_24px_rgba(0,0,0,0.04)] overflow-hidden">
+          <div className="hidden lg:block bg-white/85 backdrop-blur-2xl rounded-2xl border border-white shadow-[0_4px_24px_rgba(0,0,0,0.04)] overflow-hidden">
             <table className="w-full text-left border-collapse table-fixed">
               <thead>
-                <tr className="bg-gray-50/80 border-b border-gray-200/70 text-[11px] uppercase tracking-wider text-gray-500 font-extrabold">
-                  <th className="w-[33%] px-4 py-3">Customer & Vehicle</th>
-                  <th className="w-[25%] px-3 py-3">Interested Service & Notes</th>
+                <tr className="bg-gray-50/90 border-b border-gray-200/80 text-[11px] uppercase tracking-wider text-gray-500 font-extrabold">
+                  <th className="w-[32%] px-4 py-3">Customer & Vehicle</th>
+                  <th className="w-[26%] px-3 py-3">Services & Notes</th>
                   <th className="w-[20%] px-3 py-3">Schedule Slot</th>
-                  <th className="w-[22%] px-4 py-3 text-right">Actions</th>
+                  <th className="w-[22%] px-4 py-3 text-right">Quick Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100/90 text-[12px]">
                 {filteredBookings.map(booking => {
+                  const isExpanded = expandedRowId === booking.booking_id;
                   const initials = getInitials(booking.full_name);
                   const vehicleText = [booking.vehicle_brand, booking.vehicle_model].filter(Boolean).join(' ') || 'Vehicle Unspecified';
                   const servicesList = Array.isArray(booking.services) && booking.services.length > 0
                     ? booking.services
                     : (booking.service_name ? [{ service_name: booking.service_name }] : []);
-                  const primaryService = servicesList[0]?.service_name || booking.service_name || 'General Inquiry';
+                  const primaryService = servicesList[0]?.service_name || booking.service_name || 'General Detailing';
                   const extraCount = Math.max(0, servicesList.length - 1);
 
                   return (
-                    <tr key={booking.booking_id} className="hover:bg-white/90 transition-colors group">
-                      
-                      {/* 1. Customer & Vehicle */}
-                      <td className="px-4 py-3 align-middle">
-                        <div className="flex items-center gap-3 min-w-0">
-                          {/* Monogram Avatar */}
-                          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-black to-gray-800 text-[#F6CB59] flex items-center justify-center font-black text-[12px] border border-gray-700 shadow-xs shrink-0">
-                            {initials}
-                          </div>
-                          
-                          {/* Name + Phone + Vehicle pill */}
-                          <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-1.5 truncate">
-                              <span className="font-black text-gray-900 text-[13px] truncate" title={booking.full_name}>
-                                {booking.full_name || 'Anonymous Client'}
-                              </span>
+                    <React.Fragment key={booking.booking_id}>
+                      {/* Main Compact Row */}
+                      <tr
+                        onClick={() => toggleRowExpansion(booking.booking_id)}
+                        className={`cursor-pointer transition-all duration-200 group ${
+                          isExpanded
+                            ? 'bg-amber-50/40 border-l-[3px] border-l-[#F6CB59]'
+                            : 'hover:bg-gray-50/80 border-l-[3px] border-l-transparent'
+                        }`}
+                      >
+                        {/* 1. Customer & Vehicle */}
+                        <td className="px-4 py-3 align-middle">
+                          <div className="flex items-center gap-3 min-w-0">
+                            {/* Monogram Avatar */}
+                            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-black to-gray-800 text-[#F6CB59] flex items-center justify-center font-black text-[12px] border border-gray-700 shadow-xs shrink-0">
+                              {initials}
                             </div>
                             
-                            <div className="flex items-center gap-2 mt-0.5 truncate">
-                              <span className="text-[11px] font-bold text-gray-600 truncate flex items-center gap-1">
-                                <Phone size={11} className="text-gray-400 shrink-0" />
-                                {booking.phone}
-                              </span>
-                              <span className="text-gray-300">·</span>
-                              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-gray-100/90 text-gray-800 text-[10px] font-extrabold border border-gray-200/80 truncate max-w-[130px]" title={vehicleText}>
-                                <Car size={10} className="text-gray-500 shrink-0" />
-                                <span className="truncate">{vehicleText}</span>
-                              </span>
+                            {/* Name + Phone + Vehicle badge */}
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-1.5 truncate">
+                                <span className="font-black text-gray-900 text-[13px] truncate" title={booking.full_name}>
+                                  {booking.full_name || 'Anonymous Client'}
+                                </span>
+                              </div>
+                              
+                              <div className="flex items-center gap-2 mt-0.5 truncate">
+                                <a
+                                  href={`tel:${booking.phone}`}
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="text-[11px] font-bold text-gray-600 hover:text-black truncate flex items-center gap-1"
+                                >
+                                  <Phone size={11} className="text-gray-400 shrink-0" />
+                                  {booking.phone}
+                                </a>
+                                <span className="text-gray-300">·</span>
+                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-gray-100 text-gray-800 text-[10px] font-extrabold border border-gray-200 truncate max-w-[130px]" title={vehicleText}>
+                                  <Car size={10} className="text-gray-500 shrink-0" />
+                                  <span className="truncate">{vehicleText}</span>
+                                </span>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      </td>
+                        </td>
 
-                      {/* 2. Interested Service & Notes */}
-                      <td className="px-3 py-3 align-middle">
-                        <div className="flex flex-col gap-1 min-w-0 pr-2">
-                          {/* Service Tag */}
-                          <div className="flex items-center gap-1 min-w-0">
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-[#FFF9E6] text-[#7A5000] border border-[#F6CB59]/50 text-[11px] font-black truncate max-w-[170px]" title={booking.service_name || primaryService}>
-                              <CheckSquare size={11} className="text-[#D4A017] shrink-0" />
-                              <span className="truncate">{primaryService}</span>
-                            </span>
-                            {extraCount > 0 && (
-                              <span
-                                className="px-1.5 py-0.5 rounded-md bg-gray-100 text-gray-700 border border-gray-200 text-[10px] font-black cursor-help shrink-0"
-                                title={servicesList.map(s => s.service_name).join(', ')}
-                              >
-                                +{extraCount}
+                        {/* 2. Interested Services & Notes */}
+                        <td className="px-3 py-3 align-middle">
+                          <div className="flex flex-col gap-1 min-w-0 pr-2">
+                            {/* Service Chip */}
+                            <div className="flex items-center gap-1 min-w-0">
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-[#FFF9E6] text-[#7A5000] border border-[#F6CB59]/50 text-[11px] font-black truncate max-w-[170px]" title={booking.service_name || primaryService}>
+                                <CheckSquare size={11} className="text-[#D4A017] shrink-0" />
+                                <span className="truncate">{primaryService}</span>
                               </span>
+                              {extraCount > 0 && (
+                                <span
+                                  className="px-1.5 py-0.5 rounded-md bg-gray-100 text-gray-700 border border-gray-200 text-[10px] font-black cursor-help shrink-0"
+                                  title={servicesList.map(s => s.service_name).join(', ')}
+                                >
+                                  +{extraCount}
+                                </span>
+                              )}
+                            </div>
+
+                            {/* Notes Snippet */}
+                            {booking.additional_notes ? (
+                              <span className="text-[11px] font-semibold text-gray-500 italic truncate flex items-center gap-1 max-w-[210px]" title={booking.additional_notes}>
+                                <FileText size={10} className="text-gray-400 shrink-0" />
+                                <span className="truncate">"{booking.additional_notes}"</span>
+                              </span>
+                            ) : (
+                              <span className="text-[10px] font-bold text-gray-400 italic">No notes</span>
                             )}
                           </div>
+                        </td>
 
-                          {/* Notes Excerpt (if any) */}
-                          {booking.additional_notes ? (
-                            <span className="text-[11px] font-semibold text-gray-500 italic truncate flex items-center gap-1 max-w-[200px]" title={booking.additional_notes}>
-                              <FileText size={10} className="text-gray-400 shrink-0" />
-                              <span className="truncate">"{booking.additional_notes}"</span>
-                            </span>
-                          ) : (
-                            <span className="text-[10px] font-bold text-gray-400 italic">No notes</span>
-                          )}
-                        </div>
-                      </td>
-
-                      {/* 3. Schedule Slot */}
-                      <td className="px-3 py-3 align-middle">
-                        {reschedulingId === booking.booking_id ? (
-                          <div className="flex items-center gap-1">
-                            <input
-                              type="date"
-                              value={rescheduleValue}
-                              onChange={(e) => setRescheduleValue(e.target.value)}
-                              className="text-[11px] font-bold text-gray-800 bg-white px-2 py-1 rounded-lg border border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-500 w-28"
-                            />
-                            <button
-                              onClick={() => confirmReschedule(booking)}
-                              className="w-6 h-6 flex items-center justify-center rounded-md bg-emerald-600 text-white hover:bg-emerald-700 shrink-0 shadow-xs"
-                              title="Save New Date"
-                            >
-                              <Check size={12} strokeWidth={3} />
-                            </button>
-                            <button
-                              onClick={() => setReschedulingId(null)}
-                              className="w-6 h-6 flex items-center justify-center rounded-md bg-gray-100 text-gray-600 hover:bg-gray-200 shrink-0"
-                              title="Cancel"
-                            >
-                              <XIcon size={12} />
-                            </button>
-                          </div>
-                        ) : (
-                          <div className="flex flex-col gap-0.5 min-w-0">
-                            {/* Date Badge */}
-                            <div className="flex items-center gap-1">
-                              <span className="inline-flex items-center gap-1 text-[11px] font-black text-gray-900 bg-gray-100/80 px-2 py-0.5 rounded-md border border-gray-200">
-                                <Calendar size={11} className="text-gray-500 shrink-0" />
-                                <span>{formatDate(booking.preferred_date)}</span>
-                              </span>
+                        {/* 3. Schedule Slot */}
+                        <td className="px-3 py-3 align-middle">
+                          {reschedulingId === booking.booking_id ? (
+                            <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                              <input
+                                type="date"
+                                value={rescheduleValue}
+                                onChange={(e) => setRescheduleValue(e.target.value)}
+                                className="text-[11px] font-bold text-gray-800 bg-white px-2 py-1 rounded-lg border border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-500 w-28"
+                              />
                               <button
-                                onClick={() => startReschedule(booking)}
-                                className="text-gray-400 hover:text-blue-600 p-0.5 rounded transition-colors"
-                                title="Reschedule Date"
+                                onClick={(e) => confirmReschedule(booking, e)}
+                                className="w-6 h-6 flex items-center justify-center rounded-md bg-emerald-600 text-white hover:bg-emerald-700 shrink-0 shadow-xs"
+                                title="Save Date"
                               >
-                                <PenSquare size={11} />
+                                <Check size={12} strokeWidth={3} />
+                              </button>
+                              <button
+                                onClick={(e) => { e.stopPropagation(); setReschedulingId(null); }}
+                                className="w-6 h-6 flex items-center justify-center rounded-md bg-gray-100 text-gray-600 hover:bg-gray-200 shrink-0"
+                                title="Cancel"
+                              >
+                                <XIcon size={12} />
                               </button>
                             </div>
+                          ) : (
+                            <div className="flex flex-col gap-0.5 min-w-0">
+                              {/* Date Badge */}
+                              <div className="flex items-center gap-1">
+                                <span className="inline-flex items-center gap-1 text-[11px] font-black text-gray-900 bg-gray-100/90 px-2 py-0.5 rounded-md border border-gray-200">
+                                  <Calendar size={11} className="text-gray-500 shrink-0" />
+                                  <span>{formatDate(booking.preferred_date)}</span>
+                                </span>
+                                <button
+                                  onClick={(e) => startReschedule(booking, e)}
+                                  className="text-gray-400 hover:text-blue-600 p-0.5 rounded transition-colors"
+                                  title="Reschedule Date"
+                                >
+                                  <PenSquare size={11} />
+                                </button>
+                              </div>
 
-                            {/* Time Slot Info */}
-                            {booking.allocated_time ? (
-                              <span className="text-[10px] font-extrabold text-blue-700 flex items-center gap-1 mt-0.5">
-                                <Clock size={10} className="text-blue-500 shrink-0" />
-                                <span>Slot: {booking.allocated_time}</span>
-                              </span>
-                            ) : booking.preferred_time_period ? (
-                              <span className="text-[10px] font-bold text-amber-700 flex items-center gap-1 mt-0.5 truncate" title={`Requested: ${booking.preferred_time_period}`}>
-                                <Clock size={10} className="text-amber-500 shrink-0" />
-                                <span className="truncate">{booking.preferred_time_period}</span>
-                              </span>
-                            ) : null}
+                              {/* Time Slot Info */}
+                              {booking.allocated_time ? (
+                                <span className="text-[10px] font-extrabold text-blue-700 flex items-center gap-1 mt-0.5">
+                                  <Clock size={10} className="text-blue-500 shrink-0" />
+                                  <span>Slot: {booking.allocated_time}</span>
+                                </span>
+                              ) : booking.preferred_time_period ? (
+                                <span className="text-[10px] font-bold text-amber-700 flex items-center gap-1 mt-0.5 truncate" title={`Requested: ${booking.preferred_time_period}`}>
+                                  <Clock size={10} className="text-amber-500 shrink-0" />
+                                  <span className="truncate">{booking.preferred_time_period}</span>
+                                </span>
+                              ) : null}
+                            </div>
+                          )}
+                        </td>
+
+                        {/* 4. Action Suite */}
+                        <td className="px-4 py-3 align-middle text-right">
+                          <div className="flex items-center justify-end gap-1.5" onClick={(e) => e.stopPropagation()}>
+                            
+                            {/* WhatsApp Button */}
+                            <a
+                              href={waLink(booking.phone, `Hi ${booking.full_name}, regarding your Detailing Masters booking for ${booking.service_name || 'Detailing'} on ${formatDate(booking.preferred_date)}:`)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="px-2 py-1.5 bg-[#25D366] hover:bg-[#20ba59] text-white text-[11px] font-black rounded-lg transition-all shadow-xs flex items-center gap-1 shrink-0"
+                              title="Chat on WhatsApp"
+                            >
+                              <MessageSquare size={11} className="fill-current" />
+                              <span>WA</span>
+                            </a>
+
+                            {/* Primary Action Button */}
+                            {activeTab === 'pending' && (
+                              <>
+                                <button
+                                  onClick={(e) => startConfirm(booking, e)}
+                                  className="px-2.5 py-1.5 bg-black hover:bg-gray-900 text-[#F6CB59] text-[11px] font-black rounded-lg transition-all shadow-xs shrink-0 hover:scale-[1.02] active:scale-[0.98]"
+                                >
+                                  Confirm
+                                </button>
+                                <button
+                                  onClick={(e) => startCancel(booking, e)}
+                                  className="px-2 py-1.5 bg-white hover:bg-rose-50 text-rose-600 border border-rose-200 text-[11px] font-bold rounded-lg transition-all shrink-0"
+                                >
+                                  Cancel
+                                </button>
+                              </>
+                            )}
+
+                            {activeTab === 'confirmed' && (
+                              <>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (window.confirm('Convert this booking into an invoice?')) {
+                                      convertBookingMutation.mutate(booking.booking_id);
+                                    }
+                                  }}
+                                  disabled={convertBookingMutation.isPending}
+                                  className="px-2.5 py-1.5 bg-black hover:bg-gray-900 text-[#F6CB59] text-[11px] font-black rounded-lg transition-all shadow-xs flex items-center gap-1 disabled:opacity-50 shrink-0 hover:scale-[1.02] active:scale-[0.98]"
+                                >
+                                  {convertBookingMutation.isPending && convertBookingMutation.variables === booking.booking_id ? (
+                                    <Globe className="animate-spin" size={11} />
+                                  ) : (
+                                    <Sparkles size={11} />
+                                  )}
+                                  <span>Convert</span>
+                                </button>
+                                <button
+                                  onClick={(e) => plainStatusChange(booking, 'pending', e)}
+                                  className="px-2 py-1.5 bg-white hover:bg-gray-100 text-gray-600 border border-gray-200 text-[11px] font-bold rounded-lg transition-all shrink-0"
+                                  title="Revert to Pending"
+                                >
+                                  Revert
+                                </button>
+                              </>
+                            )}
+
+                            {(activeTab === 'converted' || activeTab === 'cancelled') && (
+                              <button
+                                onClick={(e) => plainStatusChange(booking, 'pending', e)}
+                                className="px-2.5 py-1.5 bg-white hover:bg-gray-100 text-gray-700 border border-gray-200 text-[11px] font-bold rounded-lg transition-all shrink-0"
+                              >
+                                Reopen
+                              </button>
+                            )}
+
+                            {/* Delete Button */}
+                            {can_delete && (
+                              <button
+                                onClick={(e) => handleDelete(booking.booking_id, e)}
+                                className="w-7 h-7 flex items-center justify-center rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 transition-colors shrink-0"
+                                title="Delete Booking"
+                              >
+                                <Trash2 size={12} strokeWidth={2.5} />
+                              </button>
+                            )}
+
+                            {/* Expand/Collapse Chevron Button */}
+                            <button
+                              type="button"
+                              onClick={(e) => { e.stopPropagation(); toggleRowExpansion(booking.booking_id); }}
+                              className={`w-7 h-7 flex items-center justify-center rounded-lg border transition-all shrink-0 ml-1 ${
+                                isExpanded
+                                  ? 'bg-black text-[#F6CB59] border-black'
+                                  : 'bg-gray-100 text-gray-500 border-gray-200 hover:bg-gray-200'
+                              }`}
+                              title={isExpanded ? "Collapse details" : "Expand inspection drawer"}
+                            >
+                              {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                            </button>
                           </div>
-                        )}
-                      </td>
+                        </td>
+                      </tr>
 
-                      {/* 4. Action Suite */}
-                      <td className="px-4 py-3 align-middle text-right">
-                        <div className="flex items-center justify-end gap-1.5">
-                          {/* WhatsApp Chat Button */}
-                          <a
-                            href={waLink(booking.phone, `Hi ${booking.full_name}, regarding your Detailing Masters booking for ${booking.service_name || 'Detailing'} on ${formatDate(booking.preferred_date)}:`)}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="px-2 py-1.5 bg-[#25D366] hover:bg-[#20ba59] text-white text-[11px] font-black rounded-lg transition-all shadow-xs flex items-center gap-1 shrink-0"
-                            title="Open WhatsApp Chat"
-                          >
-                            <MessageSquare size={11} className="fill-current" />
-                            <span>WA</span>
-                          </a>
+                      {/* Expandable In-Place Inspector Drawer */}
+                      {isExpanded && (
+                        <tr className="bg-gradient-to-r from-amber-50/20 via-white to-gray-50/40 border-b border-gray-200/80 animate-fade-in">
+                          <td colSpan={4} className="p-4 lg:p-5">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-white rounded-xl p-4 border border-amber-200/60 shadow-sm">
+                              
+                              {/* Left Column: Client & Vehicle Details */}
+                              <div className="space-y-2 border-r border-gray-100 pr-3">
+                                <div className="flex items-center justify-between">
+                                  <h4 className="text-[11px] font-black uppercase tracking-wider text-gray-400 flex items-center gap-1.5">
+                                    <User size={12} className="text-gray-500" /> Client & Machine Details
+                                  </h4>
+                                  <Link
+                                    to={`/master-customer/${booking.phone}`}
+                                    className="text-[10px] font-bold text-blue-600 hover:text-blue-800 flex items-center gap-1"
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    <span>History</span>
+                                    <ExternalLink size={10} />
+                                  </Link>
+                                </div>
 
-                          {/* Primary Status Controls */}
-                          {activeTab === 'pending' && (
-                            <>
-                              <button
-                                onClick={() => startConfirm(booking)}
-                                className="px-2.5 py-1.5 bg-black hover:bg-gray-900 text-[#F6CB59] text-[11px] font-black rounded-lg transition-all shadow-xs shrink-0 hover:scale-[1.02] active:scale-[0.98]"
-                              >
-                                Confirm
-                              </button>
-                              <button
-                                onClick={() => startCancel(booking)}
-                                className="px-2 py-1.5 bg-white hover:bg-rose-50 text-rose-600 border border-rose-200 text-[11px] font-bold rounded-lg transition-all shrink-0"
-                              >
-                                Cancel
-                              </button>
-                            </>
-                          )}
+                                <div className="bg-gray-50/80 p-3 rounded-lg border border-gray-100 space-y-1.5 text-[11px]">
+                                  <p className="font-extrabold text-gray-900 text-[13px]">{booking.full_name}</p>
+                                  <p className="text-gray-600 flex items-center gap-1.5 font-bold">
+                                    <Phone size={11} className="text-gray-400" /> {booking.phone}
+                                  </p>
+                                  {booking.email && (
+                                    <p className="text-gray-600 flex items-center gap-1.5 font-bold truncate">
+                                      <Mail size={11} className="text-gray-400" /> {booking.email}
+                                    </p>
+                                  )}
+                                  <div className="pt-1.5 border-t border-gray-200/60 flex items-center justify-between">
+                                    <span className="font-black text-gray-800">Vehicle:</span>
+                                    <span className="font-extrabold text-[#7A5000] bg-[#FFF9E6] px-2 py-0.5 rounded border border-[#F6CB59]/40">
+                                      {booking.vehicle_brand} {booking.vehicle_model} {booking.vehicle_type ? `(${booking.vehicle_type})` : ''}
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
 
-                          {activeTab === 'confirmed' && (
-                            <>
-                              <button
-                                onClick={() => {
-                                  if (window.confirm('Convert this booking into an invoice?')) {
-                                    convertBookingMutation.mutate(booking.booking_id);
-                                  }
-                                }}
-                                disabled={convertBookingMutation.isPending}
-                                className="px-2.5 py-1.5 bg-black hover:bg-gray-900 text-[#F6CB59] text-[11px] font-black rounded-lg transition-all shadow-xs flex items-center gap-1 disabled:opacity-50 shrink-0 hover:scale-[1.02] active:scale-[0.98]"
-                              >
-                                {convertBookingMutation.isPending && convertBookingMutation.variables === booking.booking_id ? (
-                                  <Globe className="animate-spin" size={11} />
-                                ) : (
-                                  <Sparkles size={11} />
-                                )}
-                                <span>Convert</span>
-                              </button>
-                              <button
-                                onClick={() => plainStatusChange(booking, 'pending')}
-                                className="px-2 py-1.5 bg-white hover:bg-gray-100 text-gray-600 border border-gray-200 text-[11px] font-bold rounded-lg transition-all shrink-0"
-                                title="Revert to Pending"
-                              >
-                                Revert
-                              </button>
-                            </>
-                          )}
+                              {/* Middle Column: Selected Services Checklist & Special Notes */}
+                              <div className="space-y-2 border-r border-gray-100 pr-3">
+                                <h4 className="text-[11px] font-black uppercase tracking-wider text-gray-400 flex items-center gap-1.5">
+                                  <Tag size={12} className="text-gray-500" /> Services & Instructions
+                                </h4>
 
-                          {(activeTab === 'converted' || activeTab === 'cancelled') && (
-                            <button
-                              onClick={() => plainStatusChange(booking, 'pending')}
-                              className="px-2.5 py-1.5 bg-white hover:bg-gray-100 text-gray-700 border border-gray-200 text-[11px] font-bold rounded-lg transition-all shrink-0"
-                            >
-                              Reopen
-                            </button>
-                          )}
+                                <div className="space-y-2">
+                                  {/* Services list */}
+                                  <div className="flex flex-wrap gap-1.5">
+                                    {servicesList.map((svc, idx) => (
+                                      <span
+                                        key={idx}
+                                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#FFF9E6] text-[#7A5000] border border-[#F6CB59]/50 text-[11px] font-black"
+                                      >
+                                        <CheckSquare size={11} className="text-[#D4A017]" />
+                                        {svc.service_name}
+                                      </span>
+                                    ))}
+                                  </div>
 
-                          {/* Delete Button */}
-                          {can_delete && (
-                            <button
-                              onClick={() => handleDelete(booking.booking_id)}
-                              className="w-7 h-7 flex items-center justify-center rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 transition-colors shrink-0"
-                              title="Delete Booking"
-                            >
-                              <Trash2 size={12} strokeWidth={2.5} />
-                            </button>
-                          )}
-                        </div>
-                      </td>
+                                  {/* Special Notes Card */}
+                                  {booking.additional_notes ? (
+                                    <div className="bg-amber-50/70 p-2.5 rounded-lg border border-amber-200/80 text-[11px]">
+                                      <span className="font-black text-amber-900 block mb-0.5">Customer Instructions:</span>
+                                      <p className="text-gray-700 font-medium leading-relaxed italic">"{booking.additional_notes}"</p>
+                                    </div>
+                                  ) : (
+                                    <p className="text-[11px] text-gray-400 italic">No special instructions provided.</p>
+                                  )}
+                                </div>
+                              </div>
 
-                    </tr>
+                              {/* Right Column: Schedule Breakdown & Quick Dispatch */}
+                              <div className="space-y-2 flex flex-col justify-between">
+                                <div>
+                                  <h4 className="text-[11px] font-black uppercase tracking-wider text-gray-400 flex items-center gap-1.5">
+                                    <Calendar size={12} className="text-gray-500" /> Schedule & Actions
+                                  </h4>
+
+                                  <div className="mt-2 bg-gray-50/80 p-3 rounded-lg border border-gray-100 space-y-1 text-[11px]">
+                                    <div className="flex justify-between">
+                                      <span className="text-gray-500 font-bold">Target Date:</span>
+                                      <span className="font-extrabold text-gray-900">{formatDate(booking.preferred_date)}</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                      <span className="text-gray-500 font-bold">Allocated Slot:</span>
+                                      <span className="font-extrabold text-blue-700">
+                                        {booking.allocated_time || booking.preferred_time_period || 'Unassigned'}
+                                      </span>
+                                    </div>
+                                    {booking.cancel_reason && (
+                                      <div className="pt-1 border-t border-gray-200 text-rose-600 font-bold">
+                                        Cancel Reason: {booking.cancel_reason}
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+
+                                {/* Drawer Fast Actions */}
+                                <div className="flex items-center gap-2 pt-2">
+                                  <a
+                                    href={waLink(booking.phone, `Hi ${booking.full_name}, regarding your Detailing Masters appointment for ${booking.service_name || 'Detailing'}:`)}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex-1 py-1.5 bg-[#25D366] hover:bg-[#20ba59] text-white text-[11px] font-black rounded-lg flex items-center justify-center gap-1 shadow-xs"
+                                  >
+                                    <MessageSquare size={12} className="fill-current" />
+                                    <span>WhatsApp</span>
+                                  </a>
+
+                                  {activeTab === 'pending' && (
+                                    <button
+                                      onClick={(e) => startConfirm(booking, e)}
+                                      className="flex-1 py-1.5 bg-black hover:bg-gray-900 text-[#F6CB59] text-[11px] font-black rounded-lg shadow-xs"
+                                    >
+                                      Allocate & Confirm
+                                    </button>
+                                  )}
+
+                                  {activeTab === 'confirmed' && (
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        if (window.confirm('Convert booking into invoice?')) convertBookingMutation.mutate(booking.booking_id);
+                                      }}
+                                      className="flex-1 py-1.5 bg-black hover:bg-gray-900 text-[#F6CB59] text-[11px] font-black rounded-lg shadow-xs flex items-center justify-center gap-1"
+                                    >
+                                      <Sparkles size={11} />
+                                      <span>Create Invoice</span>
+                                    </button>
+                                  )}
+                                </div>
+
+                              </div>
+
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
                   );
                 })}
               </tbody>
@@ -656,13 +838,14 @@ export default function WebsiteBookings() {
           {/* Mobile / Tablet Compact Cards (< 1024px) */}
           <div className="block lg:hidden space-y-3">
             {filteredBookings.map(booking => {
+              const isExpanded = expandedRowId === booking.booking_id;
               const initials = getInitials(booking.full_name);
               const vehicleText = [booking.vehicle_brand, booking.vehicle_model].filter(Boolean).join(' ') || 'Vehicle Unspecified';
 
               return (
                 <div
                   key={booking.booking_id}
-                  className="bg-white/80 backdrop-blur-xl border border-white rounded-2xl p-4 shadow-sm space-y-3"
+                  className="bg-white/90 backdrop-blur-xl border border-white rounded-2xl p-4 shadow-sm space-y-3"
                 >
                   {/* Card Top: Customer & Vehicle */}
                   <div className="flex items-center justify-between gap-3">
@@ -683,7 +866,7 @@ export default function WebsiteBookings() {
                   </div>
 
                   {/* Service & Schedule Matrix */}
-                  <div className="grid grid-cols-2 gap-2 bg-gray-50/70 p-2.5 rounded-xl border border-gray-100 text-[11px]">
+                  <div className="grid grid-cols-2 gap-2 bg-gray-50 p-2.5 rounded-xl border border-gray-100 text-[11px]">
                     <div>
                       <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Service</span>
                       <span className="font-black text-[#8C5D00] truncate block mt-0.5">{booking.service_name || 'General Detailing'}</span>
@@ -704,7 +887,7 @@ export default function WebsiteBookings() {
 
                   {/* Notes Excerpt */}
                   {booking.additional_notes && (
-                    <p className="text-[11px] font-medium text-gray-600 bg-amber-50/50 p-2 rounded-lg border border-amber-100/60">
+                    <p className="text-[11px] font-medium text-gray-600 bg-amber-50/60 p-2 rounded-lg border border-amber-100">
                       <span className="font-bold text-gray-800">Notes: </span>
                       {booking.additional_notes}
                     </p>
@@ -725,13 +908,13 @@ export default function WebsiteBookings() {
                     {activeTab === 'pending' && (
                       <>
                         <button
-                          onClick={() => startConfirm(booking)}
+                          onClick={(e) => startConfirm(booking, e)}
                           className="flex-1 py-2 bg-black text-[#F6CB59] text-[12px] font-black rounded-xl shadow-xs"
                         >
                           Confirm
                         </button>
                         <button
-                          onClick={() => startCancel(booking)}
+                          onClick={(e) => startCancel(booking, e)}
                           className="px-3 py-2 bg-white text-rose-600 border border-rose-200 text-[12px] font-bold rounded-xl"
                         >
                           Cancel
@@ -742,7 +925,8 @@ export default function WebsiteBookings() {
                     {activeTab === 'confirmed' && (
                       <>
                         <button
-                          onClick={() => {
+                          onClick={(e) => {
+                            e.stopPropagation();
                             if (window.confirm('Convert booking into invoice?')) convertBookingMutation.mutate(booking.booking_id);
                           }}
                           disabled={convertBookingMutation.isPending}
@@ -752,7 +936,7 @@ export default function WebsiteBookings() {
                           <span>Convert to Invoice</span>
                         </button>
                         <button
-                          onClick={() => plainStatusChange(booking, 'pending')}
+                          onClick={(e) => plainStatusChange(booking, 'pending', e)}
                           className="px-3 py-2 bg-white text-gray-600 border border-gray-200 text-[12px] font-bold rounded-xl"
                         >
                           Revert
@@ -762,7 +946,7 @@ export default function WebsiteBookings() {
 
                     {(activeTab === 'converted' || activeTab === 'cancelled') && (
                       <button
-                        onClick={() => plainStatusChange(booking, 'pending')}
+                        onClick={(e) => plainStatusChange(booking, 'pending', e)}
                         className="flex-1 py-2 bg-white text-gray-700 border border-gray-200 text-[12px] font-bold rounded-xl"
                       >
                         Reopen
@@ -771,7 +955,7 @@ export default function WebsiteBookings() {
 
                     {can_delete && (
                       <button
-                        onClick={() => handleDelete(booking.booking_id)}
+                        onClick={(e) => handleDelete(booking.booking_id, e)}
                         className="w-9 h-9 flex items-center justify-center rounded-xl bg-rose-50 text-rose-600 border border-rose-200 shrink-0"
                       >
                         <Trash2 size={14} strokeWidth={2.5} />
