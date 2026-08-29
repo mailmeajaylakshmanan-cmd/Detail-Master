@@ -15,15 +15,25 @@ if (!process.env.JWT_SECRET) {
 const app = express();
 
 const allowedOrigins = [
-  ...(process.env.CLIENT_URL ? process.env.CLIENT_URL.split(',') : ['http://localhost:5173']),
-  'https://detailingmasters.in'
+  ...(process.env.CLIENT_URL ? process.env.CLIENT_URL.split(',') : []),
+  'https://manage.detailingmasters.in',
+  'https://detailingmasters.in',
+  'http://localhost:5173',
+  'http://localhost:3000'
 ].map(s => s.trim()).filter(Boolean);
+
+// Root Health Checks for Railway, Load Balancers, and Pingers (before any heavy middleware)
+app.get('/', (req, res) => res.status(200).json({ status: 'ok', app: 'DETAILING MASTERS API' }));
+app.get('/health', (req, res) => res.status(200).json({ status: 'ok' }));
+app.get('/api/health', (req, res) => res.status(200).json({ status: 'ok', app: 'DETAILING MASTERS Billing' }));
+app.head('/', (req, res) => res.sendStatus(200));
+app.head('/health', (req, res) => res.sendStatus(200));
 
 app.use(compression());
 app.use(cors({
   origin(origin, cb) {
     // Allow same-origin / server-to-server / local tools with no Origin header
-    if (!origin || allowedOrigins.includes(origin)) return cb(null, true);
+    if (!origin || allowedOrigins.includes(origin) || origin.endsWith('.vercel.app')) return cb(null, true);
     return cb(new Error('Not allowed by CORS'));
   },
   credentials: true
