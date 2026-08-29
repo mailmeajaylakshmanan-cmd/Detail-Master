@@ -224,9 +224,29 @@ router.post('/', async (req, res) => {
     }
     await client.query('COMMIT');
 
-    // 5. Send notifications safely (won't crash booking if SMTP/WhatsApp fails)
-    sendScheduleEmail(newBooking, 'created').catch(err => console.error('sendScheduleEmail (create) failed:', err));
-    sendBookingWhatsAppNotification(newBooking, serviceArray, 'created').catch(err => console.error('sendBookingWhatsAppNotification (create) failed:', err));
+    // 5. Fetch full service names and send notifications safely (timeout-bounded for serverless & fast delivery)
+    const { rows: svcRows } = await client.query(
+      `SELECT string_agg(s.service_name, ', ') AS service_name
+       FROM web_booking_services wbs
+       JOIN services s ON wbs.service_id = s.id
+       WHERE wbs.booking_id = $1`,
+      [newBookingId]
+    );
+    newBooking.service_name = svcRows[0]?.service_name || 'General Detailing';
+
+    try {
+      const notifyPromise = Promise.allSettled([
+        sendScheduleEmail(newBooking, 'created'),
+        sendBookingWhatsAppNotification(newBooking, serviceArray, 'created')
+      ]);
+      // Give notifications up to 2.5s to dispatch before returning response
+      await Promise.race([
+        notifyPromise,
+        new Promise(resolve => setTimeout(resolve, 2500))
+      ]);
+    } catch (err) {
+      console.error('[web_bookings] Notification dispatch error:', err);
+    }
 
     return res.status(201).json({
       success: true,
@@ -275,17 +295,35 @@ router.put('/:id', async (req, res) => {
     ]);
     const updatedBooking = rows[0];
 
-    if (updatedBooking.service_id) {
+    // Fetch full aggregated service names for email and WhatsApp
+    const { rows: svcRows } = await db.query(
+      `SELECT string_agg(s.service_name, ', ') AS service_name
+       FROM web_booking_services wbs
+       JOIN services s ON wbs.service_id = s.id
+       WHERE wbs.booking_id = $1`,
+      [id]
+    );
+    if (svcRows[0]?.service_name) {
+      updatedBooking.service_name = svcRows[0].service_name;
+    } else if (updatedBooking.service_id) {
       const sRes = await db.query('SELECT service_name FROM services WHERE id = $1', [updatedBooking.service_id]);
       if (sRes.rows.length > 0) updatedBooking.service_name = sRes.rows[0].service_name;
     }
 
-    if (isReschedule) {
-      sendScheduleEmail(updatedBooking, 'rescheduled').catch(err => console.error('sendScheduleEmail (reschedule) failed:', err));
-      sendBookingWhatsAppNotification(updatedBooking, [], 'rescheduled').catch(err => console.error('sendBookingWhatsAppNotification (reschedule) failed:', err));
-    } else if (isStatusChange) {
-      sendScheduleEmail(updatedBooking, updatedBooking.status).catch(err => console.error('sendScheduleEmail (status) failed:', err));
-      sendBookingWhatsAppNotification(updatedBooking, [], updatedBooking.status).catch(err => console.error('sendBookingWhatsAppNotification (status) failed:', err));
+    if (isReschedule || isStatusChange) {
+      const eventType = isReschedule ? 'rescheduled' : updatedBooking.status;
+      try {
+        const notifyPromise = Promise.allSettled([
+          sendScheduleEmail(updatedBooking, eventType),
+          sendBookingWhatsAppNotification(updatedBooking, [], eventType)
+        ]);
+        await Promise.race([
+          notifyPromise,
+          new Promise(resolve => setTimeout(resolve, 2500))
+        ]);
+      } catch (err) {
+        console.error('[web_bookings] Update notification dispatch error:', err);
+      }
     }
 
     res.json(updatedBooking);

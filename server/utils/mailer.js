@@ -1,110 +1,172 @@
 const nodemailer = require('nodemailer');
+const path = require('path');
+const fs = require('fs');
 const { renderBookingEmail, renderSimpleEmail } = require('./emailTemplates');
 
+const smtpPort = Number(process.env.SMTP_PORT) || 587;
+const isSecure = smtpPort === 465;
+
 const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST,
-  port: Number(process.env.SMTP_PORT) || 587,
-  secure: false,
+  host: process.env.SMTP_HOST || 'smtp.gmail.com',
+  port: smtpPort,
+  secure: isSecure,
+  pool: true, // Reuse persistent SMTP socket connections for ultra-fast dispatch
+  maxConnections: 5,
+  maxMessages: 100,
+  rateDelta: 1000,
+  rateLimit: 5,
   auth: {
     user: process.env.SMTP_USER,
     pass: process.env.SMTP_PASS
-  }
+  },
+  tls: {
+    rejectUnauthorized: false
+  },
+  connectionTimeout: 6000,
+  greetingTimeout: 5000,
+  socketTimeout: 10000
 });
+
+// Helper to get invoice shield logo CID attachment
+function getLogoAttachments() {
+  const possiblePaths = [
+    path.join(__dirname, '../assets/brand-logo-for-invoice.png'),
+    path.join(__dirname, '../../client/src/assets/brand-logo-for-invoice.png'),
+    path.join(__dirname, '../../client/src/assets/brand_logo.png')
+  ];
+
+  for (const p of possiblePaths) {
+    if (fs.existsSync(p)) {
+      return [
+        {
+          filename: 'brand-logo-for-invoice.png',
+          path: p,
+          cid: 'invoiceBrandLogo'
+        }
+      ];
+    }
+  }
+  return [];
+}
 
 // event: 'created' | 'rescheduled' | 'pending' | 'confirmed' | 'converted' | 'cancelled'
 const MESSAGES = {
   created: {
-    subject: 'Your Detailing Masters appointment request is pending',
-    headline: 'Booking Request Pending',
-    body: (b, dateStr) => `Dear ${b.full_name}, thank you for choosing Detailing Masters. Your booking request for ${dateStr} has been successfully received and is currently pending confirmation. Our team will review your request and contact you shortly.`
+    subject: 'Your Detailing Masters appointment request is received (Pending Confirmation)',
+    headline: 'Booking Request Received',
+    body: (b, dateStr) => `Dear ${b.full_name}, thank you for choosing Detailing Masters. Your booking request for ${dateStr} has been successfully received and is currently pending confirmation. Our detailing team will review your request and confirm your time slot shortly.`
   },
   rescheduled: {
     subject: 'Your Detailing Masters appointment has been rescheduled',
     headline: 'Your appointment was rescheduled',
-    body: (b, dateStr) => `Hi ${b.full_name}, your appointment has been rescheduled to ${dateStr}.`
+    body: (b, dateStr) => `Hi ${b.full_name}, your Detailing Masters appointment has been rescheduled to ${dateStr}.${b.allocated_time ? ` Allocated Slot: ${b.allocated_time}.` : ''}`
   },
   pending: {
-    subject: 'Your Detailing Masters appointment is pending',
+    subject: 'Your Detailing Masters appointment is pending confirmation',
     headline: 'Appointment pending confirmation',
-    body: (b, dateStr) => `Hi ${b.full_name}, your appointment for ${dateStr} is pending confirmation.`
+    body: (b, dateStr) => `Hi ${b.full_name}, your appointment for ${dateStr} is pending confirmation. We will notify you once confirmed.`
   },
   confirmed: {
-    subject: 'Your Detailing Masters appointment is confirmed',
+    subject: 'Your Detailing Masters appointment is confirmed!',
     headline: 'Your appointment is confirmed',
-    body: (b, dateStr) => `Hi ${b.full_name}, your appointment for ${dateStr} is confirmed. See you then!`
+    body: (b, dateStr) => `Hi ${b.full_name}, your appointment for ${dateStr}${b.allocated_time ? ` at ${b.allocated_time}` : ''} is confirmed. We look forward to detailing your vehicle!`
   },
   converted: {
     subject: 'Your Detailing Masters job order has been created',
     headline: 'Job order created',
-    body: (b) => `Hi ${b.full_name}, your booking has been converted into a job order. Thank you for choosing Detailing Masters!`
+    body: (b) => `Hi ${b.full_name}, your booking has been converted into a live job order. Thank you for choosing Detailing Masters!`
   },
   cancelled: {
     subject: 'Your Detailing Masters appointment has been cancelled',
     headline: 'Appointment cancelled',
-    body: (b, dateStr) => `Hi ${b.full_name}, your appointment for ${dateStr} has been cancelled. Contact us to rebook anytime.`
+    body: (b, dateStr) => `Hi ${b.full_name}, your appointment for ${dateStr} has been cancelled.${b.cancel_reason ? ` Reason: ${b.cancel_reason}` : ''} Please contact us if you would like to reschedule.`
   }
 };
 
 async function sendScheduleEmail(booking, event = 'created') {
-  if (!booking.email) return null;
+  const email = (booking?.email || '').trim();
+  if (!email) {
+    console.log(`[mailer] Skipping email: No recipient email provided for booking #${booking?.booking_id || ''}`);
+    return null;
+  }
 
-  const dateStr = booking.preferred_date
-    ? new Date(booking.preferred_date).toLocaleDateString('en-IN', { dateStyle: 'medium' })
-    : 'TBD';
+  const startTime = Date.now();
+  try {
+    const dateStr = booking.preferred_date
+      ? new Date(booking.preferred_date).toLocaleDateString('en-IN', {
+          day: 'numeric',
+          month: 'short',
+          year: 'numeric'
+        })
+      : 'TBD';
 
-  const template = MESSAGES[event] || MESSAGES.created;
-  const message = template.body(booking, dateStr);
-  const { html } = renderBookingEmail({
-    booking, dateStr, message,
-    subject: template.subject,
-    headline: template.headline
-  });
+    const template = MESSAGES[event] || MESSAGES.created;
+    const message = template.body(booking, dateStr);
+    const { html } = renderBookingEmail({
+      booking,
+      dateStr,
+      message,
+      subject: template.subject,
+      headline: template.headline
+    });
 
-  const info = await transporter.sendMail({
-    from: `"Detailing Masters" <${process.env.SMTP_USER}>`,
-    replyTo: process.env.SMTP_USER,
-    to: booking.email,
-    subject: template.subject,
-    text: message,
-    html
-  });
+    const info = await transporter.sendMail({
+      from: `"Detailing Masters" <${process.env.SMTP_USER}>`,
+      replyTo: process.env.SMTP_USER,
+      to: email,
+      subject: template.subject,
+      text: message,
+      html,
+      attachments: getLogoAttachments()
+    });
 
-  const previewUrl = nodemailer.getTestMessageUrl(info);
-  if (previewUrl) console.log(`[mailer] "${template.subject}" -> ${booking.email} | preview: ${previewUrl}`);
-  else console.log(`[mailer] "${template.subject}" -> ${booking.email} | sent`);
-
-  return info;
+    const elapsed = Date.now() - startTime;
+    console.log(`[mailer] Successfully sent "${template.subject}" -> ${email} in ${elapsed}ms | MessageId: ${info.messageId}`);
+    return info;
+  } catch (error) {
+    const elapsed = Date.now() - startTime;
+    console.error(`[mailer] FAILED sending "${event}" email to ${email} after ${elapsed}ms:`, error.message);
+    return null;
+  }
 }
 
-// Fired once, when every service line item on an invoice has been marked
-// completed (see invoices.service_completed_at).
+// Fired when all services on an invoice are marked completed
 async function sendReadyForPickupEmail({ toEmail, customerName, vehicleLabel, invoiceNumber }) {
-  if (!toEmail) return null;
+  const email = (toEmail || '').trim();
+  if (!email) return null;
 
-  const subject = 'Your vehicle is ready for pickup — Detailing Masters';
-  const message = `Hi ${customerName || 'there'}, great news — all services on your vehicle are complete and it's ready for pickup.`;
-  const { html } = renderSimpleEmail({
-    subject,
-    headline: 'Your vehicle is ready!',
-    message,
-    rows: [
-      ['Vehicle', vehicleLabel],
-      ['Invoice', invoiceNumber],
-    ],
-  });
+  const startTime = Date.now();
+  try {
+    const subject = 'Your vehicle is ready for pickup — Detailing Masters';
+    const message = `Hi ${customerName || 'there'}, great news! All detailing services on your vehicle (${vehicleLabel}) are complete and it is ready for pickup.`;
+    const { html } = renderSimpleEmail({
+      subject,
+      headline: 'Your vehicle is ready!',
+      message,
+      rows: [
+        ['Vehicle', vehicleLabel],
+        ['Invoice', invoiceNumber],
+      ],
+    });
 
-  const info = await transporter.sendMail({
-    from: `"Detailing Masters" <${process.env.SMTP_USER}>`,
-    replyTo: process.env.SMTP_USER,
-    to: toEmail,
-    subject,
-    text: message,
-    html,
-  });
+    const info = await transporter.sendMail({
+      from: `"Detailing Masters" <${process.env.SMTP_USER}>`,
+      replyTo: process.env.SMTP_USER,
+      to: email,
+      subject,
+      text: message,
+      html,
+      attachments: getLogoAttachments()
+    });
 
-  const previewUrl = nodemailer.getTestMessageUrl(info);
-  console.log(`[mailer] "${subject}" -> ${toEmail} | ${previewUrl || 'sent'}`);
-  return info;
+    const elapsed = Date.now() - startTime;
+    console.log(`[mailer] Successfully sent ready-for-pickup email -> ${email} in ${elapsed}ms | MessageId: ${info.messageId}`);
+    return info;
+  } catch (error) {
+    const elapsed = Date.now() - startTime;
+    console.error(`[mailer] FAILED sending ready-for-pickup email to ${email} after ${elapsed}ms:`, error.message);
+    return null;
+  }
 }
 
-module.exports = { sendScheduleEmail, sendReadyForPickupEmail };
+module.exports = { transporter, sendScheduleEmail, sendReadyForPickupEmail };
