@@ -132,40 +132,31 @@ export default function VehicleServiceReport() {
   }
 
   async function fetchPDFBlob() {
-    try {
-      return await generatePDFBlob('invoice-print', `DETAILING MASTERS-ServiceReport-${invoice?.invoiceNo || id}.pdf`);
-    } catch (err) {
-      console.warn('[PDF] Client generation fallback, attempting server...', err);
-      const response = await api.get(`/invoices/${id}/service-report/pdf`);
-      const base64 = response.data.base64;
-      const byteCharacters = atob(base64);
-      const byteNumbers = new Array(byteCharacters.length);
-      for (let i = 0; i < byteCharacters.length; i++) {
-        byteNumbers[i] = byteCharacters.charCodeAt(i);
-      }
-      return new Blob([new Uint8Array(byteNumbers)], { type: 'application/pdf' });
+    const response = await api.get(`/invoices/${id}/service-report/pdf`);
+    const base64 = response.data.base64;
+    const byteCharacters = atob(base64);
+    const byteNumbers = new Array(byteCharacters.length);
+    for (let i = 0; i < byteCharacters.length; i++) {
+      byteNumbers[i] = byteCharacters.charCodeAt(i);
     }
+    return new Blob([new Uint8Array(byteNumbers)], { type: 'application/pdf' });
   }
 
   async function handleDownloadPDF() {
     if (!invoice) return;
     setDownloading(true);
     try {
-      await downloadElementPDF('invoice-print', `DETAILING MASTERS-ServiceReport-${invoice.invoiceNo}.pdf`);
-      toast.success('Service Report downloaded successfully!');
+      const blob = await fetchPDFBlob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `DETAILING MASTERS-ServiceReport-${invoice.invoiceNo}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
     } catch (err) {
-      console.warn('[PDF] Direct download failed, falling back to blob...', err);
-      try {
-        const blob = await fetchPDFBlob();
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `DETAILING MASTERS-ServiceReport-${invoice.invoiceNo}.pdf`;
-        a.click();
-        URL.revokeObjectURL(url);
-      } catch (blobErr) {
-        toast.error('Could not download PDF');
-      }
+      toast.error('Could not download PDF');
     } finally {
       setDownloading(false);
     }
