@@ -86,13 +86,11 @@ app.use((err, req, res, next) => {
 
 if (require.main === module) {
   const PORT = process.env.PORT || 4000;
-  // Apply idempotent performance indexes before serving traffic.
-  ensureIndexes()
-    .catch((err) => console.error('[indexes] bootstrap failed', err))
-    .finally(() => {
-      app.listen(PORT, '0.0.0.0', () => console.log(`Server running on port ${PORT}`));
-      require('./jobs/serviceCompletionReminders').start();
-    });
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Server running on port ${PORT}`);
+  });
+  ensureIndexes().catch((err) => console.error('[indexes] bootstrap failed', err));
+  require('./jobs/serviceCompletionReminders').start();
 }
 
 module.exports = app;
