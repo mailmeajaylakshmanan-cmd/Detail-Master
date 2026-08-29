@@ -876,13 +876,53 @@ async function fetchInvoiceDataForPdf(id) {
 router.get('/:id/pdf', async (req, res) => {
   try {
     const { id } = req.params;
-    const invoice = await fetchInvoiceDataForPdf(id);
-    if (!invoice) return res.status(404).json({ message: 'Invoice not found' });
-
-    const html = renderInvoiceHtml(invoice);
     const browser = await getBrowser();
     const page = await browser.newPage();
-    await page.setContent(html, { waitUntil: 'load' });
+    const clientUrl = getClientUrl(req);
+    
+    console.log(`[PDF] Generating for Invoice ID: ${id} using URL: ${clientUrl}`);
+    
+    const token = req.header('Authorization')?.replace('Bearer ', '');
+    if (token) {
+      await page.evaluateOnNewDocument((authToken) => {
+        localStorage.setItem('token', authToken);
+        localStorage.setItem('isAuthenticated', 'true');
+      }, token);
+    }
+    
+    let renderedLive = false;
+    try {
+      await page.goto(`${clientUrl}/invoices/${id}`, { waitUntil: ['domcontentloaded', 'networkidle2'], timeout: 15000 });
+      await page.waitForSelector('#invoice-print', { timeout: 8000 });
+      await page.evaluate(() => {
+        const invoice = document.getElementById('invoice-print');
+        if (invoice) {
+          document.body.innerHTML = '';
+          document.body.appendChild(invoice);
+          document.body.style.margin = '0';
+          document.body.style.padding = '0';
+          document.body.style.background = '#fff';
+          document.documentElement.style.margin = '0';
+          document.documentElement.style.padding = '0';
+          document.documentElement.style.background = '#fff';
+          document.querySelectorAll('.print\\:hidden').forEach(e => e.remove());
+        }
+      });
+      renderedLive = true;
+    } catch (navErr) {
+      console.warn('[PDF] Navigation fallback to server template:', navErr.message);
+    }
+
+    if (!renderedLive) {
+      const invoice = await fetchInvoiceDataForPdf(id);
+      if (!invoice) {
+        await page.close();
+        return res.status(404).json({ message: 'Invoice not found' });
+      }
+      const html = renderInvoiceHtml(invoice);
+      await page.setContent(html, { waitUntil: 'load' });
+    }
+
     const pdfBuffer = await page.pdf({
       format: 'A4',
       printBackground: true,
@@ -901,13 +941,53 @@ router.get('/:id/pdf', async (req, res) => {
 router.get('/:id/service-report/pdf', async (req, res) => {
   try {
     const { id } = req.params;
-    const invoice = await fetchInvoiceDataForPdf(id);
-    if (!invoice) return res.status(404).json({ message: 'Invoice not found' });
-
-    const html = renderServiceReportHtml(invoice);
     const browser = await getBrowser();
     const page = await browser.newPage();
-    await page.setContent(html, { waitUntil: 'load' });
+    const clientUrl = getClientUrl(req);
+    
+    console.log(`[PDF] Generating Service Report for ID: ${id} using URL: ${clientUrl}`);
+    
+    const token = req.header('Authorization')?.replace('Bearer ', '');
+    if (token) {
+      await page.evaluateOnNewDocument((authToken) => {
+        localStorage.setItem('token', authToken);
+        localStorage.setItem('isAuthenticated', 'true');
+      }, token);
+    }
+    
+    let renderedLive = false;
+    try {
+      await page.goto(`${clientUrl}/invoices/${id}/service-report`, { waitUntil: ['domcontentloaded', 'networkidle2'], timeout: 15000 });
+      await page.waitForSelector('#invoice-print', { timeout: 8000 });
+      await page.evaluate(() => {
+        const report = document.getElementById('invoice-print');
+        if (report) {
+          document.body.innerHTML = '';
+          document.body.appendChild(report);
+          document.body.style.margin = '0';
+          document.body.style.padding = '0';
+          document.body.style.background = '#fff';
+          document.documentElement.style.margin = '0';
+          document.documentElement.style.padding = '0';
+          document.documentElement.style.background = '#fff';
+          document.querySelectorAll('.print\\:hidden').forEach(e => e.remove());
+        }
+      });
+      renderedLive = true;
+    } catch (navErr) {
+      console.warn('[PDF] Service Report navigation fallback:', navErr.message);
+    }
+
+    if (!renderedLive) {
+      const invoice = await fetchInvoiceDataForPdf(id);
+      if (!invoice) {
+        await page.close();
+        return res.status(404).json({ message: 'Invoice not found' });
+      }
+      const html = renderServiceReportHtml(invoice);
+      await page.setContent(html, { waitUntil: 'load' });
+    }
+
     const pdfBuffer = await page.pdf({
       format: 'A4',
       printBackground: true,
@@ -926,13 +1006,53 @@ router.get('/:id/service-report/pdf', async (req, res) => {
 router.get('/:id/quotation/pdf', async (req, res) => {
   try {
     const { id } = req.params;
-    const invoice = await fetchInvoiceDataForPdf(id);
-    if (!invoice) return res.status(404).json({ message: 'Quotation not found' });
-
-    const html = renderInvoiceHtml(invoice);
     const browser = await getBrowser();
     const page = await browser.newPage();
-    await page.setContent(html, { waitUntil: 'load' });
+    const clientUrl = getClientUrl(req);
+    
+    console.log(`[PDF] Generating Quotation for ID: ${id} using URL: ${clientUrl}`);
+    
+    const token = req.header('Authorization')?.replace('Bearer ', '');
+    if (token) {
+      await page.evaluateOnNewDocument((authToken) => {
+        localStorage.setItem('token', authToken);
+        localStorage.setItem('isAuthenticated', 'true');
+      }, token);
+    }
+    
+    let renderedLive = false;
+    try {
+      await page.goto(`${clientUrl}/invoices/${id}/quotation`, { waitUntil: ['domcontentloaded', 'networkidle2'], timeout: 15000 });
+      await page.waitForSelector('#invoice-print', { timeout: 8000 });
+      await page.evaluate(() => {
+        const quotation = document.getElementById('invoice-print');
+        if (quotation) {
+          document.body.innerHTML = '';
+          document.body.appendChild(quotation);
+          document.body.style.margin = '0';
+          document.body.style.padding = '0';
+          document.body.style.background = '#fff';
+          document.documentElement.style.margin = '0';
+          document.documentElement.style.padding = '0';
+          document.documentElement.style.background = '#fff';
+          document.querySelectorAll('.print\\:hidden').forEach(e => e.remove());
+        }
+      });
+      renderedLive = true;
+    } catch (navErr) {
+      console.warn('[PDF] Quotation navigation fallback:', navErr.message);
+    }
+
+    if (!renderedLive) {
+      const invoice = await fetchInvoiceDataForPdf(id);
+      if (!invoice) {
+        await page.close();
+        return res.status(404).json({ message: 'Quotation not found' });
+      }
+      const html = renderInvoiceHtml(invoice);
+      await page.setContent(html, { waitUntil: 'load' });
+    }
+
     const pdfBuffer = await page.pdf({
       format: 'A4',
       printBackground: true,

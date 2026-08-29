@@ -268,28 +268,87 @@ router.post('/:id/redeem', protect, async (req, res) => {
   }
 });
 
+function getClientUrl(req) {
+  const origin = req.get('origin');
+  if (origin && (origin.startsWith('http://') || origin.startsWith('https://'))) {
+    return origin.replace(/\/+$/, '');
+  }
+  const referer = req.get('referer');
+  if (referer && (referer.startsWith('http://') || referer.startsWith('https://'))) {
+    try {
+      const u = new URL(referer);
+      return u.origin.replace(/\/+$/, '');
+    } catch {}
+  }
+  if (process.env.CLIENT_URL) {
+    const list = process.env.CLIENT_URL.split(',').map(s => s.trim()).filter(Boolean);
+    const prod = list.find(u => u.startsWith('https://'));
+    if (prod) return prod.replace(/\/+$/, '');
+    if (list[0]) return list[0].replace(/\/+$/, '');
+  }
+  return 'https://manage.detailingmasters.in';
+}
+
 // GET /offers/:id/pdf - Generate PDF for a specific assigned offer
 router.get('/:id/pdf', async (req, res) => {
   try {
     const { id } = req.params;
-    const result = await pool.query(
-      `SELECT o.*, c.full_name as "customer_name", c.phone as "customer_phone", mo.service_ids, mo.third_party_service_ids, v.make_model as "vehicle_make", v.license_vin
-       FROM assigned_offers o
-       JOIN clients c ON o.client_id = c.id
-       LEFT JOIN vehicles v ON o.vehicle_id = v.id
-       LEFT JOIN master_offers mo ON o.master_offer_id = mo.id
-       WHERE o.id = $1`,
-      [id]
-    );
-    if (result.rows.length === 0) {
-      return res.status(404).json({ message: 'Offer not found' });
-    }
-
-    const offerData = result.rows[0];
-    const html = renderOfferHtml(offerData);
     const browser = await getBrowser();
     const page = await browser.newPage();
-    await page.setContent(html, { waitUntil: 'load' });
+    const clientUrl = getClientUrl(req);
+    
+    console.log(`[PDF] Generating Offer for ID: ${id} using URL: ${clientUrl}`);
+    
+    const token = req.header('Authorization')?.replace('Bearer ', '');
+    if (token) {
+      await page.evaluateOnNewDocument((authToken) => {
+        localStorage.setItem('token', authToken);
+        localStorage.setItem('isAuthenticated', 'true');
+      }, token);
+    }
+    
+    let renderedLive = false;
+    try {
+      await page.goto(`${clientUrl}/offers/${id}`, { waitUntil: ['domcontentloaded', 'networkidle2'], timeout: 15000 });
+      await page.waitForSelector('#invoice-print', { timeout: 8000 });
+      await page.evaluate(() => {
+        const offer = document.getElementById('invoice-print');
+        if (offer) {
+          document.body.innerHTML = '';
+          document.body.appendChild(offer);
+          document.body.style.margin = '0';
+          document.body.style.padding = '0';
+          document.body.style.background = '#fff';
+          document.documentElement.style.margin = '0';
+          document.documentElement.style.padding = '0';
+          document.documentElement.style.background = '#fff';
+          document.querySelectorAll('.print\\:hidden').forEach(e => e.remove());
+        }
+      });
+      renderedLive = true;
+    } catch (navErr) {
+      console.warn('[PDF] Offer navigation fallback:', navErr.message);
+    }
+
+    if (!renderedLive) {
+      const result = await pool.query(
+        `SELECT o.*, c.full_name as "customer_name", c.phone as "customer_phone", mo.service_ids, mo.third_party_service_ids, v.make_model as "vehicle_make", v.license_vin
+         FROM assigned_offers o
+         JOIN clients c ON o.client_id = c.id
+         LEFT JOIN vehicles v ON o.vehicle_id = v.id
+         LEFT JOIN master_offers mo ON o.master_offer_id = mo.id
+         WHERE o.id = $1`,
+        [id]
+      );
+      if (result.rows.length === 0) {
+        await page.close();
+        return res.status(404).json({ message: 'Offer not found' });
+      }
+      const offerData = result.rows[0];
+      const html = renderOfferHtml(offerData);
+      await page.setContent(html, { waitUntil: 'load' });
+    }
+
     const pdfBuffer = await page.pdf({
       format: 'A4',
       printBackground: true,
