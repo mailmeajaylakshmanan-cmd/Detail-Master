@@ -23,7 +23,14 @@ const iconMap = {
 function buildNavItems(menus) {
   if (!menus || !Array.isArray(menus)) return [];
 
-  return menus.map((menu) => {
+  const seen = new Set();
+  const result = [];
+
+  for (const menu of menus) {
+    const key = `${menu.menu_name}-${menu.route_path || ''}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+
     const item = {
       id: menu.id,
       label: menu.menu_name,
@@ -36,8 +43,10 @@ function buildNavItems(menus) {
       item.subItems = buildNavItems(menu.subItems);
     }
 
-    return item;
-  });
+    result.push(item);
+  }
+
+  return result;
 }
 
 function readNavItemsFromStorage() {

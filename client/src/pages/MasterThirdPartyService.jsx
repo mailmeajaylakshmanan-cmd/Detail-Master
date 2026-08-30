@@ -179,12 +179,17 @@ export default function MasterThirdPartyService() {
             </p>
 
             <div className="text-[12px] text-gray-500 space-y-1 mb-4">
-              <div className="flex justify-between"><span>Labour</span><span className="font-medium text-gray-700">{item.labourCount} × ₹{item.labourCharge.toLocaleString('en-IN')}</span></div>
+              <div className="flex justify-between"><span>Labour</span><span className="font-medium text-gray-700">{item.labourCount || 1} × ₹{Number(item.labourCharge || 0).toLocaleString('en-IN')}</span></div>
             </div>
 
             <div className="flex items-center justify-between mt-auto">
-              <div className="text-gray-900 font-bold text-[22px] tracking-tight">
-                ₹{item.sellingPrice.toLocaleString('en-IN')}
+              <div className="flex flex-col">
+                <div className="text-gray-900 font-extrabold text-[20px] tracking-tight">
+                  ₹{((Number(item.sellingPrice || 0)) + ((Number(item.labourCount) || 1) * Number(item.labourCharge || 0))).toLocaleString('en-IN')}
+                </div>
+                <div className="text-[10px] font-semibold text-gray-500">
+                  Base: ₹{Number(item.sellingPrice || 0).toLocaleString('en-IN')} + Labour
+                </div>
               </div>
               <button
                 onClick={(e) => { e.stopPropagation(); handleStatusChange(item.id, !item.isActive); }}

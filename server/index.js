@@ -3,7 +3,8 @@ process.env.TZ = 'Asia/Kolkata';
 const express = require('express');
 const cors = require('cors');
 const compression = require('compression');
-require('dotenv').config();
+const path = require('path');
+require('dotenv').config({ path: path.resolve(__dirname, '.env') });
 const cookieParser = require('cookie-parser');
 const { ensureIndexes } = require('./db/indexes');
 

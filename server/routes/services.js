@@ -171,35 +171,58 @@ router.get('/:id/dependencies', protect, requirePermission('Services'), async (r
     const { id } = req.params;
     
     const invoicesResult = await db.query(
-      'SELECT COUNT(DISTINCT invoice_order_id) as count FROM invoice_services WHERE service_id = $1',
+      'SELECT COUNT(DISTINCT invoice_order_id)::int as count FROM invoice_services WHERE service_id = $1',
       [id]
     );
     
-    const jobsResult = await db.query(
-      'SELECT COUNT(DISTINCT job_order_id) as count FROM job_order_services WHERE service_id = $1',
+    const bookingsResult = await db.query(
+      'SELECT COUNT(DISTINCT booking_id)::int as count FROM web_booking_services WHERE service_id = $1',
       [id]
     );
 
+    const invoices = invoicesResult.rows[0]?.count || 0;
+    const webBookings = bookingsResult.rows[0]?.count || 0;
+    const total = invoices + webBookings;
+
     res.json({
-      invoices: parseInt(invoicesResult.rows[0].count, 10),
-      jobOrders: parseInt(jobsResult.rows[0].count, 10),
-      total: parseInt(invoicesResult.rows[0].count, 10) + parseInt(jobsResult.rows[0].count, 10)
+      invoices,
+      webBookings,
+      total
     });
   } catch (err) {
-    console.error(err);
+    console.error('Error checking service dependencies:', err);
     res.status(500).json({ message: 'Server error checking dependencies' });
   }
 });
 
-// 🔒 PROTECTED ROUTE: DELETE a service (Soft Delete)
+// 🔒 PROTECTED ROUTE: DELETE a service
 router.delete('/:id', protect, requirePermission('Services'), async (req, res) => {
   try {
     const { id } = req.params;
-    const { rowCount } = await db.query('UPDATE services SET is_active = false WHERE id = $1', [id]);
-    if (rowCount === 0) return res.status(404).json({ message: 'Service not found' });
-    res.json({ message: 'Service deleted successfully' });
+
+    const { rows: invCount } = await db.query(
+      'SELECT COUNT(*)::int as count FROM invoice_services WHERE service_id = $1',
+      [id]
+    );
+    const { rows: bookCount } = await db.query(
+      'SELECT COUNT(*)::int as count FROM web_booking_services WHERE service_id = $1',
+      [id]
+    );
+
+    const hasUsage = (invCount[0]?.count || 0) > 0 || (bookCount[0]?.count || 0) > 0;
+
+    if (hasUsage) {
+      const { rowCount } = await db.query('UPDATE services SET is_active = false WHERE id = $1', [id]);
+      if (rowCount === 0) return res.status(404).json({ message: 'Service not found' });
+      res.json({ message: 'Service archived (historical records preserved)' });
+    } else {
+      await db.query('DELETE FROM service_vehicle_prices WHERE service_id = $1', [id]);
+      const { rowCount } = await db.query('DELETE FROM services WHERE id = $1', [id]);
+      if (rowCount === 0) return res.status(404).json({ message: 'Service not found' });
+      res.json({ message: 'Service deleted permanently' });
+    }
   } catch (err) {
-    console.error(err);
+    console.error('Error deleting service:', err);
     res.status(500).json({ message: 'Server error' });
   }
 });

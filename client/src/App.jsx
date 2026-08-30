@@ -119,6 +119,7 @@ export default function App() {
         <Route path="invoices/:id/service-report" element={<LazyPage><VehicleServiceReport /></LazyPage>} />
         <Route path="master-service" element={<LazyPage><MasterService /></LazyPage>} />
         <Route path="master-third-party-service" element={<LazyPage><MasterThirdPartyService /></LazyPage>} />
+        <Route path="master-third-party-services" element={<Navigate to="/master-third-party-service" replace />} />
         <Route path="master-vehicle-type" element={<LazyPage><MasterVehicleType /></LazyPage>} />
         <Route path="master-customer" element={<LazyPage><MasterCustomer /></LazyPage>} />
         <Route path="master-customer/:phone" element={<LazyPage><CustomerProfile /></LazyPage>} />

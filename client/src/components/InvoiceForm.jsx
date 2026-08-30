@@ -273,35 +273,51 @@ const ServiceChip = memo(function ServiceChip({ opt, checked, onToggle, resolved
 const ThirdPartyServiceChip = memo(function ThirdPartyServiceChip({ opt, checked, onToggle, resolvedPrice, vehicleTypeName }) {
   let displayPrice = resolvedPrice;
   let labelSuffix = vehicleTypeName || '';
+  const labourCount = Number(opt.labourCount) || 1;
+  const labourCharge = Number(opt.labourCharge) || 0;
+  const labourCostTotal = labourCount * labourCharge;
+
   if (!vehicleTypeName && opt.vehiclePrices && opt.vehiclePrices.length > 0) {
     const minP = Math.min(...opt.vehiclePrices.map(vp => Number(vp.selling_price)).filter(p => p > 0));
     if (isFinite(minP)) {
-      displayPrice = minP;
+      displayPrice = minP + labourCostTotal;
       labelSuffix = ' (From)';
     }
   }
-  let safePrice = 0;
+
+  let fullPrice = 0;
   if (typeof displayPrice === 'number') {
-    safePrice = isNaN(displayPrice) ? 0 : displayPrice;
+    fullPrice = isNaN(displayPrice) ? 0 : displayPrice;
   } else if (typeof displayPrice === 'string') {
     const parsed = Number(displayPrice.replace(/[^0-9.-]+/g, ''));
-    safePrice = isNaN(parsed) ? 0 : parsed;
+    fullPrice = isNaN(parsed) ? 0 : parsed;
   } else {
-    safePrice = Number(opt.sellingPrice || 0) || 0;
+    fullPrice = (Number(opt.sellingPrice || 0) || 0) + labourCostTotal;
   }
+
   return (
-    <label className={`flex flex-col gap-0.5 cursor-pointer px-4 py-2.5 rounded-xl text-[13px] font-bold transition-all border ${checked
+    <label className={`flex flex-col gap-1 cursor-pointer px-4 py-3 rounded-xl text-[13px] font-bold transition-all border ${checked
         ? 'bg-amber-500 text-white border-amber-500 shadow-md shadow-amber-500/20'
-        : 'bg-white text-gray-600 border-gray-200 hover:bg-amber-50 hover:border-amber-200'
+        : 'bg-white text-gray-800 border-gray-200 hover:bg-amber-50 hover:border-amber-200 shadow-2xs'
       }`}>
       <input type="checkbox" checked={checked} onChange={e => onToggle(opt, e.target.checked)} className="sr-only" />
-      <span className="flex items-center gap-1.5">
-        <Truck size={12} className={checked ? 'text-white' : 'text-amber-500'} />
-        {opt.name}
-      </span>
-      <span className={`text-[11px] font-medium ${checked ? 'text-amber-50' : 'text-gray-500'}`}>
-        {opt.vendorName ? `${opt.vendorName} · ` : ''}₹{safePrice.toLocaleString('en-IN')}{labelSuffix}
-      </span>
+      <div className="flex items-center justify-between gap-3">
+        <span className="flex items-center gap-1.5 font-bold">
+          <Truck size={14} className={checked ? 'text-white' : 'text-amber-500'} />
+          {opt.name}
+        </span>
+        <span className={`text-[12px] font-black font-mono ${checked ? 'text-white' : 'text-gray-900'}`}>
+          ₹{fullPrice.toLocaleString('en-IN')}{labelSuffix}
+        </span>
+      </div>
+      <div className={`text-[11px] font-medium flex items-center justify-between gap-2 flex-wrap ${checked ? 'text-amber-100' : 'text-gray-500'}`}>
+        <span>{opt.vendorName ? `Vendor: ${opt.vendorName}` : 'Third-Party'}</span>
+        {labourCostTotal > 0 ? (
+          <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${checked ? 'bg-amber-600/60 text-white' : 'bg-amber-100/80 text-amber-900'}`}>
+            Labour: {labourCount} × ₹{labourCharge.toLocaleString('en-IN')} (₹{labourCostTotal.toLocaleString('en-IN')})
+          </span>
+        ) : null}
+      </div>
     </label>
   );
 });
@@ -460,52 +476,120 @@ const ThirdPartyServiceRow = memo(function ThirdPartyServiceRow({ item, onField,
     return (allVehicles || []).filter(v => item.vehicle_ids.includes(v.id));
   }, [item.vehicle_ids, allVehicles]);
 
+  const labourCount = Number(item.labour_count || thirdPartyOption?.labourCount || 1);
+  const labourCharge = Number(item.labour_charge || thirdPartyOption?.labourCharge || 0);
+  const labourCostTotal = labourCount * labourCharge;
+
   return (
-    <div className="flex flex-col gap-3 bg-amber-50/40 p-4 rounded-xl border border-amber-200/60 shadow-2xs">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="sm:w-2/5 font-bold text-[14px] text-amber-950 flex items-center gap-2">
-          <Truck size={15} className="text-amber-600 shrink-0" />
-          <span>{item.service_name}</span>
-          {item.vendor_name && <span className="text-[11px] font-medium text-amber-700 bg-amber-100/60 px-2 py-0.5 rounded-md">({item.vendor_name})</span>}
+    <div className="flex flex-col gap-3.5 bg-amber-50/60 p-4 sm:p-5 rounded-2xl border border-amber-200/80 shadow-2xs">
+      {/* Top Header: Service Title, Vendor Name, Labour Cost Badge, & Actions */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-amber-200/60">
+        <div className="flex items-center gap-2.5 flex-wrap min-w-0">
+          <div className="w-8 h-8 rounded-xl bg-amber-500/10 text-amber-700 flex items-center justify-center shrink-0">
+            <Truck size={17} />
+          </div>
+          <div>
+            <h4 className="text-[14px] font-bold text-gray-900 leading-tight">{item.service_name}</h4>
+            {item.vendor_name && (
+              <span className="text-[11px] font-medium text-amber-800">
+                Vendor: <span className="font-bold">{item.vendor_name}</span>
+              </span>
+            )}
+          </div>
         </div>
 
-        <div className="flex-1">
-          <input
-            className={`${inputCls} bg-white shadow-sm border-gray-200 text-xs ${readOnly ? 'pointer-events-none opacity-80' : ''}`}
-            placeholder="Work instructions / vendor notes"
-            value={item.description || ''}
-            onChange={e => onField('description', e.target.value)}
-            readOnly={readOnly}
+        {/* Cost & Summary Pills + Actions */}
+        <div className="flex items-center gap-2.5 flex-wrap">
+          {labourCostTotal > 0 && (
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-white border border-amber-200 text-amber-900 text-[11px] font-semibold shadow-2xs">
+              <span className="text-amber-700 font-bold uppercase text-[10px] tracking-wider">Labour Cost:</span>
+              <span className="font-mono font-bold">₹{labourCostTotal.toLocaleString('en-IN')}</span>
+              <span className="text-[10px] text-gray-500">({labourCount} × ₹{labourCharge.toLocaleString('en-IN')})</span>
+            </span>
+          )}
+
+          {vehicleOptions && vehicleOptions.length > 1 && (
+            <button
+              type="button"
+              onClick={onVehiclesChange}
+              className="text-amber-800 bg-amber-100 hover:bg-amber-200 font-bold text-[11px] px-2.5 py-1 rounded-lg transition-colors"
+            >
+              Edit Vehicles ({(item?.vehicle_ids || []).length})
+            </button>
+          )}
+
+          {!readOnly && (
+            <button
+              type="button"
+              onClick={onRemove}
+              className="text-rose-600 hover:text-rose-700 hover:bg-rose-50 font-bold text-[12px] px-2.5 py-1 rounded-lg transition-colors"
+            >
+              Remove
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Notes Input */}
+      <div className="flex flex-col">
+        <label className="block text-[10px] font-bold uppercase tracking-wider mb-1 text-gray-600">
+          Work Instructions / Vendor Notes
+        </label>
+        <input
+          className="input w-full bg-white shadow-2xs border border-gray-200/80 rounded-xl px-3.5 py-2.5 text-xs text-gray-900 placeholder:text-gray-400 focus:ring-2 focus:ring-amber-500/20 focus:border-amber-400 transition-all"
+          placeholder="e.g. Paint color code, finish type, special instructions..."
+          value={item.description || ''}
+          onChange={e => onField('description', e.target.value)}
+          readOnly={readOnly}
+        />
+      </div>
+
+      {/* Selling Price + Labour + Total */}
+      <div className="flex flex-wrap items-end gap-2.5">
+        {/* Selling Price Input */}
+        <div className="flex flex-col min-w-[120px]">
+          <label className="block text-[10px] font-bold uppercase tracking-wider mb-1 text-amber-900/80">
+            Selling Price (₹) *
+          </label>
+          <MoneyInput
+            value={item.selling_price || ''}
+            onChange={e => onField('selling_price', e.target.value)}
+            disabled={readOnly}
           />
         </div>
 
-        <div className="sm:w-40 flex flex-col gap-2 items-end">
-          <div className="w-full flex flex-col items-end">
-            <span className="text-[10px] font-bold text-amber-900/60 uppercase tracking-wider mb-0.5">Selling Price</span>
-            <MoneyInput value={item.selling_price || ''} onChange={val => onField('selling_price', val)} disabled={readOnly} />
+        {/* Plus sign */}
+        <div className="flex items-center pb-2 text-amber-700 font-black text-lg select-none">+</div>
+
+        {/* Labour Charge (read-only display) */}
+        <div className="flex flex-col min-w-[120px]">
+          <label className="block text-[10px] font-bold uppercase tracking-wider mb-1 text-gray-500">
+            Labour Charge (₹)
+          </label>
+          <div className="h-[38px] px-3 py-2 bg-white border border-amber-200 rounded-xl font-mono font-bold text-sm text-amber-900 flex items-center justify-end shadow-2xs whitespace-nowrap">
+            ₹{labourCostTotal.toLocaleString('en-IN')}
           </div>
-          <div className="w-full flex flex-col items-end">
-            <span className="text-[10px] font-bold text-amber-900/60 uppercase tracking-wider mb-0.5">Vendor Cost</span>
-            <MoneyInput value={item.vendor_cost || ''} onChange={val => onField('vendor_cost', val)} disabled={readOnly} />
-          </div>
-          <div className="flex items-center gap-2">
-            {vehicleOptions && vehicleOptions.length > 1 && (
-              <button type="button" onClick={onVehiclesChange} className="text-amber-700 font-bold text-[11px] hover:underline">
-                Edit Vehicles ({(item?.vehicle_ids || []).length})
-              </button>
-            )}
-            {!readOnly && (
-              <button type="button" onClick={onRemove} className="text-rose-500 hover:text-rose-700 font-bold text-[11px]">
-                Remove
-              </button>
-            )}
+        </div>
+
+        {/* Equals sign */}
+        <div className="flex items-center pb-2 text-amber-700 font-black text-lg select-none">=</div>
+
+        {/* Total */}
+        <div className="flex flex-col min-w-[130px]">
+          <label className="block text-[10px] font-bold uppercase tracking-wider mb-1 text-amber-950">
+            Total Charge (₹)
+          </label>
+          <div className="h-[38px] px-3 py-2 bg-gradient-to-r from-amber-500 to-amber-600 text-white rounded-xl font-mono font-black text-sm flex items-center justify-between shadow-xs whitespace-nowrap">
+            <span className="text-[9px] uppercase tracking-wider font-sans font-extrabold text-amber-100 mr-1">Total:</span>
+            <span>₹{((Number(item.selling_price) || 0) + labourCostTotal).toLocaleString('en-IN')}</span>
           </div>
         </div>
       </div>
 
       {/* Per-Vehicle Price Breakdown Pill List */}
       {appliedVehicles.length > 0 && (
-        <div className="flex flex-wrap gap-1.5 pt-2 border-t border-amber-200/40">
+        <div className="flex flex-wrap gap-1.5 pt-2.5 border-t border-amber-200/50 items-center">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-amber-800 mr-1">Assigned to:</span>
           {appliedVehicles.map(v => {
             const vtId = v.vehicle_type_id;
             let vPrice = Number(thirdPartyOption?.sellingPrice || item.selling_price || 0);
@@ -515,10 +599,10 @@ const ThirdPartyServiceRow = memo(function ThirdPartyServiceRow({ item, onField,
               if (!isNaN(mapped) && mapped > 0) vPrice = mapped;
             }
             return (
-              <span key={v.id} className="text-[11px] font-bold bg-white text-amber-950 border border-amber-200 rounded-lg px-2.5 py-1 flex items-center gap-1.5 shadow-2xs">
-                <Car size={11} className="text-amber-600 shrink-0" />
+              <span key={v.id} className="text-[11px] font-bold bg-white text-amber-950 border border-amber-200/80 rounded-lg px-2.5 py-1 flex items-center gap-1.5 shadow-2xs">
+                <Car size={12} className="text-amber-600 shrink-0" />
                 <span>{[v.make, v.model].filter(Boolean).join(' ') || 'Vehicle'}{v.plate ? ` (${v.plate})` : ''}</span>
-                {v.type && <span className="text-[10px] bg-amber-100 text-amber-800 px-1.5 py-0.2 rounded font-extrabold uppercase">{v.type}</span>}
+                {v.type && <span className="text-[10px] bg-amber-100 text-amber-900 px-1.5 py-0.2 rounded font-extrabold uppercase">{v.type}</span>}
                 <span className="font-mono text-amber-900 font-bold">₹{vPrice.toLocaleString('en-IN')}</span>
               </span>
             );
@@ -671,7 +755,11 @@ export default function InvoiceForm({ initial, onSubmit, loading }) {
 
   const servicesSubTotal = form.services.reduce((acc, s) => acc + (Number(s.total) || 0) * (s.vehicle_ids?.length || 1), 0);
   const thirdPartySubTotal = useMemo(
-    () => form.thirdPartyItems.reduce((sum, t) => sum + (Number(t.selling_price) || 0) * (t.vehicle_ids?.length || 1), 0),
+    () => form.thirdPartyItems.reduce((sum, t) => {
+      const sellingP = Number(t.selling_price) || 0;
+      const labourC = (Number(t.labour_count) || 1) * (Number(t.labour_charge) || 0);
+      return sum + (sellingP + labourC) * (t.vehicle_ids?.length || 1);
+    }, 0),
     [form.thirdPartyItems]
   );
   const subTotal = isOfferPurchase ? Number(form.subTotal || 0) : (servicesSubTotal + thirdPartySubTotal);
@@ -761,6 +849,19 @@ export default function InvoiceForm({ initial, onSubmit, loading }) {
   const resolveThirdPartyPrice = useCallback((opt, vid) => {
     if (!opt) return 0;
     const baseP = Number(opt.sellingPrice || 0);
+    const labourTotal = (Number(opt.labourCount) || 1) * (Number(opt.labourCharge) || 0);
+    const vtId = getVehicleTypeId(vid);
+    if (vtId && opt.vehiclePricesMap && opt.vehiclePricesMap[vtId] !== undefined) {
+      const p = Number(opt.vehiclePricesMap[vtId]);
+      if (!isNaN(p) && p > 0) return p + labourTotal;
+    }
+    return (!isNaN(baseP) ? baseP : 0) + labourTotal;
+  }, [getVehicleTypeId]);
+
+  // Returns ONLY the base selling price (no labour) for initializing selling_price field
+  const resolveThirdPartySellingPrice = useCallback((opt, vid) => {
+    if (!opt) return 0;
+    const baseP = Number(opt.sellingPrice || 0);
     const vtId = getVehicleTypeId(vid);
     if (vtId && opt.vehiclePricesMap && opt.vehiclePricesMap[vtId] !== undefined) {
       const p = Number(opt.vehiclePricesMap[vtId]);
@@ -768,6 +869,11 @@ export default function InvoiceForm({ initial, onSubmit, loading }) {
     }
     return !isNaN(baseP) ? baseP : 0;
   }, [getVehicleTypeId]);
+
+  const calculateThirdPartySellingForVehicles = useCallback((opt, vehicleIds) => {
+    if (!opt || !vehicleIds || vehicleIds.length === 0) return 0;
+    return vehicleIds.reduce((sum, vid) => sum + resolveThirdPartySellingPrice(opt, vid), 0);
+  }, [resolveThirdPartySellingPrice]);
 
   const calculateThirdPartyTotalForVehicles = useCallback((opt, vehicleIds) => {
     if (!opt || !vehicleIds || vehicleIds.length === 0) return 0;
@@ -806,15 +912,17 @@ export default function InvoiceForm({ initial, onSubmit, loading }) {
   }, [form.customer, resolveServicePrice, calculateServiceTotalForVehicles]);
 
   const getThirdPartyBadgeInfo = useCallback((opt, vehicleIds) => {
+    const labourTotal = (Number(opt.labourCount) || 1) * (Number(opt.labourCharge) || 0);
     if (!vehicleIds || vehicleIds.length === 0) {
       if (opt.vehiclePrices && opt.vehiclePrices.length > 0) {
         const prices = opt.vehiclePrices.map(vp => Number(vp.selling_price)).filter(p => p > 0);
         const minP = Math.min(...prices);
         if (isFinite(minP)) {
-          return { price: minP, priceStr: `₹${minP.toLocaleString('en-IN')}`, suffix: ' (From)' };
+          const fullMin = minP + labourTotal;
+          return { price: fullMin, priceStr: `₹${fullMin.toLocaleString('en-IN')}`, suffix: ' (From)' };
         }
       }
-      const p = Number(opt.sellingPrice || 0);
+      const p = Number(opt.sellingPrice || 0) + labourTotal;
       return { price: p, priceStr: `₹${p.toLocaleString('en-IN')}`, suffix: '' };
     }
 
@@ -903,7 +1011,8 @@ export default function InvoiceForm({ initial, onSubmit, loading }) {
 
   const addThirdPartyItem = useCallback((catalogId, vehicle_ids) => {
     const opt = thirdPartyOptions.find(t => t.id === Number(catalogId));
-    const initialTotal = calculateThirdPartyTotalForVehicles(opt, vehicle_ids);
+    // Use selling-only price (no labour) — UI adds labour separately in the Total display
+    const initialSelling = calculateThirdPartySellingForVehicles(opt, vehicle_ids);
     setForm(f => ({
       ...f,
       thirdPartyItems: [...f.thirdPartyItems, {
@@ -912,10 +1021,10 @@ export default function InvoiceForm({ initial, onSubmit, loading }) {
         vendor_name: opt?.vendorName || '',
         labour_count: opt?.labourCount ?? 1,
         labour_charge: opt?.labourCharge ?? 0,
-        selling_price: initialTotal,
+        selling_price: initialSelling,
       }],
     }));
-  }, [thirdPartyOptions, calculateThirdPartyTotalForVehicles]);
+  }, [thirdPartyOptions, calculateThirdPartySellingForVehicles]);
 
   const toggleThirdPartyItem = useCallback((opt, checked) => {
     if (checked) {
@@ -1019,6 +1128,7 @@ export default function InvoiceForm({ initial, onSubmit, loading }) {
       labour_count: Number(t.labour_count) || 1,
       labour_charge: Number(t.labour_charge) || 0,
       selling_price: Number(t.selling_price) || 0,
+      vendor_cost: Number(t.vendor_cost) || 0,
       vehicle_ids: t.vehicle_ids || [],
     }));
 
@@ -1167,10 +1277,11 @@ export default function InvoiceForm({ initial, onSubmit, loading }) {
       }));
     } else if (type === 'edit_third_party') {
       const tpOpt = thirdPartyOptions.find(t => t.id === opt.third_party_service_id || t.name === opt.service_name);
-      const totalForVehs = calculateThirdPartyTotalForVehicles(tpOpt, selectedIds);
+      // Use selling-only price (no labour) — UI adds labour separately
+      const sellingForVehs = calculateThirdPartySellingForVehicles(tpOpt, selectedIds);
       setForm(f => ({
         ...f,
-        thirdPartyItems: f.thirdPartyItems.map((item, idx) => (idx === opt.idx ? { ...item, vehicle_ids: selectedIds, selling_price: totalForVehs } : item))
+        thirdPartyItems: f.thirdPartyItems.map((item, idx) => (idx === opt.idx ? { ...item, vehicle_ids: selectedIds, selling_price: sellingForVehs } : item))
       }));
     }
     setServiceModal({ isOpen: false, type: null, opt: null, selectedVehicleIds: [] });

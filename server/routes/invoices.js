@@ -379,7 +379,9 @@ router.post('/', async (req, res) => {
     const tPartyItems = Array.isArray(third_party_items) ? third_party_items : [];
     const thirdPartySubTotal = tPartyItems.reduce((sum, t) => {
       const qty = Array.isArray(t.vehicle_ids) && t.vehicle_ids.length > 0 ? t.vehicle_ids.length : 1;
-      return sum + (Number(t.selling_price) * qty);
+      const sellingP = Number(t.selling_price) || 0;
+      const labourC = (t.labour_count !== undefined ? Number(t.labour_count) : 1) * (Number(t.labour_charge) || 0);
+      return sum + ((sellingP + labourC) * qty);
     }, 0);
 
     const subTotal = serviceSubTotal + thirdPartySubTotal;

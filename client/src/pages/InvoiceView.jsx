@@ -100,17 +100,22 @@ function normalizeInvoice(row) {
     }, {})).map(s => ({ ...s, vehicle_plate: s.plates.join(', ') })),
     thirdPartyServices: Object.values((row.thirdPartyServices || []).reduce((acc, t) => {
       const name = t.service_name || t.service;
+      const sellingP = Number(t.selling_price) || 0;
+      const labourC = (t.labour_count !== undefined ? Number(t.labour_count) : 1) * (Number(t.labour_charge) || 0);
+      const unitFullPrice = sellingP + labourC;
       if (!acc[name]) {
         acc[name] = {
           ...t,
-          selling_price: Number(t.selling_price) || 0,
+          selling_price: sellingP,
+          labour_charge: labourC,
+          unit_full_price: unitFullPrice,
           quantity: 0,
           total: 0,
           plates: []
         };
       }
       acc[name].quantity += (t.quantity || 1);
-      acc[name].total += (Number(t.selling_price) || 0);
+      acc[name].total += unitFullPrice * (t.quantity || 1);
       if (t.vehicle_plate) acc[name].plates.push(t.vehicle_plate);
       return acc;
     }, {})).map(t => ({ ...t, vehicle_plate: t.plates.join(', ') })),
@@ -555,7 +560,12 @@ export default function InvoiceView() {
                                 </div>
                              </td>
                              <td style={{ padding: '6px 10px', border: '1px solid #000', textAlign: 'center', color: '#000' }}>{t.quantity || 1}</td>
-                             <td style={{ padding: '6px 10px', border: '1px solid #000', textAlign: 'center', color: '#000' }}>₹{fmt(t.selling_price)}</td>
+                              <td style={{ padding: '6px 10px', border: '1px solid #000', textAlign: 'center', color: '#000' }}>
+                                 ₹{fmt(t.unit_full_price || t.selling_price)}
+                                 {t.labour_charge > 0 && (
+                                    <div style={{ fontSize: 9, color: '#666' }}>(Base ₹{fmt(t.selling_price)} + Labour ₹{fmt(t.labour_charge)})</div>
+                                 )}
+                              </td>
                              <td style={{ padding: '6px 10px', border: '1px solid #000', textAlign: 'center', color: '#000', fontWeight: 600 }}>₹{fmt(t.total)}</td>
                           </tr>
                           );
