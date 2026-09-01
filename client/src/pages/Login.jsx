@@ -97,7 +97,7 @@ export default function Login() {
             <p className="text-[14px] font-medium text-slate-500">Manage your premium detailing business</p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit} noValidate className="space-y-6">
             <div className="space-y-2">
               <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2 mb-2">
                 <User size={14} className="text-slate-400" /> Username

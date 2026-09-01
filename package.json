@@ -6,6 +6,8 @@
     "dev": "concurrently \"npm run server\" \"npm run client\"",
     "server": "cd server && npm run dev",
     "client": "cd client && npm run dev",
+    "test:e2e": "cd client && npm run test:e2e",
+    "test:e2e:ui": "cd client && npm run test:e2e:ui",
     "install:all": "npm install && cd client && npm install && cd ../server && npm install",
     "postinstall": "cd server && npm install"
   },
