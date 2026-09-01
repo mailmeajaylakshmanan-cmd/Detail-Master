@@ -12,7 +12,7 @@ export function parseSafeDate(dateStr) {
   const trimmed = typeof dateStr === 'string' ? dateStr.trim() : String(dateStr);
 
   // Try to match DD/MM/YYYY or DD-MM-YYYY
-  const match = trimmed.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+  const match = trimmed.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{4})$/);
   
   if (match) {
     const day = parseInt(match[1], 10);
