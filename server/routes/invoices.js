@@ -31,8 +31,19 @@ function mapStatus(status, balanceDue, grandTotal, amountPaid) {
   return 'draft';
 }
 
+let lastInvoiceTimestamp = 0;
+let invoiceSeqCounter = 0;
+
 function buildInvoiceNumber() {
-  return `INV-DM-${Date.now()}`;
+  const now = Date.now();
+  if (now === lastInvoiceTimestamp) {
+    invoiceSeqCounter = (invoiceSeqCounter + 1) % 1000;
+  } else {
+    lastInvoiceTimestamp = now;
+    invoiceSeqCounter = 0;
+  }
+  const suffix = invoiceSeqCounter > 0 ? `-${invoiceSeqCounter}` : `-${Math.floor(Math.random() * 900 + 100)}`;
+  return `INV-DM-${now}${suffix}`;
 }
 
 // GET invoices with filters + pagination
@@ -820,7 +831,7 @@ function getClientUrl(req) {
     if (prod) return prod.replace(/\/+$/, '');
     if (list[0]) return list[0].replace(/\/+$/, '');
   }
-  return 'https://manage.detailingmasters.in';
+  return process.env.NODE_ENV === 'production' ? 'https://manage.detailingmasters.in' : 'http://localhost:5173';
 }
 
 async function fetchInvoiceDataForPdf(id) {
@@ -889,6 +900,7 @@ router.get('/:id/pdf', async (req, res) => {
       await page.evaluateOnNewDocument((authToken) => {
         localStorage.setItem('token', authToken);
         localStorage.setItem('isAuthenticated', 'true');
+        localStorage.setItem('user', JSON.stringify({ role: 'admin', role_name: 'Super Admin' }));
       }, token);
     }
     
@@ -954,6 +966,7 @@ router.get('/:id/service-report/pdf', async (req, res) => {
       await page.evaluateOnNewDocument((authToken) => {
         localStorage.setItem('token', authToken);
         localStorage.setItem('isAuthenticated', 'true');
+        localStorage.setItem('user', JSON.stringify({ role: 'admin', role_name: 'Super Admin' }));
       }, token);
     }
     
@@ -1004,68 +1017,43 @@ router.get('/:id/service-report/pdf', async (req, res) => {
   }
 });
 
-// Puppeteer PDF Generation Endpoint for Quotation
-router.get('/:id/quotation/pdf', async (req, res) => {
+// DELETE /:id - Cancel or delete invoice
+router.delete('/:id', async (req, res) => {
+  const client = await db.pool.connect();
   try {
     const { id } = req.params;
-    const browser = await getBrowser();
-    const page = await browser.newPage();
-    const clientUrl = getClientUrl(req);
-    
-    console.log(`[PDF] Generating Quotation for ID: ${id} using URL: ${clientUrl}`);
-    
-    const token = req.header('Authorization')?.replace('Bearer ', '');
-    if (token) {
-      await page.evaluateOnNewDocument((authToken) => {
-        localStorage.setItem('token', authToken);
-        localStorage.setItem('isAuthenticated', 'true');
-      }, token);
+    await client.query('BEGIN');
+
+    const invRes = await client.query('SELECT id, status FROM invoices WHERE id = $1', [id]);
+    if (invRes.rows.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ message: 'Invoice not found' });
     }
-    
-    let renderedLive = false;
-    try {
-      await page.goto(`${clientUrl}/invoices/${id}/quotation`, { waitUntil: ['domcontentloaded', 'networkidle2'], timeout: 15000 });
-      await page.waitForSelector('#invoice-print', { timeout: 8000 });
-      await page.evaluate(() => {
-        const quotation = document.getElementById('invoice-print');
-        if (quotation) {
-          document.body.innerHTML = '';
-          document.body.appendChild(quotation);
-          document.body.style.margin = '0';
-          document.body.style.padding = '0';
-          document.body.style.background = '#fff';
-          document.documentElement.style.margin = '0';
-          document.documentElement.style.padding = '0';
-          document.documentElement.style.background = '#fff';
-          document.querySelectorAll('.print\\:hidden').forEach(e => e.remove());
-        }
-      });
-      renderedLive = true;
-    } catch (navErr) {
-      console.warn('[PDF] Quotation navigation fallback:', navErr.message);
+    const inv = invRes.rows[0];
+
+    const payRes = await client.query('SELECT COUNT(*)::int as count FROM payments WHERE invoice_order_id = $1', [id]);
+    const paymentCount = payRes.rows[0]?.count || 0;
+
+    // If draft and has no payments: hard delete draft
+    if (inv.status === 'draft' && paymentCount === 0) {
+      await client.query('DELETE FROM invoice_services WHERE invoice_order_id = $1', [id]);
+      await client.query('DELETE FROM invoice_third_party_services WHERE invoice_order_id = $1', [id]);
+      await client.query('DELETE FROM invoices WHERE id = $1', [id]);
+
+      await client.query('COMMIT');
+      return res.json({ message: 'Draft invoice deleted permanently', status: 'deleted' });
     }
 
-    if (!renderedLive) {
-      const invoice = await fetchInvoiceDataForPdf(id);
-      if (!invoice) {
-        await page.close();
-        return res.status(404).json({ message: 'Quotation not found' });
-      }
-      const html = renderInvoiceHtml(invoice);
-      await page.setContent(html, { waitUntil: 'load' });
-    }
-
-    const pdfBuffer = await page.pdf({
-      format: 'A4',
-      printBackground: true,
-      margin: { top: '0', bottom: '0', left: '0', right: '0' }
-    });
-    await page.close();
-
-    res.json({ base64: Buffer.from(pdfBuffer).toString('base64') });
+    // Otherwise, soft cancel
+    await client.query("UPDATE invoices SET status = 'cancelled' WHERE id = $1", [id]);
+    await client.query('COMMIT');
+    res.json({ message: 'Invoice cancelled successfully', status: 'cancelled' });
   } catch (err) {
-    console.error('Quotation PDF Generation Error:', err);
-    res.status(500).json({ message: 'Error generating PDF: ' + err.message });
+    await client.query('ROLLBACK');
+    console.error('Error deleting/cancelling invoice:', err);
+    res.status(500).json({ message: 'Server error cancelling invoice' });
+  } finally {
+    client.release();
   }
 });
 

@@ -13,6 +13,14 @@ import {
   Loader2,
   Car,
   Zap,
+  LayoutGrid,
+  List,
+  TrendingUp,
+  Layers,
+  Coins,
+  ChevronRight,
+  ShieldCheck,
+  CheckCircle2,
 } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useServices, useVehicleTypes } from '../hooks/useQueries.js';
@@ -24,11 +32,12 @@ export default function MasterService() {
   const queryClient = useQueryClient();
   const { data: services = [], isLoading: loading } = useServices();
   const { data: vehicleTypes = [] } = useVehicleTypes();
-  const { can_delete } = usePermissions('Services');
+  const { canAdd, canEdit, canDelete } = usePermissions('Services');
 
   const [searchQuery, setSearchQuery] = useState('');
   const debouncedSearch = useDebouncedValue(searchQuery, 250);
   const [selectedCategory, setSelectedCategory] = useState('ALL');
+  const [viewMode, setViewMode] = useState('cards'); // 'cards' | 'table'
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -38,6 +47,7 @@ export default function MasterService() {
   const [vehiclePrices, setVehiclePrices] = useState({});
   const [quickFillPrice, setQuickFillPrice] = useState('');
   const [editId, setEditId] = useState(null);
+  const [isSaving, setIsSaving] = useState(false);
 
   // Delete Confirmation State
   const [deleteServiceId, setDeleteServiceId] = useState(null);
@@ -60,6 +70,56 @@ export default function MasterService() {
     });
     return Array.from(set);
   }, [services]);
+
+  // Executive Analytics Metrics
+  const executiveMetrics = useMemo(() => {
+    const total = services.length;
+    const activeCount = services.filter((s) => s.isActive).length;
+
+    // Calculate price spectrum
+    const allPrices = [];
+    services.forEach((s) => {
+      if (s.vehiclePricesMap) {
+        Object.values(s.vehiclePricesMap).forEach((p) => {
+          const num = Number(p);
+          if (!isNaN(num) && num > 0) allPrices.push(num);
+        });
+      }
+    });
+
+    const minPrice = allPrices.length > 0 ? Math.min(...allPrices) : 0;
+    const maxPrice = allPrices.length > 0 ? Math.max(...allPrices) : 0;
+
+    // Average duration in minutes
+    const validDurations = services
+      .map((s) => {
+        const match = (s.estimateTime || '').match(/\d+/);
+        return match ? parseInt(match[0], 10) : null;
+      })
+      .filter((d) => d !== null);
+
+    const avgDuration =
+      validDurations.length > 0
+        ? Math.round(validDurations.reduce((a, b) => a + b, 0) / validDurations.length)
+        : null;
+
+    return {
+      total,
+      activeCount,
+      categoriesCount: categories.length,
+      minPrice,
+      maxPrice,
+      avgDuration,
+      coveragePercent:
+        total > 0
+          ? Math.round(
+              (services.filter((s) => Object.keys(s.vehiclePricesMap || {}).length > 0).length /
+                total) *
+                100
+            )
+          : 0,
+    };
+  }, [services, categories]);
 
   // Filtered services
   const filteredServices = useMemo(() => {
@@ -93,6 +153,7 @@ export default function MasterService() {
 
   async function handleSubmit(e) {
     e.preventDefault();
+    if (isSaving) return;
     if (!name.trim()) return toast.error('Service name is required');
 
     const formattedVehiclePrices = Object.entries(vehiclePrices)
@@ -110,6 +171,7 @@ export default function MasterService() {
       vehicle_prices: formattedVehiclePrices,
     };
 
+    setIsSaving(true);
     try {
       if (editId) {
         const existing = services.find((s) => s.id === editId);
@@ -126,6 +188,8 @@ export default function MasterService() {
       queryClient.invalidateQueries({ queryKey: queryKeys.services.all });
     } catch (err) {
       toast.error(err.response?.data?.message || 'Error saving service');
+    } finally {
+      setIsSaving(false);
     }
   }
 
@@ -224,46 +288,142 @@ export default function MasterService() {
   }
 
   return (
-    <div className="p-6 max-w-[1400px] mx-auto space-y-6">
-      {/* Header Banner */}
-      <div className="bg-white/70 backdrop-blur-2xl rounded-[24px] shadow-[0_8px_32px_rgba(0,0,0,0.06)] border border-white/80 p-5 flex flex-col lg:flex-row lg:items-center justify-between gap-5 shrink-0">
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-black text-[#F6CB59] flex items-center justify-center shadow-md shrink-0">
-            <Sparkles size={24} strokeWidth={2.5} />
+    <div className="p-3 sm:p-6 max-w-[1500px] mx-auto space-y-4 sm:space-y-6">
+      {/* ── Top Header Banner ── */}
+      <div className="bg-white/70 backdrop-blur-2xl rounded-2xl sm:rounded-[24px] shadow-[0_8px_32px_rgba(0,0,0,0.06)] border border-white/80 p-3.5 sm:p-5 flex flex-col lg:flex-row lg:items-center justify-between gap-3.5 sm:gap-5 shrink-0">
+        <div className="flex items-center gap-3 sm:gap-4">
+          <div className="w-9 h-9 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-black text-[#F6CB59] flex items-center justify-center shadow-md shrink-0">
+            <Sparkles className="w-4 h-4 sm:w-6 sm:h-6" strokeWidth={2.5} />
           </div>
           <div>
-            <h1 className="text-xl md:text-[22px] font-black text-gray-900 tracking-tight leading-none mb-1">
+            <h1 className="text-base sm:text-xl md:text-[22px] font-black text-gray-900 tracking-tight leading-none mb-1">
               Service Master
             </h1>
-            <p className="text-[12px] font-bold text-gray-500 tracking-wide uppercase">
-              Manage detailing services & vehicle-type pricing
+            <p className="text-[10px] sm:text-[12px] font-bold text-gray-500 tracking-wide uppercase">
+              Manage detailing services & vehicle-type pricing matrix
             </p>
           </div>
         </div>
 
-        <div className="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto shrink-0">
+        <div className="flex flex-col sm:flex-row items-center gap-2.5 sm:gap-3 w-full lg:w-auto shrink-0">
           <div className="relative w-full sm:w-72 shrink-0">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
             <input
               type="text"
-              className="w-full pl-10 pr-4 py-2.5 bg-white/80 border border-gray-200/60 rounded-xl text-[13px] font-bold text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent transition-all shadow-sm"
+              className="w-full pl-9 sm:pl-10 pr-4 py-1.5 sm:py-2.5 bg-white/80 border border-gray-200/60 rounded-xl text-[12px] sm:text-[13px] font-bold text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent transition-all shadow-xs"
               placeholder="Search services or categories..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
-          <button
-            onClick={handleAdd}
-            className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-black text-[#F6CB59] hover:scale-[1.02] active:scale-[0.98] transition-all font-bold text-[13px] shadow-md whitespace-nowrap"
-          >
-            <Plus size={16} strokeWidth={2.5} /> Add Service
-          </button>
+
+          <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end">
+            {/* View Mode Toggle Switch */}
+            <div className="flex items-center bg-gray-100/90 p-1 rounded-xl border border-gray-200/60 shadow-xs">
+              <button
+                type="button"
+                onClick={() => setViewMode('cards')}
+                className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                  viewMode === 'cards'
+                    ? 'bg-black text-[#F6CB59] shadow-sm'
+                    : 'text-gray-600 hover:text-gray-950'
+                }`}
+                title="Executive Cards View"
+              >
+                <LayoutGrid size={13} />
+                <span className="hidden sm:inline">Cards</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode('table')}
+                className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                  viewMode === 'table'
+                    ? 'bg-black text-[#F6CB59] shadow-sm'
+                    : 'text-gray-600 hover:text-gray-950'
+                }`}
+                title="Matrix Table View"
+              >
+                <List size={13} />
+                <span className="hidden sm:inline">Table</span>
+              </button>
+            </div>
+
+            {canAdd && (
+              <button
+                onClick={handleAdd}
+                className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-4 py-1.5 sm:py-2.5 rounded-xl bg-black text-[#F6CB59] hover:scale-[1.02] active:scale-[0.98] transition-all font-bold text-[12px] sm:text-[13px] shadow-md whitespace-nowrap"
+              >
+                <Plus size={14} strokeWidth={2.5} /> Add Service
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* Category Pills & Stats Bar */}
+      {/* ── Executive Storytelling Analytics Strip ── */}
+      <div className="flex lg:grid lg:grid-cols-4 gap-2.5 sm:gap-4 overflow-x-auto pb-1 hide-scrollbar">
+        <div className="bg-white/70 backdrop-blur-xl rounded-2xl p-3 sm:p-4 border border-white/80 shadow-xs flex items-center gap-3 min-w-[155px] sm:min-w-0 flex-1 shrink-0">
+          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-black/90 text-[#F6CB59] flex items-center justify-center shadow-xs shrink-0">
+            <Sparkles size={18} />
+          </div>
+          <div className="min-w-0">
+            <div className="text-[10px] sm:text-[11px] font-bold text-gray-500 uppercase tracking-wider whitespace-nowrap">
+              Active Packages
+            </div>
+            <div className="text-sm sm:text-lg font-black text-gray-900 leading-tight">
+              {executiveMetrics.activeCount} <span className="text-xs font-bold text-gray-400">/ {executiveMetrics.total}</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white/70 backdrop-blur-xl rounded-2xl p-3 sm:p-4 border border-white/80 shadow-xs flex items-center gap-3 min-w-[155px] sm:min-w-0 flex-1 shrink-0">
+          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-amber-50 text-amber-700 border border-amber-200/80 flex items-center justify-center shadow-xs shrink-0">
+            <Layers size={18} />
+          </div>
+          <div className="min-w-0">
+            <div className="text-[10px] sm:text-[11px] font-bold text-gray-500 uppercase tracking-wider whitespace-nowrap">
+              Segments
+            </div>
+            <div className="text-sm sm:text-lg font-black text-gray-900 leading-tight whitespace-nowrap">
+              {executiveMetrics.categoriesCount} <span className="text-xs font-bold text-gray-400">Categories</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white/70 backdrop-blur-xl rounded-2xl p-3 sm:p-4 border border-white/80 shadow-xs flex items-center gap-3 min-w-[155px] sm:min-w-0 flex-1 shrink-0">
+          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-blue-50 text-blue-700 border border-blue-200/80 flex items-center justify-center shadow-xs shrink-0">
+            <Clock size={18} />
+          </div>
+          <div className="min-w-0">
+            <div className="text-[10px] sm:text-[11px] font-bold text-gray-500 uppercase tracking-wider whitespace-nowrap">
+              Avg. Duration
+            </div>
+            <div className="text-sm sm:text-lg font-black text-gray-900 leading-tight whitespace-nowrap">
+              {executiveMetrics.avgDuration ? `~${executiveMetrics.avgDuration} mins` : 'Flexible'}
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white/70 backdrop-blur-xl rounded-2xl p-3 sm:p-4 border border-white/80 shadow-xs flex items-center gap-3 min-w-[165px] sm:min-w-0 flex-1 shrink-0">
+          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200/80 flex items-center justify-center shadow-xs shrink-0">
+            <Coins size={18} />
+          </div>
+          <div className="min-w-0">
+            <div className="text-[10px] sm:text-[11px] font-bold text-gray-500 uppercase tracking-wider whitespace-nowrap">
+              Pricing Spectrum
+            </div>
+            <div className="text-sm sm:text-lg font-black text-gray-900 leading-tight whitespace-nowrap">
+              {executiveMetrics.minPrice > 0
+                ? `₹${executiveMetrics.minPrice.toLocaleString('en-IN')} – ₹${executiveMetrics.maxPrice.toLocaleString('en-IN')}`
+                : 'Configurable'}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Category Filter Pills & Counter ── */}
       <div className="flex flex-wrap items-center justify-between gap-3 px-1">
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 max-w-full">
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 max-w-full hide-scrollbar">
           <button
             onClick={() => setSelectedCategory('ALL')}
             className={`px-3.5 py-1.5 rounded-xl text-[12px] font-black transition-all whitespace-nowrap ${
@@ -294,161 +454,329 @@ export default function MasterService() {
         </div>
       </div>
 
-      {/* Table Container */}
-      <div className="bg-white/80 backdrop-blur-2xl rounded-[24px] shadow-[0_8px_32px_rgba(0,0,0,0.06)] border border-white/80 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-gradient-to-r from-gray-50 via-gray-100/70 to-gray-50 border-b border-gray-200/80">
-                <th className="py-4 px-6 text-[12px] font-black text-gray-700 uppercase tracking-wider w-[280px]">
-                  Service Details
-                </th>
-                <th className="py-4 px-4 text-[12px] font-black text-gray-700 uppercase tracking-wider text-center w-[130px]">
-                  Est. Duration
-                </th>
-                {/* Single Column for all vehicle price details */}
-                <th className="py-4 px-6 text-[12px] font-black text-gray-700 uppercase tracking-wider">
-                  <div className="flex items-center gap-1.5">
-                    <Car size={14} className="text-gray-500" />
-                    <span>Pricing By Vehicle Type</span>
-                  </div>
-                </th>
-                <th className="py-4 px-4 text-[12px] font-black text-gray-700 uppercase tracking-wider text-center w-[110px]">
-                  Status
-                </th>
-                <th className="py-4 px-6 text-[12px] font-black text-gray-700 uppercase tracking-wider text-right w-[100px]">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100/80">
-              {filteredServices.map((srv) => {
-                // Collect configured prices for this service
-                const configuredPrices = activeVehicleTypes
-                  .map((vt) => ({
-                    vtId: vt.id,
-                    name: vt.name,
-                    price: srv.vehiclePricesMap?.[vt.id],
-                  }))
-                  .filter((item) => item.price !== undefined && item.price !== null && item.price > 0);
+      {/* ── Ultra-Premium Executive Storytelling Cards Model ── */}
+      {viewMode === 'cards' ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3.5 sm:gap-5 pb-12">
+          {filteredServices.map((srv) => {
+            const configuredPrices = activeVehicleTypes
+              .map((vt) => ({
+                vtId: vt.id,
+                name: vt.name,
+                price: srv.vehiclePricesMap?.[vt.id],
+              }))
+              .filter((item) => item.price !== undefined && item.price !== null && item.price > 0);
 
-                return (
-                  <tr
-                    key={srv.id}
-                    onClick={() => handleEdit(srv)}
-                    className="hover:bg-amber-50/40 transition-colors cursor-pointer group"
-                  >
-                    {/* Service Details */}
-                    <td className="py-4 px-6 align-middle">
-                      <div className="flex items-start gap-3">
-                        <div className="w-9 h-9 rounded-xl bg-gray-100 border border-gray-200/60 flex items-center justify-center text-gray-700 group-hover:bg-[#F6CB59]/20 group-hover:text-amber-900 transition-colors shrink-0 mt-0.5">
-                          <Sparkles size={16} />
-                        </div>
-                        <div>
-                          <div className="font-extrabold text-[15px] text-gray-900 group-hover:text-amber-800 transition-colors leading-snug">
-                            {srv.name}
-                          </div>
-                          {srv.description && (
-                            <div className="inline-flex items-center mt-1 text-[11px] font-bold text-gray-500 bg-gray-100/80 px-2 py-0.5 rounded-md">
-                              {srv.description}
-                            </div>
-                          )}
-                        </div>
+            const pricesList = configuredPrices.map((p) => Number(p.price));
+            const cardMinPrice = pricesList.length > 0 ? Math.min(...pricesList) : null;
+            const cardMaxPrice = pricesList.length > 0 ? Math.max(...pricesList) : null;
+
+            return (
+              <div
+                key={srv.id}
+                onClick={() => {
+                  if (canEdit) handleEdit(srv);
+                }}
+                className={`bg-white/85 backdrop-blur-2xl rounded-3xl p-4 sm:p-5 border border-white/90 shadow-[0_8px_30px_rgba(0,0,0,0.05)] hover:shadow-[0_20px_40px_rgba(0,0,0,0.09)] transition-all duration-300 flex flex-col justify-between group relative overflow-hidden ${
+                  canEdit ? 'cursor-pointer hover:-translate-y-0.5' : ''
+                }`}
+              >
+                {/* Top Subtle Amber Border Highlight */}
+                <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-[#F6CB59] to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+
+                <div>
+                  {/* Card Header: Line 1 - Icon & Title + Action Buttons */}
+                  <div className="flex items-start justify-between gap-2.5 mb-2">
+                    <div className="flex items-start gap-2.5 min-w-0 flex-1">
+                      <div className="w-10 h-10 rounded-2xl bg-black text-[#F6CB59] flex items-center justify-center shadow-md shrink-0 border border-gray-800 group-hover:scale-105 transition-transform mt-0.5">
+                        <Sparkles size={18} strokeWidth={2.5} />
                       </div>
-                    </td>
+                      <div className="min-w-0 flex-1">
+                        <h3 className="text-base sm:text-[17px] font-black text-gray-900 leading-tight group-hover:text-amber-800 transition-colors break-words">
+                          {srv.name}
+                        </h3>
+                      </div>
+                    </div>
 
-                    {/* Estimated Time */}
-                    <td className="py-4 px-4 text-center align-middle">
-                      {srv.estimateTime ? (
-                        <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-gray-700 bg-amber-50 border border-amber-200/60 rounded-full px-2.5 py-1">
-                          <Clock size={12} className="text-amber-700" />
-                          {srv.estimateTime}
-                        </span>
-                      ) : (
-                        <span className="text-gray-300 font-bold text-[13px]">—</span>
+                    {/* Edit & Delete Action Buttons */}
+                    <div className="flex items-center gap-1.5 shrink-0" onClick={(e) => e.stopPropagation()}>
+                      {canEdit && (
+                        <button
+                          onClick={() => handleEdit(srv)}
+                          className="w-8 h-8 rounded-xl bg-white text-gray-700 border border-gray-200 shadow-xs flex items-center justify-center hover:bg-black hover:text-[#F6CB59] transition-all"
+                          title="Edit Service Pricing"
+                        >
+                          <Edit3 size={13} />
+                        </button>
                       )}
-                    </td>
-
-                    {/* Single Column for Price Details */}
-                    <td className="py-4 px-6 align-middle">
-                      {configuredPrices.length > 0 ? (
-                        <div className="flex flex-wrap items-center gap-2">
-                          {configuredPrices.map((item) => (
-                            <div
-                              key={item.vtId}
-                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-gray-200 shadow-[0_1px_2px_rgba(0,0,0,0.04)] group-hover:border-amber-300 transition-all text-xs"
-                            >
-                              <span className="font-bold text-gray-600">{item.name}:</span>
-                              <span className="font-mono font-black text-gray-900">
-                                ₹{Number(item.price).toLocaleString('en-IN')}
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <span className="text-gray-400 text-xs italic font-medium">
-                          No vehicle pricing configured
-                        </span>
+                      {canDelete && (
+                        <button
+                          onClick={(e) => handleDeleteClick(e, srv.id)}
+                          className="w-8 h-8 rounded-xl bg-white text-rose-600 border border-rose-200 shadow-xs flex items-center justify-center hover:bg-rose-600 hover:text-white transition-all"
+                          title="Delete Service"
+                        >
+                          <Trash2 size={13} />
+                        </button>
                       )}
-                    </td>
+                    </div>
+                  </div>
 
-                    {/* Status Toggle */}
-                    <td className="py-4 px-4 text-center align-middle">
+                  {/* Card Header: Line 2 - Category Badge & Status Pill */}
+                  <div className="flex items-center justify-between gap-2 mb-3 min-w-0">
+                    {srv.description ? (
+                      <div className="inline-flex items-center text-[10px] font-black text-amber-950 bg-[#F6CB59]/25 border border-[#F6CB59]/40 px-2.5 py-0.5 rounded-lg uppercase tracking-wider truncate max-w-[65%] min-w-0">
+                        <span className="truncate">{srv.description}</span>
+                      </div>
+                    ) : (
+                      <div className="text-[10px] font-bold text-gray-400 italic">Standard Detailing</div>
+                    )}
+
+                    <div onClick={(e) => e.stopPropagation()} className="shrink-0">
                       <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleStatusChange(srv.id, srv.isActive ? 'Inactive' : 'Active');
-                        }}
-                        className={`text-[11px] font-black uppercase rounded-full px-3.5 py-1.5 transition-all shadow-sm ${
+                        onClick={() => handleStatusChange(srv.id, srv.isActive ? 'Inactive' : 'Active')}
+                        className={`text-[10px] font-black uppercase rounded-full px-2.5 py-0.5 transition-all shadow-xs ${
                           srv.isActive
-                            ? 'bg-amber-400 text-amber-950 hover:bg-amber-500'
-                            : 'bg-rose-100 text-rose-700 hover:bg-rose-200'
+                            ? 'bg-emerald-100 text-emerald-800 border border-emerald-300 hover:bg-emerald-200'
+                            : 'bg-rose-100 text-rose-700 border border-rose-200 hover:bg-rose-200'
                         }`}
                       >
                         {srv.isActive ? 'Active' : 'Inactive'}
                       </button>
-                    </td>
+                    </div>
+                  </div>
 
-                    {/* Actions */}
-                    <td className="py-4 px-6 text-right align-middle">
-                      <div className="flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
-                        <button
-                          onClick={() => handleEdit(srv)}
-                          className="w-8 h-8 rounded-xl bg-white text-gray-700 border border-gray-200/80 shadow-sm flex items-center justify-center hover:bg-black hover:text-[#F6CB59] hover:border-black transition-all"
-                          title="Edit Service Pricing"
-                        >
-                          <Edit3 size={14} />
-                        </button>
-                        {can_delete && (
-                          <button
-                            onClick={(e) => handleDeleteClick(e, srv.id)}
-                            className="w-8 h-8 rounded-xl bg-white text-rose-600 border border-rose-100 shadow-sm flex items-center justify-center hover:bg-rose-600 hover:text-white hover:border-rose-600 transition-all"
-                            title="Delete Service"
-                          >
-                            <Trash2 size={14} />
-                          </button>
-                        )}
+                  {/* Value / Storytelling Strip */}
+                  <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 my-2.5 p-2 bg-gray-50/90 rounded-xl border border-gray-200/60 min-w-0">
+                    {srv.estimateTime && (
+                      <div className="flex items-center gap-1.5 text-[11px] font-bold text-gray-700 bg-white px-2 py-0.5 rounded-lg shadow-xs border border-gray-200/60 shrink-0">
+                        <Clock size={11} className="text-amber-600" />
+                        <span>{srv.estimateTime}</span>
                       </div>
+                    )}
+                    {cardMinPrice !== null ? (
+                      <div className="flex items-center gap-1.5 text-[11px] font-black text-gray-800 bg-white px-2 py-0.5 rounded-lg shadow-xs border border-gray-200/60 shrink-0">
+                        <Coins size={11} className="text-[#F6CB59]" />
+                        <span>
+                          {cardMinPrice === cardMaxPrice
+                            ? `₹${cardMinPrice.toLocaleString('en-IN')}`
+                            : `₹${cardMinPrice.toLocaleString('en-IN')} – ₹${cardMaxPrice.toLocaleString('en-IN')}`}
+                        </span>
+                      </div>
+                    ) : (
+                      <span className="text-[11px] font-bold text-gray-400 italic">No pricing tiers active</span>
+                    )}
+                    <div className="ml-auto text-[10px] font-black text-gray-500 uppercase tracking-wider shrink-0">
+                      {configuredPrices.length} / {activeVehicleTypes.length} Tiers
+                    </div>
+                  </div>
+
+                  {/* Vehicle Pricing Micro-Grid */}
+                  {configuredPrices.length > 0 ? (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 my-2.5">
+                      {configuredPrices.map((item) => (
+                        <div
+                          key={item.vtId}
+                          className="bg-white/95 hover:bg-white rounded-xl p-2 sm:p-2.5 border border-gray-200/80 hover:border-amber-400 shadow-xs transition-all flex flex-col justify-between group/tier min-w-0 overflow-hidden"
+                        >
+                          <div className="flex items-center gap-1 text-[11px] font-bold text-gray-600 truncate min-w-0">
+                            <Car size={11} className="text-gray-400 group-hover/tier:text-amber-600 transition-colors shrink-0" />
+                            <span className="truncate">{item.name}</span>
+                          </div>
+                          <div className="text-[13px] sm:text-[14px] font-black font-mono text-gray-950 mt-1 truncate">
+                            ₹{Number(item.price).toLocaleString('en-IN')}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="p-3 my-2.5 text-center rounded-xl bg-amber-50/50 border border-dashed border-amber-200 text-amber-800 text-[11px] font-bold">
+                      ⚡ Tap to configure vehicle pricing tiers
+                    </div>
+                  )}
+                </div>
+
+                {/* Card Footer CTA */}
+                <div className="mt-1 pt-2.5 border-t border-gray-100/90 flex items-center justify-between text-xs">
+                  <span className="font-extrabold text-gray-500 group-hover:text-gray-900 transition-colors flex items-center gap-1 text-[11px]">
+                    <span>Configure Matrix</span>
+                    <ChevronRight size={12} className="group-hover:translate-x-0.5 transition-transform" />
+                  </span>
+                  <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md ${
+                    configuredPrices.length === activeVehicleTypes.length
+                      ? 'text-emerald-800 bg-emerald-50'
+                      : 'text-amber-800 bg-amber-50'
+                  }`}>
+                    {configuredPrices.length === activeVehicleTypes.length ? '100% Configured' : 'Partial Setup'}
+                  </span>
+                </div>
+              </div>
+            );
+          })}
+
+          {filteredServices.length === 0 && (
+            <div className="col-span-full py-16 text-center text-gray-500 bg-white/60 rounded-3xl border border-white/80">
+              <Sparkles size={36} className="mx-auto text-gray-400 mb-3" />
+              <h3 className="text-base font-bold text-gray-800">No services found</h3>
+              <p className="text-xs text-gray-400 mt-1">Try adjusting your category or search term</p>
+            </div>
+          )}
+        </div>
+      ) : (
+        /* ── Compact Matrix Table Container ── */
+        <div className="bg-white/80 backdrop-blur-2xl rounded-2xl sm:rounded-[24px] shadow-[0_8px_32px_rgba(0,0,0,0.06)] border border-white/80 overflow-hidden pb-12">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-gradient-to-r from-gray-50 via-gray-100/70 to-gray-50 border-b border-gray-200/80">
+                  <th className="py-3.5 px-5 text-[11px] font-black text-gray-700 uppercase tracking-wider w-[260px]">
+                    Service Details
+                  </th>
+                  <th className="py-3.5 px-4 text-[11px] font-black text-gray-700 uppercase tracking-wider text-center w-[120px]">
+                    Est. Duration
+                  </th>
+                  <th className="py-3.5 px-5 text-[11px] font-black text-gray-700 uppercase tracking-wider">
+                    <div className="flex items-center gap-1.5">
+                      <Car size={13} className="text-gray-500" />
+                      <span>Pricing Matrix by Vehicle Type</span>
+                    </div>
+                  </th>
+                  <th className="py-3.5 px-4 text-[11px] font-black text-gray-700 uppercase tracking-wider text-center w-[110px]">
+                    Status
+                  </th>
+                  <th className="py-3.5 px-5 text-[11px] font-black text-gray-700 uppercase tracking-wider text-right w-[100px]">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100/80">
+                {filteredServices.map((srv) => {
+                  const configuredPrices = activeVehicleTypes
+                    .map((vt) => ({
+                      vtId: vt.id,
+                      name: vt.name,
+                      price: srv.vehiclePricesMap?.[vt.id],
+                    }))
+                    .filter((item) => item.price !== undefined && item.price !== null && item.price > 0);
+
+                  return (
+                    <tr
+                      key={srv.id}
+                      onClick={() => handleEdit(srv)}
+                      className="hover:bg-amber-50/40 transition-colors cursor-pointer group"
+                    >
+                      {/* Service Details */}
+                      <td className="py-3.5 px-5 align-middle">
+                        <div className="flex items-start gap-2.5">
+                          <div className="w-8 h-8 rounded-xl bg-gray-100 border border-gray-200/60 flex items-center justify-center text-gray-700 group-hover:bg-[#F6CB59]/20 group-hover:text-amber-900 transition-colors shrink-0 mt-0.5">
+                            <Sparkles size={14} />
+                          </div>
+                          <div>
+                            <div className="font-black text-[14px] text-gray-900 group-hover:text-amber-800 transition-colors leading-snug">
+                              {srv.name}
+                            </div>
+                            {srv.description && (
+                              <div className="inline-flex items-center mt-0.5 text-[10px] font-black text-amber-900 bg-[#F6CB59]/20 border border-[#F6CB59]/30 px-2 py-0.5 rounded-md">
+                                {srv.description}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </td>
+
+                      {/* Estimated Time */}
+                      <td className="py-3.5 px-4 text-center align-middle">
+                        {srv.estimateTime ? (
+                          <span className="inline-flex items-center gap-1 text-[11px] font-bold text-gray-700 bg-amber-50 border border-amber-200/60 rounded-full px-2.5 py-0.5">
+                            <Clock size={11} className="text-amber-700" />
+                            {srv.estimateTime}
+                          </span>
+                        ) : (
+                          <span className="text-gray-300 font-bold text-[12px]">—</span>
+                        )}
+                      </td>
+
+                      {/* Pricing Matrix */}
+                      <td className="py-3.5 px-5 align-middle">
+                        {configuredPrices.length > 0 ? (
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            {configuredPrices.map((item) => (
+                              <div
+                                key={item.vtId}
+                                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-white border border-gray-200 shadow-xs group-hover:border-amber-300 transition-all text-xs"
+                              >
+                                <span className="font-bold text-gray-600 text-[11px]">{item.name}:</span>
+                                <span className="font-mono font-black text-gray-900 text-[11px]">
+                                  ₹{Number(item.price).toLocaleString('en-IN')}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <span className="text-gray-400 text-xs italic font-medium">
+                            No vehicle pricing configured
+                          </span>
+                        )}
+                      </td>
+
+                      {/* Status Toggle */}
+                      <td className="py-3.5 px-4 text-center align-middle">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleStatusChange(srv.id, srv.isActive ? 'Inactive' : 'Active');
+                          }}
+                          className={`text-[10px] font-black uppercase rounded-full px-3 py-1 transition-all shadow-xs ${
+                            srv.isActive
+                              ? 'bg-amber-400 text-amber-950 hover:bg-amber-500'
+                              : 'bg-rose-100 text-rose-700 hover:bg-rose-200'
+                          }`}
+                        >
+                          {srv.isActive ? 'Active' : 'Inactive'}
+                        </button>
+                      </td>
+
+                      {/* Actions */}
+                      <td className="py-3.5 px-5 text-right align-middle">
+                        <div className="flex items-center justify-end gap-1.5" onClick={(e) => e.stopPropagation()}>
+                          {canEdit && (
+                            <button
+                              onClick={() => handleEdit(srv)}
+                              className="w-7 h-7 rounded-xl bg-white text-gray-700 border border-gray-200/80 shadow-xs flex items-center justify-center hover:bg-black hover:text-[#F6CB59] hover:border-black transition-all"
+                              title="Edit Service Pricing"
+                            >
+                              <Edit3 size={13} />
+                            </button>
+                          )}
+                          {canDelete && (
+                            <button
+                              onClick={(e) => handleDeleteClick(e, srv.id)}
+                              className="w-7 h-7 rounded-xl bg-white text-rose-600 border border-rose-100 shadow-xs flex items-center justify-center hover:bg-rose-600 hover:text-white hover:border-rose-600 transition-all"
+                              title="Delete Service"
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+
+                {filteredServices.length === 0 && (
+                  <tr>
+                    <td colSpan={5} className="py-16 text-center text-gray-500">
+                      <Sparkles size={36} className="mx-auto text-gray-400 mb-3" />
+                      <h3 className="text-base font-bold text-gray-800">No services found</h3>
+                      <p className="text-xs text-gray-400 mt-1">
+                        Try adjusting your search query, filter, or click "Add Service" to create one.
+                      </p>
                     </td>
                   </tr>
-                );
-              })}
-
-              {filteredServices.length === 0 && (
-                <tr>
-                  <td colSpan={5} className="py-16 text-center text-gray-500">
-                    <Sparkles size={36} className="mx-auto text-gray-400 mb-3" />
-                    <h3 className="text-base font-bold text-gray-800">No services found</h3>
-                    <p className="text-xs text-gray-400 mt-1">
-                      Try adjusting your search query, filter, or click "Add Service" to create one.
-                    </p>
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Add / Edit Service Modal Popup */}
       {isModalOpen && (
@@ -611,9 +939,17 @@ export default function MasterService() {
                 </button>
                 <button
                   type="submit"
-                  className="px-6 py-2.5 rounded-xl bg-black text-[#F6CB59] font-black text-xs hover:scale-[1.02] active:scale-[0.98] transition-all shadow-md"
+                  disabled={isSaving}
+                  className="px-6 py-2.5 rounded-xl bg-black text-[#F6CB59] font-black text-xs hover:scale-[1.02] active:scale-[0.98] transition-all shadow-md flex items-center gap-2 disabled:opacity-50 disabled:pointer-events-none"
                 >
-                  {editId ? 'Update Service' : 'Create Service'}
+                  {isSaving ? (
+                    <>
+                      <Loader2 size={14} className="animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    editId ? 'Update Service' : 'Create Service'
+                  )}
                 </button>
               </div>
             </form>

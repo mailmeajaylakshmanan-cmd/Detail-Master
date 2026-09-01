@@ -10,7 +10,7 @@ import api from '../api/axios.js';
 import toast from 'react-hot-toast';
 import brandLogo from '../assets/brand-logo-for-invoice.png';
 import goldenCar from '../assets/new-invoice-add.png';
-import ResponsiveDocumentWrapper from '../components/ResponsiveDocumentWrapper.jsx';
+import StandardDocumentLayout from '../components/StandardDocumentLayout.jsx';
 import { generatePDFBlob, downloadElementPDF } from '../utils/pdfGenerator.js';
 
 function fmtDate(d) {
@@ -240,84 +240,20 @@ export default function VehicleServiceReport() {
           </button>
         </div>
       </div>
-
       <div className="pb-8">
-      <ResponsiveDocumentWrapper documentWidth={820}>
-        <div id="invoice-print" style={doc.wrap}>
-        
-        <div style={{ position: 'relative', height: '115px', backgroundColor: '#EBEBED', width: '100%', WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>
-          <div style={{ position: 'absolute', top: 0, left: 0, width: '100px', height: '100px', background: '#FFD700', zIndex: 1 }}></div>
-          <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: '#000000', clipPath: 'polygon(65% 0, 100% 0, 100% 75%, 57.5% 75%)', zIndex: 2 }}></div>
-          <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: '#FFD700', clipPath: 'polygon(57.5% 75%, 100% 75%, 100% 85%, 56.5% 85%)', zIndex: 3 }}></div>
-          <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: '#000000', clipPath: 'polygon(50% 0, 65% 0, 49% 100%, 35% 100%)', zIndex: 4 }}></div>
-          <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: '#FFD700', clipPath: 'polygon(50% 0, 61% 0, 49% 100%, 35% 100%)', zIndex: 5 }}></div>
-          <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: '#2B2A2A', clipPath: 'polygon(4% 0, 60% 0, 45% 100%, 0 100%, 0 25%)', zIndex: 6 }}></div>
-
-          <div style={{ position: 'relative', zIndex: 10, display: 'flex', justifyContent: 'space-between', padding: '2px 40px 2px 45px', height: '100%' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
-              <div style={{ position: 'relative', filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.5))', zIndex: 20 }}>
-                <svg width="0" height="0" style={{ position: 'absolute' }}>
-                  <clipPath id="shield-clip" clipPathUnits="objectBoundingBox">
-                    <path d="M 0 0.02 Q 0.5 -0.02 1 0.02 L 1 0.65 C 1 0.88 0.7 1 0.5 1 C 0.3 1 0 0.88 0 0.65 Z" />
-                  </clipPath>
-                </svg>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'transparent', clipPath: 'url(#shield-clip)', width: 88, height: 108, WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>
-                  <img src={brandLogo} alt="Logo" style={{ height: '100%', width: '100%', objectFit: 'fill', filter: 'drop-shadow(0 0 1px #fff) drop-shadow(0 0 2px rgba(255,255,255,0.9))' }} />
-                </div>
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1 }}>
-                <span style={{ 
-                    fontFamily: "'Cinzel', 'Trajan Pro', 'Georgia', serif", 
-                    fontSize: 28, 
-                    margin: 0, 
-                    letterSpacing: '3px', 
-                    fontWeight: 600,
-                    background: 'linear-gradient(to right, #BF953F, #FCF6BA, #B38728, #FBF5B7, #AA771C)',
-                    WebkitBackgroundClip: 'text',
-                    WebkitTextFillColor: 'transparent',
-                    WebkitPrintColorAdjust: 'exact',
-                    printColorAdjust: 'exact',
-                }}>DETAILING</span>
-                <span style={{ 
-                    fontFamily: "'Cinzel', 'Trajan Pro', 'Georgia', serif", 
-                    fontSize: 28, 
-                    margin: 0, 
-                    letterSpacing: '3px', 
-                    fontWeight: 600,
-                    background: 'linear-gradient(to right, #BF953F, #FCF6BA, #B38728, #FBF5B7, #AA771C)',
-                    WebkitBackgroundClip: 'text',
-                    WebkitTextFillColor: 'transparent',
-                    WebkitPrintColorAdjust: 'exact',
-                    printColorAdjust: 'exact',
-                }}>MASTERS</span>
-              </div>
+        <StandardDocumentLayout
+          documentTitle="VEHICLE REPORT"
+          titleFontSize={26}
+          titlePaddingRight="0px"
+          customFooter={
+            <div style={{ position: 'relative', width: '100%', marginTop: 'auto', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+               <div style={{ margin: '0 40px', borderTop: '1.5px solid #111', paddingTop: '15px', paddingBottom: '30px', textAlign: 'center', fontSize: 13, color: '#111', zIndex: 10, position: 'relative' }}>
+                  <strong>Detailing Masters</strong>, Opposite KTM Bike Showroom, Chankai, Marthandam, Tamil Nadu 629155.<br/>
+                  Ph: +91 9994122652 | E-mail: detailingmasters2024@gmail.com
+               </div>
             </div>
-
-            <div style={{ flex: 1, position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-               <img src={goldenCar} alt="Car Accent" style={{ height: '80px', objectFit: 'contain', filter: 'drop-shadow(2px 2px 4px rgba(0,0,0,0.4))', position: 'relative', left: '45%', top: 'calc(10px + 5%)' }} />
-            </div>
-
-            <div style={{ display: 'flex', alignItems: 'flex-start', paddingRight: '5px', paddingTop: '20px' }}>
-              <h1 style={{ 
-                  fontFamily: "'Montserrat', 'Open Sans', sans-serif",
-                  fontSize: 26, 
-                  fontWeight: 500, 
-                  margin: 0, 
-                  letterSpacing: '0.05em',
-                  color: '#FFFFFF',
-                  WebkitPrintColorAdjust: 'exact',
-                  printColorAdjust: 'exact',
-                  filter: 'drop-shadow(1px 1px 2px rgba(0,0,0,0.6))',
-                  textAlign: 'right'
-              }}>VEHICLE REPORT</h1>
-            </div>
-          </div>
-        </div>
-
-        <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', pointerEvents: 'none', zIndex: 50 }}>
-           <img src={brandLogo} style={{ width: '380px', opacity: 0.03, filter: 'grayscale(100%)' }} />
-        </div>
-
+          }
+        >
         <div style={{ display: 'flex', justifyContent: 'space-between', padding: '24px 40px', backgroundColor: 'transparent', position: 'relative', zIndex: 1, borderBottom: '1px solid #e2e8f0' }}>
            <div style={{ flex: 1, background: '#f8fafc', padding: '16px 20px', borderRadius: 8, marginRight: '15px', border: '1px solid #e2e8f0' }}>
               <h3 style={{ fontSize: 13, fontWeight: 800, margin: '0 0 10px 0', color: '#111', textTransform: 'uppercase', letterSpacing: '0.5px', borderBottom: '2px solid #FBD904', paddingBottom: 4, display: 'inline-block' }}>STUDIO DETAILS</h3>
@@ -328,21 +264,48 @@ export default function VehicleServiceReport() {
               </div>
            </div>
            <div style={{ flex: 1, background: '#f8fafc', padding: '16px 20px', borderRadius: 8, marginLeft: '15px', border: '1px solid #e2e8f0' }}>
-              <h3 style={{ fontSize: 13, fontWeight: 800, margin: '0 0 10px 0', color: '#111', textTransform: 'uppercase', letterSpacing: '0.5px', borderBottom: '2px solid #FBD904', paddingBottom: 4, display: 'inline-block' }}>{isMultiVehicle ? 'FLEET & OWNER' : 'VEHICLE & OWNER'}</h3>
+              <h3 style={{ fontSize: 13, fontWeight: 800, margin: '0 0 10px 0', color: '#111', textTransform: 'uppercase', letterSpacing: '0.5px', borderBottom: '2px solid #FBD904', paddingBottom: 4, display: 'inline-block' }}>CUSTOMER INFO</h3>
               <div style={{ fontSize: 12, color: '#333', lineHeight: 1.8 }}>
-                 <div style={{ display: 'flex' }}><span style={{ width: 85, fontWeight: 600, color: '#64748b' }}>Owner Name:</span> <span style={{ fontWeight: 600, color: '#000' }}>{invoice.customer?.name || '—'}</span></div>
-                 {isMultiVehicle ? (
-                   <div style={{ display: 'flex' }}><span style={{ width: 85, fontWeight: 600, color: '#64748b' }}>Vehicles:</span> <span style={{ fontWeight: 500 }}>{vehicles.length} Vehicles</span></div>
-                 ) : (
-                   <>
-                     <div style={{ display: 'flex' }}><span style={{ width: 85, fontWeight: 600, color: '#64748b' }}>Vehicle:</span> <span style={{ fontWeight: 500 }}>{vehicles[0]?.make_model || '—'}</span></div>
-                     <div style={{ display: 'flex' }}><span style={{ width: 85, fontWeight: 600, color: '#64748b' }}>Plate No:</span> <span style={{ fontWeight: 500, background: '#FBD904', padding: '1px 6px', borderRadius: 4 }}>{vehicles[0]?.license_vin || '—'}</span></div>
-                   </>
-                 )}
-                 <div style={{ display: 'flex' }}><span style={{ width: 85, fontWeight: 600, color: '#64748b' }}>Date:</span> <span style={{ fontWeight: 500 }}>{dateStr || '—'}</span></div>
+                 <div style={{ display: 'flex' }}><span style={{ width: 85, fontWeight: 600, color: '#64748b' }}>Name:</span> <span style={{ flex: 1, fontWeight: 500 }}>{invoice.customer?.name || 'Walk-in Customer'}</span></div>
+                 <div style={{ display: 'flex' }}><span style={{ width: 85, fontWeight: 600, color: '#64748b' }}>Phone:</span> <span style={{ flex: 1, fontWeight: 500 }}>{invoice.customer?.phone || '—'}</span></div>
+                 <div style={{ display: 'flex' }}><span style={{ width: 85, fontWeight: 600, color: '#64748b' }}>Invoice No:</span> <span style={{ flex: 1, fontWeight: 500 }}>{invoice.invoiceNo}</span></div>
               </div>
            </div>
         </div>
+
+        {/* VEHICLE DETAILS HEADER */}
+        <div style={{ padding: '24px 40px 0' }}>
+           <div style={{ border: '1px solid #e2e8f0', borderRadius: 8, overflow: 'hidden', background: '#fff' }}>
+              <div style={{ backgroundColor: '#0f172a', padding: '10px 16px', display: 'flex', alignItems: 'center', gap: 8, color: '#fff' }}>
+                 <Car size={16} color="#FBD904" />
+                 <span style={{ fontWeight: 700, fontSize: 13, letterSpacing: '0.5px' }}>VEHICLE SPECIFICATIONS</span>
+              </div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', padding: '12px 16px', background: '#f8fafc', fontSize: 12 }}>
+                 <div style={{ flex: '1 1 30%', minWidth: 160, display: 'flex', gap: 6, margin: '4px 0' }}>
+                    <span style={{ color: '#64748b', fontWeight: 600 }}>MAKE:</span>
+                    <span style={{ color: '#0f172a', fontWeight: 700 }}>{invoice.carMake || '—'}</span>
+                 </div>
+                 <div style={{ flex: '1 1 30%', minWidth: 160, display: 'flex', gap: 6, margin: '4px 0' }}>
+                    <span style={{ color: '#64748b', fontWeight: 600 }}>MODEL:</span>
+                    <span style={{ color: '#0f172a', fontWeight: 700 }}>{invoice.carModel || '—'}</span>
+                 </div>
+                 <div style={{ flex: '1 1 30%', minWidth: 160, display: 'flex', gap: 6, margin: '4px 0' }}>
+                    <span style={{ color: '#64748b', fontWeight: 600 }}>LICENSE PLATE:</span>
+                    <span style={{ color: '#0f172a', fontWeight: 700 }}>{invoice.licensePlate || '—'}</span>
+                 </div>
+                 <div style={{ flex: '1 1 30%', minWidth: 160, display: 'flex', gap: 6, margin: '4px 0' }}>
+                    <span style={{ color: '#64748b', fontWeight: 600 }}>VEHICLE TYPE:</span>
+                    <span style={{ color: '#0f172a', fontWeight: 700 }}>{invoice.vehicleType || '—'}</span>
+                 </div>
+                 <div style={{ flex: '1 1 30%', minWidth: 160, display: 'flex', gap: 6, margin: '4px 0' }}>
+                    <span style={{ color: '#64748b', fontWeight: 600 }}>DATE DELIVERED:</span>
+                    <span style={{ color: '#0f172a', fontWeight: 700 }}>{dateStr || '—'}</span>
+                 </div>
+              </div>
+           </div>
+        </div>
+
+
 
         <div style={{ padding: '24px 40px 10px 40px', display: 'flex', gap: 20 }}>
            <div style={{ flex: 1, background: '#fff', borderRadius: 12, border: '1px solid #e2e8f0', padding: '16px', display: 'flex', alignItems: 'center', gap: 14, boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}>
@@ -467,17 +430,7 @@ export default function VehicleServiceReport() {
           </div>
         )}
 
-        {/* FOOTER */}
-        <div style={{ position: 'relative', width: '100%', marginTop: 'auto', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-           <div style={{ margin: '0 40px', borderTop: '1.5px solid #111', paddingTop: '15px', paddingBottom: '30px', textAlign: 'center', fontSize: 13, color: '#111', zIndex: 10, position: 'relative' }}>
-              <strong>Detailing Masters</strong>, Opposite KTM Bike Showroom, Chankai, Marthandam, Tamil Nadu 629155.<br/>
-              Ph: +91 9994122652 | E-mail: detailingmasters2024@gmail.com
-           </div>
-        </div>
-
-        </div>
-
-      </ResponsiveDocumentWrapper>
+        </StandardDocumentLayout>
       </div>
 
       <style>{`

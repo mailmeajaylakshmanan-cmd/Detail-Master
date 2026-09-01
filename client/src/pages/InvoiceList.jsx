@@ -1,9 +1,11 @@
 import React, { useState, useMemo } from 'react';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
-import { Plus, Search, Filter, ArrowUpDown, ChevronLeft, ChevronRight, Eye, Pencil, ClipboardList, Car, Calendar, User, XCircle, Download } from 'lucide-react';
+import { Plus, Search, Filter, ArrowUpDown, ChevronLeft, ChevronRight, Eye, Pencil, ClipboardList, Car, Calendar, User, XCircle, Trash2, Download } from 'lucide-react';
 import { useInvoices } from '../hooks/useQueries.js';
 import { useDebouncedValue } from '../hooks/useDebouncedValue.js';
 import { parseSafeDate } from '../utils/dateFormatter.js';
+import { usePermissions } from '../hooks/usePermissions.js';
+import ConfirmDeleteModal from '../components/ConfirmDeleteModal.jsx';
 import api from '../api/axios.js';
 import toast from 'react-hot-toast';
 import { useQueryClient, useMutation } from '@tanstack/react-query';
@@ -36,19 +38,23 @@ export default function InvoiceList() {
   const [page, setPage] = useState(1);
   const debouncedSearch = useDebouncedValue(search, 300);
   const queryClient = useQueryClient();
+  const { canAdd, canEdit, canDelete } = usePermissions('Invoicing & Records');
+  const [deleteModal, setDeleteModal] = useState({ isOpen: false, invoice: null, loading: false });
 
   const dropMutation = useMutation({
     mutationFn: async (id) => {
-      const res = await api.put(`/invoices/${id}`, { status: 'cancelled' });
+      const res = await api.delete(`/invoices/${id}`);
       return res.data;
     },
-    onSuccess: () => {
-      toast.success('Invoice dropped/cancelled successfully');
+    onSuccess: (data) => {
+      toast.success(data?.message || 'Invoice cancelled/deleted successfully');
+      setDeleteModal({ isOpen: false, invoice: null, loading: false });
       queryClient.invalidateQueries(['invoices']);
       refetch();
     },
-    onError: () => {
-      toast.error('Failed to drop invoice');
+    onError: (err) => {
+      toast.error(err?.response?.data?.message || 'Failed to cancel invoice');
+      setDeleteModal(prev => ({ ...prev, loading: false }));
     }
   });
 
@@ -123,17 +129,17 @@ export default function InvoiceList() {
   };
 
   return (
-    <div className="space-y-3 pb-20 p-2 sm:p-6 lg:p-8 bg-transparent min-h-full">
-      <div className="bg-white/60 backdrop-blur-2xl rounded-[24px] shadow-[0_8px_32px_rgba(0,0,0,0.06)] border border-white/80 p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shrink-0">
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-black text-[#F6CB59] flex items-center justify-center shadow-md shrink-0">
-            <ClipboardList size={24} strokeWidth={2.5} />
+    <div className="space-y-3 pb-20 p-2.5 sm:p-6 lg:p-8 bg-transparent min-h-full">
+      <div className="bg-white/60 backdrop-blur-2xl rounded-2xl sm:rounded-[24px] shadow-[0_8px_32px_rgba(0,0,0,0.06)] border border-white/80 p-3.5 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 shrink-0">
+        <div className="flex items-center gap-3 sm:gap-4">
+          <div className="w-9 h-9 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-black text-[#F6CB59] flex items-center justify-center shadow-md shrink-0">
+            <ClipboardList className="w-4 h-4 sm:w-6 sm:h-6" strokeWidth={2.5} />
           </div>
           <div>
-            <h1 className="text-xl md:text-[22px] font-black text-gray-900 tracking-tight leading-none mb-1">
+            <h1 className="text-base sm:text-xl md:text-[22px] font-black text-gray-900 tracking-tight leading-none mb-1">
               Invoices
             </h1>
-            <p className="text-[12px] font-bold text-gray-500 tracking-wide uppercase">
+            <p className="text-[10px] sm:text-[12px] font-bold text-gray-500 tracking-wide uppercase">
               Manage and track billing
             </p>
           </div>
@@ -142,15 +148,15 @@ export default function InvoiceList() {
         <div className="flex items-center gap-2 w-full sm:w-auto shrink-0">
           <button
             onClick={handleExportCSV}
-            className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 active:scale-[0.98] transition-all font-bold text-[12px] shadow-sm whitespace-nowrap w-full sm:w-auto"
+            className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3 py-1.5 sm:py-2 rounded-xl bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 active:scale-[0.98] transition-all font-bold text-[11px] sm:text-[12px] shadow-xs whitespace-nowrap"
           >
-            <Download size={14} strokeWidth={2.5} className="text-slate-500" /> Export CSV
+            <Download size={13} strokeWidth={2.5} className="text-slate-500" /> Export CSV
           </button>
           <Link
             to="/invoices/new"
-            className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-black text-[#F6CB59] hover:scale-[1.02] active:scale-[0.98] transition-all font-bold text-[12px] shadow-md whitespace-nowrap w-full sm:w-auto"
+            className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3 py-1.5 sm:py-2 rounded-xl bg-black text-[#F6CB59] hover:scale-[1.02] active:scale-[0.98] transition-all font-bold text-[11px] sm:text-[12px] shadow-md whitespace-nowrap"
           >
-            <Plus size={14} strokeWidth={2.5} /> Create Invoice
+            <Plus size={13} strokeWidth={2.5} /> Create Invoice
           </Link>
         </div>
       </div>
@@ -285,20 +291,20 @@ export default function InvoiceList() {
                         <button onClick={() => navigate(`/invoices/${inv.id}/service-report`)} title="Service Report" className="p-1.5 text-slate-700 bg-slate-100 hover:bg-yellow-100 hover:text-yellow-800 rounded-lg transition-colors inline-flex">
                           <ClipboardList size={18} />
                         </button>
-                        <button onClick={() => navigate(`/invoices/${inv.id}/edit`)} title="Edit Invoice" className="p-1.5 text-amber-600 bg-amber-50 hover:bg-amber-100 hover:text-amber-700 rounded-lg transition-colors inline-flex">
-                          <Pencil size={18} />
-                        </button>
-                        {inv.status !== 'cancelled' && (
+                        {canEdit && (
+                          <button onClick={() => navigate(`/invoices/${inv.id}/edit`)} title="Edit Invoice" className="p-1.5 text-amber-600 bg-amber-50 hover:bg-amber-100 hover:text-amber-700 rounded-lg transition-colors inline-flex">
+                            <Pencil size={18} />
+                          </button>
+                        )}
+                        {canDelete && inv.status !== 'cancelled' && (
                           <button
                             onClick={() => {
-                              if (window.confirm('Are you sure you want to drop/cancel this invoice?')) {
-                                dropMutation.mutate(inv.id);
-                              }
+                              setDeleteModal({ isOpen: true, invoice: inv, loading: false });
                             }}
-                            title="Drop / Cancel Invoice"
+                            title="Cancel / Void Invoice"
                             className="p-1.5 text-rose-600 bg-rose-50 hover:bg-rose-100 hover:text-rose-700 rounded-lg transition-colors inline-flex"
                           >
-                            <XCircle size={18} />
+                            <Trash2 size={18} />
                           </button>
                         )}
                       </div>
@@ -406,6 +412,23 @@ export default function InvoiceList() {
           </div>
         </div>
       </div>
+
+      <ConfirmDeleteModal
+        isOpen={deleteModal.isOpen}
+        onClose={() => setDeleteModal({ isOpen: false, invoice: null, loading: false })}
+        onConfirm={() => {
+          if (deleteModal.invoice) {
+            setDeleteModal(prev => ({ ...prev, loading: true }));
+            dropMutation.mutate(deleteModal.invoice.id);
+          }
+        }}
+        loading={deleteModal.loading}
+        title="Cancel / Void Invoice"
+        itemName={deleteModal.invoice?.invoiceNo || deleteModal.invoice?.invoice_number || `INV-${deleteModal.invoice?.id}`}
+        message="Are you sure you want to cancel this invoice? If draft, it will be deleted permanently. If active, it will be marked as cancelled and any redeemed package washes will be restored."
+        confirmText="Yes, Cancel Invoice"
+        confirmVariant="danger"
+      />
     </div>
   );
 }

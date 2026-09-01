@@ -163,63 +163,110 @@ export default function UserMenuAssignment() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <h1 className="text-[28px] font-black text-gray-900 tracking-tight flex items-center gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-black text-[#F6CB59] flex items-center justify-center shadow-md shrink-0">
-              <Users size={24} strokeWidth={2.5} />
-            </div>
-            Access Control
-          </h1>
-          <p className="text-sm font-medium text-gray-500 mt-1">
-            Manage admin users, roles, and menu permissions.
-          </p>
+        <div className="flex items-center gap-3 sm:gap-4">
+          <div className="w-9 h-9 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-black text-[#F6CB59] flex items-center justify-center shadow-md shrink-0">
+            <Users className="w-4 h-4 sm:w-6 sm:h-6" strokeWidth={2.5} />
+          </div>
+          <div>
+            <h1 className="text-base sm:text-2xl md:text-[28px] font-black text-gray-900 tracking-tight leading-none mb-1">
+              Access Control
+            </h1>
+            <p className="text-[10px] sm:text-sm font-medium text-gray-500 mt-0.5 sm:mt-1">
+              Manage admin users, roles, and menu permissions.
+            </p>
+          </div>
         </div>
         <button
           onClick={() => setIsCreateModalOpen(true)}
-          className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-black text-[#F6CB59] hover:scale-[1.02] active:scale-[0.98] transition-all font-bold text-[13px] shadow-md whitespace-nowrap"
+          className="w-full sm:w-auto flex items-center justify-center gap-1.5 px-4 py-2 sm:px-5 sm:py-2.5 rounded-xl bg-black text-[#F6CB59] hover:scale-[1.02] active:scale-[0.98] transition-all font-black text-xs sm:text-[13px] shadow-md whitespace-nowrap"
         >
-          <Plus size={16} strokeWidth={2.5} />
+          <Plus size={14} strokeWidth={2.5} />
           <span>Add New User</span>
         </button>
       </div>
 
+      {/* ── Executive Staff Analytics Strip ── */}
+      <div className="flex lg:grid lg:grid-cols-3 gap-2.5 sm:gap-4 overflow-x-auto pb-1 hide-scrollbar">
+        <div className="bg-white/70 backdrop-blur-xl rounded-2xl p-3 sm:p-4 border border-white/80 shadow-xs flex items-center gap-3 min-w-[155px] sm:min-w-0 flex-1 shrink-0">
+          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-black/90 text-[#F6CB59] flex items-center justify-center shadow-xs shrink-0">
+            <Users size={18} />
+          </div>
+          <div className="min-w-0">
+            <div className="text-[10px] sm:text-[11px] font-bold text-gray-500 uppercase tracking-wider whitespace-nowrap">
+              Studio Staff
+            </div>
+            <div className="text-sm sm:text-lg font-black text-gray-900 leading-tight">
+              {users.length} <span className="text-xs font-bold text-gray-400">Accounts</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white/70 backdrop-blur-xl rounded-2xl p-3 sm:p-4 border border-white/80 shadow-xs flex items-center gap-3 min-w-[155px] sm:min-w-0 flex-1 shrink-0">
+          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200/80 flex items-center justify-center shadow-xs shrink-0">
+            <Shield size={18} />
+          </div>
+          <div className="min-w-0">
+            <div className="text-[10px] sm:text-[11px] font-bold text-gray-500 uppercase tracking-wider whitespace-nowrap">
+              Active Logins
+            </div>
+            <div className="text-sm sm:text-lg font-black text-gray-900 leading-tight whitespace-nowrap">
+              {users.filter(u => u.is_active).length} Active Staff
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white/70 backdrop-blur-xl rounded-2xl p-3 sm:p-4 border border-white/80 shadow-xs flex items-center gap-3 min-w-[165px] sm:min-w-0 flex-1 shrink-0">
+          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-blue-50 text-blue-700 border border-blue-200/80 flex items-center justify-center shadow-xs shrink-0">
+            <Key size={18} />
+          </div>
+          <div className="min-w-0">
+            <div className="text-[10px] sm:text-[11px] font-bold text-gray-500 uppercase tracking-wider whitespace-nowrap">
+              Roles Spectrum
+            </div>
+            <div className="text-sm sm:text-lg font-black text-gray-900 leading-tight whitespace-nowrap">
+              {roles.length} Defined Roles
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Users Table (Desktop) */}
-      <div className="hidden lg:block bg-white/60 backdrop-blur-2xl rounded-[24px] border border-white/80 shadow-[0_8px_32px_rgba(0,0,0,0.06)] overflow-hidden">
+      <div className="hidden lg:block bg-white/80 backdrop-blur-2xl rounded-3xl border border-white/90 shadow-[0_8px_30px_rgba(0,0,0,0.05)] overflow-hidden">
         <div className="overflow-x-auto custom-scrollbar">
           <table className="w-full text-left whitespace-nowrap">
             <thead>
-              <tr className="bg-white/40 backdrop-blur-md border-b border-white/50 sticky top-0 z-10">
-                <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Full Name</th>
-                <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Username</th>
-                <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Email</th>
-                <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Role</th>
-                <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Status</th>
-                <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">Actions</th>
+              <tr className="bg-gray-50/70 border-b border-gray-200/80 sticky top-0 z-10 text-gray-700">
+                <th className="px-6 py-4 text-[11px] font-black uppercase tracking-wider">Full Name</th>
+                <th className="px-6 py-4 text-[11px] font-black uppercase tracking-wider">Username</th>
+                <th className="px-6 py-4 text-[11px] font-black uppercase tracking-wider">Email</th>
+                <th className="px-6 py-4 text-[11px] font-black uppercase tracking-wider">Role</th>
+                <th className="px-6 py-4 text-[11px] font-black uppercase tracking-wider">Status</th>
+                <th className="px-6 py-4 text-[11px] font-black uppercase tracking-wider text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100/50">
+            <tbody className="divide-y divide-gray-100/80">
               {users.map((user) => (
-                <tr key={user.id} className="hover:bg-white/60 transition-colors group">
+                <tr key={user.id} className="hover:bg-amber-50/30 transition-colors group">
                   <td className="px-6 py-4">
-                    <div className="font-bold text-gray-900">{user.full_name || '-'}</div>
+                    <div className="font-bold text-gray-900 text-sm">{user.full_name || '-'}</div>
                   </td>
                   <td className="px-6 py-4">
-                    <div className="text-sm font-medium text-gray-600">{user.username}</div>
+                    <div className="text-xs font-mono font-bold text-gray-600">{user.username}</div>
                   </td>
                   <td className="px-6 py-4">
-                    <div className="text-sm font-medium text-gray-600">{user.email || '-'}</div>
+                    <div className="text-xs font-medium text-gray-600">{user.email || '—'}</div>
                   </td>
                   <td className="px-6 py-4">
-                    <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold bg-blue-50 text-blue-700">
+                    <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-[11px] font-black uppercase tracking-wider bg-black text-[#F6CB59] shadow-xs">
                       {user.role_name}
                     </span>
                   </td>
                   <td className="px-6 py-4">
-                    <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold ${
-                      user.is_active ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'
+                    <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider shadow-xs ${
+                      user.is_active ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-700'
                     }`}>
                       {user.is_active ? 'Active' : 'Inactive'}
                     </span>
@@ -228,17 +275,17 @@ export default function UserMenuAssignment() {
                     <div className="flex items-center justify-end gap-2">
                       <button
                         onClick={() => openPasswordModal(user)}
-                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-gray-600 bg-white hover:bg-gray-50 border border-gray-200 rounded-lg shadow-sm transition-colors"
+                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-gray-700 bg-white hover:bg-gray-100 border border-gray-200 rounded-xl shadow-xs transition-colors"
                       >
-                        <Key size={14} />
-                        <span className="hidden sm:inline">Password</span>
+                        <Key size={13} />
+                        <span>Password</span>
                       </button>
                       <button
                         onClick={() => openPermissionModal(user)}
-                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-[#F6CB59] bg-black hover:bg-gray-900 rounded-lg shadow-md transition-colors"
+                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-black text-[#F6CB59] bg-black hover:scale-102 rounded-xl shadow-sm transition-all"
                       >
-                        <Shield size={14} />
-                        <span className="hidden sm:inline">Permissions</span>
+                        <Shield size={13} />
+                        <span>Permissions</span>
                       </button>
                     </div>
                   </td>
@@ -246,7 +293,7 @@ export default function UserMenuAssignment() {
               ))}
               {users.length === 0 && (
                 <tr>
-                  <td colSpan="6" className="px-6 py-8 text-center text-gray-500 font-medium">
+                  <td colSpan="6" className="px-6 py-12 text-center text-gray-400 font-bold">
                     No users found.
                   </td>
                 </tr>
@@ -256,60 +303,70 @@ export default function UserMenuAssignment() {
         </div>
       </div>
 
-      {/* Mobile Cards View */}
-      <div className="block lg:hidden flex flex-col gap-5">
+      {/* Mobile Storytelling Cards View */}
+      <div className="block lg:hidden flex flex-col gap-3.5">
         {users.map(user => (
-          <div key={user.id} className="bg-white/60 backdrop-blur-2xl border border-white/80 rounded-[24px] p-5 shadow-[0_8px_32px_rgba(0,0,0,0.06)] flex flex-col gap-4 relative">
+          <div
+            key={user.id}
+            className="bg-white/85 backdrop-blur-2xl border border-white/90 rounded-3xl p-4 shadow-[0_8px_30px_rgba(0,0,0,0.05)] hover:shadow-[0_20px_40px_rgba(0,0,0,0.09)] flex flex-col gap-3 relative overflow-hidden group"
+          >
+            {/* Top Amber Accent */}
+            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-[#F6CB59] to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+
             {/* Top Row: Avatar & Name */}
             <div className="flex justify-between items-start">
-              <div className="flex items-center gap-3 min-w-0">
-                <div className="w-11 h-11 rounded-[12px] bg-black text-[#F6CB59] flex items-center justify-center font-black text-sm shrink-0 shadow-md">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-10 h-10 rounded-2xl bg-black text-[#F6CB59] flex items-center justify-center font-black text-sm shrink-0 shadow-md border border-gray-800">
                   {(user.full_name || user.username || 'U').charAt(0).toUpperCase()}
                 </div>
                 <div className="min-w-0 pr-2">
-                  <div className="font-black text-[16px] text-gray-900 truncate tracking-tight">{user.full_name || '-'}</div>
-                  <div className="text-[12px] font-bold text-gray-500 tracking-wider uppercase mt-0.5">{user.username}</div>
+                  <h3 className="font-black text-[15px] sm:text-[16px] text-gray-900 truncate tracking-tight">
+                    {user.full_name || '-'}
+                  </h3>
+                  <div className="text-[11px] font-mono font-bold text-gray-500 uppercase mt-0.5">
+                    @{user.username}
+                  </div>
                 </div>
               </div>
               <div className="shrink-0 flex flex-col items-end gap-1">
-                <span className="inline-flex items-center px-2 py-0.5 rounded-lg text-[10px] font-black uppercase tracking-widest bg-gray-900 text-[#F6CB59] shadow-sm">
+                <span className="inline-flex items-center px-2 py-0.5 rounded-lg text-[10px] font-black uppercase tracking-widest bg-black text-[#F6CB59] shadow-xs">
                   {user.role_name}
                 </span>
-                <span className={`inline-flex items-center px-2 py-0.5 rounded-lg text-[10px] font-black uppercase tracking-widest shadow-sm ${
-                  user.is_active ? 'bg-emerald-100 text-emerald-700 border border-emerald-200/50' : 'bg-rose-100 text-rose-700 border border-rose-200/50'
+                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider shadow-xs ${
+                  user.is_active ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-700'
                 }`}>
                   {user.is_active ? 'Active' : 'Inactive'}
                 </span>
               </div>
             </div>
 
-            {/* Details */}
+            {/* Email Strip */}
             {user.email && (
-              <div className="bg-white/50 p-3 rounded-xl border border-white/60 shadow-sm flex items-center gap-2 text-[13px] font-bold text-gray-700">
+              <div className="bg-gray-50/90 p-2.5 rounded-xl border border-gray-200/60 flex items-center gap-2 text-xs font-bold text-gray-700">
                 <span className="text-gray-400 shrink-0">Email:</span>
                 <span className="truncate">{user.email}</span>
               </div>
             )}
 
             {/* Actions */}
-            <div className="flex gap-2 mt-1">
+            <div className="flex gap-2 pt-1 border-t border-gray-100">
               <button
                 onClick={() => openPasswordModal(user)}
-                className="flex-1 py-2.5 bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 text-[12px] font-black rounded-xl transition-all shadow-sm flex items-center justify-center gap-1.5"
+                className="flex-1 py-2 bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 text-xs font-bold rounded-xl transition-all shadow-xs flex items-center justify-center gap-1.5"
               >
-                <Key size={14} /> Password
+                <Key size={13} /> Password
               </button>
               <button
                 onClick={() => openPermissionModal(user)}
-                className="flex-1 py-2.5 bg-black hover:bg-gray-900 text-[#F6CB59] text-[12px] font-black rounded-xl transition-all shadow-md flex items-center justify-center gap-1.5"
+                className="flex-1 py-2 bg-black text-[#F6CB59] hover:scale-102 text-xs font-black rounded-xl transition-all shadow-sm flex items-center justify-center gap-1.5"
               >
-                <Shield size={14} /> Permissions
+                <Shield size={13} /> Permissions
               </button>
             </div>
           </div>
         ))}
         {users.length === 0 && (
-          <div className="py-8 text-center text-gray-500 font-bold bg-white/40 backdrop-blur-md rounded-[24px] border border-white/50 shadow-sm">
+          <div className="py-12 text-center text-gray-400 font-bold bg-white/60 backdrop-blur-md rounded-3xl border border-gray-200 shadow-sm">
             No users found.
           </div>
         )}

@@ -3,7 +3,7 @@ const router = express.Router();
 const db = require('../db');
 const { requirePermission } = require('../middleware/permissions');
 
-router.use(requirePermission('Customers'));
+router.use(requirePermission('Organizations'));
 const { protect } = require('../middleware/auth');
 
 // Get all organizations with vehicles
@@ -58,7 +58,7 @@ router.get('/', protect, async (req, res) => {
     res.json(orgsWithVehicles);
   } catch (err) {
     console.error('Error fetching organizations:', err);
-    res.status(500).json({ error: 'Failed to fetch organizations' });
+    res.status(500).json({ message: 'Failed to fetch organizations' });
   }
 });
 
@@ -71,12 +71,12 @@ router.get('/:id', protect, async (req, res) => {
       [id]
     );
     if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Organization not found' });
+      return res.status(404).json({ message: 'Organization not found' });
     }
     res.json(result.rows[0]);
   } catch (err) {
     console.error('Error fetching organization:', err);
-    res.status(500).json({ error: 'Failed to fetch organization' });
+    res.status(500).json({ message: 'Failed to fetch organization' });
   }
 });
 
@@ -86,7 +86,7 @@ router.post('/', protect, async (req, res) => {
     const { org_name, contact_person, phone, email, address, is_active } = req.body;
 
     if (!org_name) {
-      return res.status(400).json({ error: 'org_name is required' });
+      return res.status(400).json({ message: 'Organization name is required' });
     }
 
     const result = await db.query(
@@ -94,13 +94,16 @@ router.post('/', protect, async (req, res) => {
        (org_name, contact_person, phone, email, address, is_active, created_at)
        VALUES ($1, $2, $3, $4, $5, $6, CURRENT_TIMESTAMP)
        RETURNING *`,
-      [org_name, contact_person, phone, email, address, is_active !== undefined ? is_active : true]
+      [org_name.trim(), contact_person || null, phone || null, email || null, address || null, is_active !== undefined ? is_active : true]
     );
 
     res.status(201).json({ ...result.rows[0], vehicles: [] });
   } catch (err) {
     console.error('Error creating organization:', err);
-    res.status(500).json({ error: 'Failed to create organization' });
+    if (err.code === '23505') {
+      return res.status(409).json({ message: `An organization named "${req.body.org_name}" already exists.` });
+    }
+    res.status(500).json({ message: err.message || 'Failed to create organization' });
   }
 });
 

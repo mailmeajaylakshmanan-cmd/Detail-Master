@@ -246,9 +246,9 @@ function renderInvoiceHtml(inv) {
             </div>
           </div>
 
-          <!-- Center Accent Logo -->
-          <div style="flex: 1; position: relative; display: flex; align-items: center; justify-content: center;">
-            ${goldenCarBase64 ? `<img src="${goldenCarBase64}" alt="Car Accent" style="height: 80px; object-fit: contain; filter: drop-shadow(2px 2px 4px rgba(0,0,0,0.4)); position: relative; left: 20%; top: 10px;" />` : ''}
+          <!-- Center Accent Golden Car -->
+          <div style="position: absolute; left: 65%; top: 29px; transform: translateX(-50%); z-index: 15; pointer-events: none;">
+            ${goldenCarBase64 ? `<img src="${goldenCarBase64}" alt="Car Accent" style="height: 80px; object-fit: contain; filter: drop-shadow(2px 2px 4px rgba(0,0,0,0.4));" />` : ''}
           </div>
 
           <!-- Title Right -->

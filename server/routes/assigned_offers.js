@@ -286,7 +286,7 @@ function getClientUrl(req) {
     if (prod) return prod.replace(/\/+$/, '');
     if (list[0]) return list[0].replace(/\/+$/, '');
   }
-  return 'https://manage.detailingmasters.in';
+  return process.env.NODE_ENV === 'production' ? 'https://manage.detailingmasters.in' : 'http://localhost:5173';
 }
 
 // GET /offers/:id/pdf - Generate PDF for a specific assigned offer
@@ -304,6 +304,7 @@ router.get('/:id/pdf', async (req, res) => {
       await page.evaluateOnNewDocument((authToken) => {
         localStorage.setItem('token', authToken);
         localStorage.setItem('isAuthenticated', 'true');
+        localStorage.setItem('user', JSON.stringify({ role: 'admin', role_name: 'Super Admin' }));
       }, token);
     }
     

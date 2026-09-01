@@ -54,7 +54,6 @@ const MasterCustomer = lazy(() => import('./pages/MasterCustomer.jsx'));
 const MasterOrganization = lazy(() => import('./pages/MasterOrganization.jsx'));
 const OrganizationBilling = lazy(() => import('./pages/OrganizationBilling.jsx'));
 const CustomerProfile = lazy(() => import('./pages/CustomerProfile.jsx'));
-const QuotationView = lazy(() => import('./pages/QuotationView.jsx'));
 const UpdateCredentials = lazy(() => import('./pages/UpdateCredentials.jsx'));
 const MasterOffers = lazy(() => import('./pages/MasterOffers.jsx'));
 const AssignOffer = lazy(() => import('./pages/AssignOffer.jsx'));
@@ -129,7 +128,6 @@ export default function App() {
         <Route path="assigned-offers" element={<LazyPage><ManageAssignedOffers /></LazyPage>} />
         <Route path="offers/new" element={<LazyPage><AssignOffer /></LazyPage>} />
         <Route path="offers/:id" element={<LazyPage><OfferView /></LazyPage>} />
-        <Route path="quotations/:id" element={<LazyPage><QuotationView /></LazyPage>} />
         <Route path="update-credentials" element={<LazyPage><UpdateCredentials /></LazyPage>} />
         <Route path="website-bookings" element={<LazyPage><WebsiteBookings /></LazyPage>} />
         <Route path="menu-assignment" element={<LazyPage><MenuAssignment /></LazyPage>} />

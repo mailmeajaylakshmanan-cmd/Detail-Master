@@ -1,12 +1,12 @@
 import { useState, useMemo } from 'react';
 import api from '../api/axios.js';
 import toast from 'react-hot-toast';
-import { Plus, Search, Briefcase, Filter, UserPlus } from 'lucide-react';
+import { Plus, Search, Briefcase, Filter, UserPlus, Building2, Car } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
-import { useOrganizations } from '../hooks/useQueries.js';
 import { useDebouncedValue } from '../hooks/useDebouncedValue.js';
 import { queryKeys } from '../api/queryKeys.js';
 import { usePermissions } from '../hooks/usePermissions.js';
+import ConfirmDeleteModal from '../components/ConfirmDeleteModal.jsx';
 
 import OrganizationTable from '../components/organizations/OrganizationTable.jsx';
 import OrganizationFormModal from '../components/organizations/OrganizationFormModal.jsx';
@@ -14,7 +14,8 @@ import OrganizationFormModal from '../components/organizations/OrganizationFormM
 export default function MasterOrganization() {
   const queryClient = useQueryClient();
   const { data: organizations = [], isLoading: loadingOrganizations } = useOrganizations();
-  const { can_delete } = usePermissions('Organizations');
+  const { canAdd, canEdit, canDelete } = usePermissions('Organizations');
+  const [deleteModal, setDeleteModal] = useState({ isOpen: false, orgId: null, orgName: '', loading: false });
 
   const [search, setSearch] = useState('');
   const debouncedSearch = useDebouncedValue(search, 250);
@@ -51,7 +52,8 @@ export default function MasterOrganization() {
 
   async function handleSubmit(e) {
     e.preventDefault();
-    if (!orgName) return toast.error('Organization Name is required');
+    if (isSaving) return;
+    if (!orgName.trim()) return toast.error('Organization Name is required');
 
     setIsSaving(true);
     try {
@@ -115,14 +117,27 @@ export default function MasterOrganization() {
     setFormVehicles(fv => fv.filter((_, i) => i !== idx));
   }
   
-  async function handleDelete(id) {
-    if (!window.confirm('Are you sure you want to delete this organization?')) return;
+  function handleDelete(id) {
+    const org = organizations.find(o => o.id === id);
+    setDeleteModal({
+      isOpen: true,
+      orgId: id,
+      orgName: org?.org_name || 'Organization',
+      loading: false
+    });
+  }
+
+  async function confirmDeleteOrganization() {
+    if (!deleteModal.orgId) return;
+    setDeleteModal(prev => ({ ...prev, loading: true }));
     try {
-      await api.delete('/organizations/' + id);
-      toast.success('Organization deleted');
+      await api.delete('/organizations/' + deleteModal.orgId);
+      toast.success('Organization archived successfully');
+      setDeleteModal({ isOpen: false, orgId: null, orgName: '', loading: false });
       queryClient.invalidateQueries({ queryKey: queryKeys.organizations.all });
     } catch (err) {
       toast.error(err.response?.data?.message || 'Error deleting organization');
+      setDeleteModal(prev => ({ ...prev, loading: false }));
     }
   }
 
@@ -161,42 +176,100 @@ export default function MasterOrganization() {
   const isLoading = loadingOrganizations;
 
   return (
-    <div className="w-full min-h-[calc(100vh-100px)] flex flex-col bg-transparent animate-fade-in">
-      <div className="w-full flex flex-col h-full gap-4">
+    <div className="w-full min-h-[calc(100vh-100px)] flex flex-col bg-transparent animate-fade-in p-2 sm:p-4">
+      <div className="w-full flex flex-col h-full gap-3 sm:gap-4">
         {/* Toolbar */}
-        <div className="bg-white/60 backdrop-blur-2xl rounded-[24px] shadow-[0_8px_32px_rgba(0,0,0,0.06)] border border-white/80 p-3 flex flex-col lg:flex-row lg:items-center justify-between gap-4 shrink-0">
-          <div className="flex items-center justify-between gap-2 px-1 lg:px-0">
-            <div className="flex items-center gap-2">
-              <Briefcase size={18} className="text-gray-400" />
-              <h2 className="text-sm font-bold text-gray-700">Organizations</h2>
+        <div className="bg-white/60 backdrop-blur-2xl rounded-2xl sm:rounded-[24px] shadow-[0_8px_32px_rgba(0,0,0,0.06)] border border-white/80 p-3.5 sm:p-5 flex flex-col lg:flex-row lg:items-center justify-between gap-3 sm:gap-5 shrink-0">
+          <div className="flex items-center justify-between gap-3 sm:gap-4">
+            <div className="flex items-center gap-3 sm:gap-4">
+              <div className="w-9 h-9 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-black text-[#F6CB59] flex items-center justify-center shadow-md shrink-0">
+                <Briefcase className="w-4 h-4 sm:w-6 sm:h-6" strokeWidth={2.5} />
+              </div>
+              <div>
+                <h1 className="text-base sm:text-xl md:text-[22px] font-black text-gray-900 tracking-tight leading-none mb-1">
+                  Organization Master
+                </h1>
+                <p className="text-[10px] sm:text-[12px] font-bold text-gray-500 tracking-wide uppercase">
+                  Manage corporate clients & fleet accounts
+                </p>
+              </div>
             </div>
             
-            <button
-              onClick={handleAdd}
-              className="btn-primary whitespace-nowrap flex lg:hidden items-center gap-1.5 text-[11px] px-3 py-2 shrink-0"
-            >
-              <Plus size={13} strokeWidth={2.5} /> Add New
-            </button>
+            {canAdd && (
+              <button
+                onClick={handleAdd}
+                className="btn-primary whitespace-nowrap flex lg:hidden items-center gap-1 text-[11px] px-2.5 py-1.5 shrink-0"
+              >
+                <Plus size={13} strokeWidth={2.5} /> Add New
+              </button>
+            )}
           </div>
 
-          <div className="flex items-center gap-2 lg:gap-3 px-1 lg:px-0">
-            <div className="relative flex-1 lg:flex-none">
+          <div className="flex items-center gap-2 lg:gap-3">
+            <div className="relative flex-1 lg:w-72">
               <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={14} strokeWidth={2.5} />
               <input
                 type="text"
                 placeholder="Search organizations..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="input pl-9 pr-4 py-2.5 text-[12px] font-medium w-full lg:w-[220px] rounded-[12px]"
+                className="input pl-9 pr-4 py-1.5 sm:py-2.5 text-[12px] sm:text-[13px] font-medium w-full rounded-xl"
               />
             </div>
 
-            <button
-              onClick={handleAdd}
-              className="btn-primary whitespace-nowrap hidden lg:flex items-center gap-1.5"
-            >
-              <Plus size={14} strokeWidth={2.5} /> Add New Organization
-            </button>
+            {canAdd && (
+              <button
+                onClick={handleAdd}
+                className="btn-primary whitespace-nowrap hidden lg:flex items-center gap-1.5"
+              >
+                <Plus size={14} strokeWidth={2.5} /> Add New Organization
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* ── Executive Storytelling Analytics Strip ── */}
+        <div className="flex lg:grid lg:grid-cols-3 gap-2.5 sm:gap-4 overflow-x-auto pb-1 hide-scrollbar">
+          <div className="bg-white/70 backdrop-blur-xl rounded-2xl p-3 sm:p-4 border border-white/80 shadow-xs flex items-center gap-3 min-w-[155px] sm:min-w-0 flex-1 shrink-0">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-black/90 text-[#F6CB59] flex items-center justify-center shadow-xs shrink-0">
+              <Briefcase size={18} />
+            </div>
+            <div className="min-w-0">
+              <div className="text-[10px] sm:text-[11px] font-bold text-gray-500 uppercase tracking-wider whitespace-nowrap">
+                Corporate Clients
+              </div>
+              <div className="text-sm sm:text-lg font-black text-gray-900 leading-tight">
+                {organizations.length} <span className="text-xs font-bold text-gray-400">Accounts</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white/70 backdrop-blur-xl rounded-2xl p-3 sm:p-4 border border-white/80 shadow-xs flex items-center gap-3 min-w-[155px] sm:min-w-0 flex-1 shrink-0">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-amber-50 text-amber-700 border border-amber-200/80 flex items-center justify-center shadow-xs shrink-0">
+              <Car size={18} />
+            </div>
+            <div className="min-w-0">
+              <div className="text-[10px] sm:text-[11px] font-bold text-gray-500 uppercase tracking-wider whitespace-nowrap">
+                Fleet Fleet Roster
+              </div>
+              <div className="text-sm sm:text-lg font-black text-gray-900 leading-tight whitespace-nowrap">
+                {organizations.reduce((acc, o) => acc + (o.vehicles?.filter(v => v.isActive !== false)?.length || 0), 0)} Vehicles
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white/70 backdrop-blur-xl rounded-2xl p-3 sm:p-4 border border-white/80 shadow-xs flex items-center gap-3 min-w-[165px] sm:min-w-0 flex-1 shrink-0">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200/80 flex items-center justify-center shadow-xs shrink-0">
+              <Building2 size={18} />
+            </div>
+            <div className="min-w-0">
+              <div className="text-[10px] sm:text-[11px] font-bold text-gray-500 uppercase tracking-wider whitespace-nowrap">
+                B2B Billing Status
+              </div>
+              <div className="text-sm sm:text-lg font-black text-gray-900 leading-tight whitespace-nowrap">
+                Active Corporate Ledger
+              </div>
+            </div>
           </div>
         </div>
 
@@ -207,7 +280,7 @@ export default function MasterOrganization() {
             rows={enrichedRows}
             onEdit={handleEdit}
             onDelete={handleDelete}
-            canDelete={can_delete}
+            canDelete={canDelete}
           />
         )}
       </div>
@@ -225,6 +298,18 @@ export default function MasterOrganization() {
         onSubmit={handleSubmit}
         onCancel={handleCancelEdit}
         isSaving={isSaving}
+      />
+
+      <ConfirmDeleteModal
+        isOpen={deleteModal.isOpen}
+        onClose={() => setDeleteModal({ isOpen: false, orgId: null, orgName: '', loading: false })}
+        onConfirm={confirmDeleteOrganization}
+        loading={deleteModal.loading}
+        title="Archive Organization Profile"
+        itemName={deleteModal.orgName}
+        message="Are you sure you want to archive this organization? Fleet invoice records will remain fully preserved."
+        confirmText="Yes, Archive Organization"
+        confirmVariant="danger"
       />
     </div>
   );

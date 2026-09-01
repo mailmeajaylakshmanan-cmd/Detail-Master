@@ -8,6 +8,7 @@ import { useClients, useInvoices } from '../hooks/useQueries.js';
 import { useDebouncedValue } from '../hooks/useDebouncedValue.js';
 import { queryKeys } from '../api/queryKeys.js';
 import { usePermissions } from '../hooks/usePermissions.js';
+import ConfirmDeleteModal from '../components/ConfirmDeleteModal.jsx';
 
 import { useNavigate } from 'react-router-dom';
 import CustomerTable from '../components/customers/CustomerTable.jsx';
@@ -23,7 +24,8 @@ export default function MasterCustomer() {
   const [selectedPhone, setSelectedPhone] = useState(null);
   const [limit, setLimit] = useState(50);
   
-  const { can_delete } = usePermissions('Customers');
+  const { canAdd, canEdit, canDelete } = usePermissions('Customers');
+  const [deleteModal, setDeleteModal] = useState({ isOpen: false, customerId: null, customerName: '', loading: false });
 
   const { data: customerData, isLoading: loadingCustomers, isFetching: fetchingCustomers } = useClients({
     page: 1,
@@ -100,6 +102,7 @@ export default function MasterCustomer() {
 
   async function handleSubmit(e) {
     e.preventDefault();
+    if (isSaving) return;
     if (!name || !phone) return toast.error('Name and Phone are required');
 
     const validVehicles = formVehicles.filter(v => v.make || v.model || v.plate);
@@ -142,14 +145,27 @@ export default function MasterCustomer() {
     }
   }
   
-  async function handleDelete(id) {
-    if (!window.confirm('Are you sure you want to delete this customer?')) return;
+  function handleDelete(id) {
+    const cust = customers.find(c => c.id === id);
+    setDeleteModal({
+      isOpen: true,
+      customerId: id,
+      customerName: cust?.name || cust?.full_name || 'Customer',
+      loading: false
+    });
+  }
+
+  async function confirmDeleteCustomer() {
+    if (!deleteModal.customerId) return;
+    setDeleteModal(prev => ({ ...prev, loading: true }));
     try {
-      await api.delete('/clients/' + id);
-      toast.success('Customer deleted');
+      await api.delete('/clients/' + deleteModal.customerId);
+      toast.success('Customer archived successfully');
+      setDeleteModal({ isOpen: false, customerId: null, customerName: '', loading: false });
       queryClient.invalidateQueries({ queryKey: queryKeys.clients.all });
     } catch (err) {
       toast.error(err.response?.data?.message || 'Error deleting customer');
+      setDeleteModal(prev => ({ ...prev, loading: false }));
     }
   }
 
@@ -198,10 +214,10 @@ export default function MasterCustomer() {
     <div className="w-full min-h-[calc(100vh-100px)] flex flex-col bg-transparent animate-fade-in">
 
       {/* ── Full Width: Customer List ── */}
-      <div className="w-full flex flex-col h-full gap-4">
+      <div className="w-full flex flex-col h-full gap-3 sm:gap-4">
         {/* ── Toolbar ── */}
-        <div className="bg-white/60 backdrop-blur-2xl rounded-[24px] shadow-[0_8px_32px_rgba(0,0,0,0.06)] border border-white/80 p-3 flex flex-col lg:flex-row lg:items-center justify-between gap-4 shrink-0">
-          <div className="flex items-center justify-between gap-2 px-1 lg:px-0">
+        <div className="bg-white/60 backdrop-blur-2xl rounded-2xl sm:rounded-[24px] shadow-[0_8px_32px_rgba(0,0,0,0.06)] border border-white/80 p-2.5 sm:p-3 flex flex-col lg:flex-row lg:items-center justify-between gap-2.5 sm:gap-4 shrink-0">
+          <div className="flex items-center justify-between gap-2 px-0.5 sm:px-1 lg:px-0">
             <div className="flex gap-1">
               {['All Customers', 'VIP'].map(f => {
                 const filterValue = f === 'All Customers' ? 'All' : f;
@@ -209,7 +225,7 @@ export default function MasterCustomer() {
                   <button
                     key={f}
                     onClick={() => setActiveFilter(filterValue)}
-                    className={`text-[12px] font-bold px-4 py-2.5 rounded-[12px] transition-all capitalize ${activeFilter === filterValue
+                    className={`text-[11px] sm:text-[12px] font-bold px-3 sm:px-4 py-1.5 sm:py-2.5 rounded-xl transition-all capitalize ${activeFilter === filterValue
                         ? 'bg-gray-900 text-[#F6CB59] shadow-md'
                         : 'bg-transparent text-gray-500 hover:text-gray-900 hover:bg-gray-100'
                       }`}
@@ -222,32 +238,34 @@ export default function MasterCustomer() {
             
             <button
               onClick={handleAdd}
-              className="btn-primary whitespace-nowrap flex lg:hidden items-center gap-1.5 text-[11px] px-3 py-2 shrink-0"
+              className="btn-primary whitespace-nowrap flex lg:hidden items-center gap-1 text-[11px] px-2.5 py-1.5 shrink-0"
             >
               <UserPlus size={13} strokeWidth={2.5} /> Add New
             </button>
           </div>
 
-          <div className="flex items-center gap-2 lg:gap-3 px-1 lg:px-0">
+          <div className="flex items-center gap-2 lg:gap-3 px-0.5 sm:px-1 lg:px-0">
             <div className="relative flex-1 lg:flex-none">
-              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={14} strokeWidth={2.5} />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={13} strokeWidth={2.5} />
               <input
                 type="text"
                 placeholder="Search customers..."
                 value={search}
                 onChange={(e) => { setSearch(e.target.value); setLimit(50); }}
-                className="input pl-9 pr-4 py-2.5 text-[12px] font-medium w-full lg:w-[220px] rounded-[12px]"
+                className="input pl-8 sm:pl-9 pr-3 py-1.5 sm:py-2.5 text-[11px] sm:text-[12px] font-medium w-full lg:w-[220px] rounded-xl"
               />
             </div>
-            <button className="w-[42px] h-[42px] shrink-0 rounded-[12px] border border-white/80 bg-white/50 shadow-sm flex items-center justify-center text-gray-500 hover:bg-white/80 transition-colors">
-              <Filter size={15} strokeWidth={2.5} />
+            <button className="w-8 h-8 sm:w-[42px] sm:h-[42px] shrink-0 rounded-xl border border-white/80 bg-white/50 shadow-xs flex items-center justify-center text-gray-500 hover:bg-white/80 transition-colors">
+              <Filter size={13} strokeWidth={2.5} />
             </button>
-            <button
-              onClick={handleAdd}
-              className="btn-primary whitespace-nowrap hidden lg:flex items-center gap-1.5"
-            >
-              <UserPlus size={14} strokeWidth={2.5} /> Add New Customer
-            </button>
+            {canAdd && (
+              <button
+                onClick={handleAdd}
+                className="btn-primary whitespace-nowrap hidden lg:flex items-center gap-1.5"
+              >
+                <UserPlus size={14} strokeWidth={2.5} /> Add New Customer
+              </button>
+            )}
           </div>
         </div>
 
@@ -260,7 +278,7 @@ export default function MasterCustomer() {
             onSelect={(phone) => navigate(`/master-customer/${phone}`)}
             onEdit={handleEdit}
             onDelete={handleDelete}
-            canDelete={can_delete}
+            canDelete={canDelete}
           />
         )}
 
@@ -290,6 +308,18 @@ export default function MasterCustomer() {
         onCancel={handleCancelEdit}
         onQuickSelect={handleQuickSelect}
         isSaving={isSaving}
+      />
+
+      <ConfirmDeleteModal
+        isOpen={deleteModal.isOpen}
+        onClose={() => setDeleteModal({ isOpen: false, customerId: null, customerName: '', loading: false })}
+        onConfirm={confirmDeleteCustomer}
+        loading={deleteModal.loading}
+        title="Archive Customer Profile"
+        itemName={deleteModal.customerName}
+        message="Are you sure you want to archive this customer? Historical invoices and vehicle records will remain safe and intact."
+        confirmText="Yes, Archive Customer"
+        confirmVariant="danger"
       />
     </div>
   );

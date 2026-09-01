@@ -68,41 +68,41 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="relative animate-fade-in -m-6 p-6 min-h-screen">
+    <div className="relative animate-fade-in -m-3 sm:-m-6 p-3 sm:p-6 min-h-screen">
       
-      <div className="relative z-10 space-y-6">
+      <div className="relative z-10 space-y-4 sm:space-y-6">
         {/* ── Page Header ── */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-3 sm:gap-4 mb-4 sm:mb-8">
           <div>
-            <h1 className="text-[32px] font-medium text-gray-900 tracking-tight flex items-center gap-2">
+            <h1 className="text-xl sm:text-2xl md:text-[32px] font-black text-gray-900 tracking-tight flex items-center gap-2">
               Hello Detailing Masters
             </h1>
-            <p className="text-[14px] text-gray-800 font-medium mt-1">
+            <p className="text-xs sm:text-[14px] text-gray-700 font-medium mt-0.5 sm:mt-1">
               Here is your daily business overview for {format(new Date(), 'EEEE, MMM d, yyyy')}
             </p>
           </div>
           
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
              <button 
                onClick={() => handleExport('day')} 
                disabled={isExporting}
-               className="flex items-center gap-2 px-4 py-2 bg-[#2c2c2c] hover:bg-black text-white rounded-full text-[13px] font-semibold transition-colors disabled:opacity-50"
+               className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3 py-1.5 sm:px-4 sm:py-2 bg-[#2c2c2c] hover:bg-black text-white rounded-xl sm:rounded-full text-[11px] sm:text-[13px] font-bold transition-colors disabled:opacity-50 shadow-xs"
              >
-               <Download size={14} /> Daily PDF
+               <Download size={13} /> Daily PDF
              </button>
              <button 
                onClick={() => handleExport('week')} 
                disabled={isExporting}
-               className="flex items-center gap-2 px-4 py-2 bg-white hover:bg-gray-50 text-gray-800 border border-gray-200 shadow-sm rounded-full text-[13px] font-semibold transition-colors disabled:opacity-50"
+               className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3 py-1.5 sm:px-4 sm:py-2 bg-white hover:bg-gray-50 text-gray-800 border border-gray-200 shadow-xs rounded-xl sm:rounded-full text-[11px] sm:text-[13px] font-bold transition-colors disabled:opacity-50"
              >
-               <Download size={14} /> Weekly PDF
+               <Download size={13} /> Weekly PDF
              </button>
              <button 
                onClick={() => handleExport('month')} 
                disabled={isExporting}
-               className="flex items-center gap-2 px-4 py-2 bg-white hover:bg-gray-50 text-gray-800 border border-gray-200 shadow-sm rounded-full text-[13px] font-semibold transition-colors disabled:opacity-50"
+               className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3 py-1.5 sm:px-4 sm:py-2 bg-white hover:bg-gray-50 text-gray-800 border border-gray-200 shadow-xs rounded-xl sm:rounded-full text-[11px] sm:text-[13px] font-bold transition-colors disabled:opacity-50"
              >
-               <Download size={14} /> Monthly PDF
+               <Download size={13} /> Monthly PDF
              </button>
           </div>
         </div>

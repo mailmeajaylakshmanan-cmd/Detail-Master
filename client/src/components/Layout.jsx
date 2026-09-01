@@ -274,7 +274,19 @@ export default function Layout() {
           onNavigate={() => setIsMobileMenuOpen(false)}
         />
 
-        <div className="p-3 border-t border-white/40 shrink-0">
+        <div className="p-3 border-t border-white/40 shrink-0 space-y-2">
+          <NavLink
+            to="/dev-test-inspector"
+            className={({ isActive }) => `
+              w-full flex items-center justify-center gap-2 py-2 rounded-xl text-[12px] font-black transition-all border
+              ${isActive 
+                ? 'bg-amber-400 text-gray-950 border-amber-500 shadow-sm' 
+                : 'bg-amber-50/80 text-amber-900 border-amber-200/80 hover:bg-amber-100'}
+            `}
+          >
+            <Database size={14} className="text-amber-700" /> 🧪 DB Test Lab
+          </NavLink>
+
           <button
             type="button"
             onClick={handleLogout}
@@ -292,29 +304,31 @@ export default function Layout() {
             scrolled ? 'border-b border-white/80 shadow-[0_4px_30px_rgba(0,0,0,0.04)]' : 'border-b border-transparent'
           }`}
         >
-          <div className="px-4 sm:px-6 h-[64px] flex items-center justify-between gap-3">
-            <div className="flex items-center gap-3 min-w-0">
+          <div className="px-3 sm:px-6 h-[52px] sm:h-[64px] flex items-center justify-between gap-2 sm:gap-3">
+            <div className="flex items-center gap-2 sm:gap-3 min-w-0">
               <button
                 type="button"
                 onClick={() => setIsMobileMenuOpen(true)}
-                className="lg:hidden w-11 h-11 flex items-center justify-center rounded-[14px] bg-white/80 border border-gray-200/60 text-gray-800 hover:bg-white shadow-sm transition-all active:scale-95 shrink-0"
+                className="lg:hidden w-9 h-9 flex items-center justify-center rounded-xl bg-white/80 border border-gray-200/60 text-gray-800 hover:bg-white shadow-xs transition-all active:scale-95 shrink-0"
+                aria-label="Open menu"
               >
-                <Menu size={22} />
+                <Menu size={18} />
               </button>
               
               {!isDesktopSidebarOpen && (
                 <button
                   type="button"
                   onClick={() => setIsDesktopSidebarOpen(true)}
-                  className="hidden lg:flex w-11 h-11 items-center justify-center rounded-[14px] bg-white/80 border border-gray-200/60 text-gray-800 hover:bg-white shadow-sm transition-all active:scale-95 shrink-0"
+                  className="hidden lg:flex w-10 h-10 items-center justify-center rounded-xl bg-white/80 border border-gray-200/60 text-gray-800 hover:bg-white shadow-xs transition-all active:scale-95 shrink-0"
+                  aria-label="Open sidebar"
                 >
-                  <Menu size={22} />
+                  <Menu size={20} />
                 </button>
               )}
 
                 <div className="lg:hidden flex items-center gap-2 min-w-0">
-                  <img src={brandLogo} alt="Logo" className="h-10 w-auto object-contain shrink-0 bg-white rounded p-1" />
-                  <span className="text-[13px] font-black tracking-tight leading-tight uppercase truncate">
+                  <img src={brandLogo} alt="Logo" className="h-8 w-auto object-contain shrink-0 bg-white rounded p-0.5 shadow-xs" />
+                  <span className="text-xs font-black tracking-tight leading-tight uppercase truncate">
                     <span className="text-[#F6CB59]">DETAILING</span> <span className="text-black">MASTERS</span>
                   </span>
                 </div>

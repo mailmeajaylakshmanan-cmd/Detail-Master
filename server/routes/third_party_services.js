@@ -186,15 +186,28 @@ router.put('/:id', async (req, res) => {
   }
 });
 
-// DELETE a third-party service
+// DELETE a third-party service (Adaptive soft-delete / archive)
 router.delete('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { rowCount } = await db.query('DELETE FROM third_party_services WHERE id = $1', [id]);
-    if (rowCount === 0) return res.status(404).json({ message: 'Third-party service not found' });
-    res.json({ message: 'Third-party service deleted successfully' });
+    const invCount = await db.query(
+      'SELECT COUNT(*)::int as count FROM invoice_third_party_services WHERE third_party_service_id = $1',
+      [id]
+    );
+    const hasUsage = (invCount.rows[0]?.count || 0) > 0;
+
+    if (hasUsage) {
+      const { rowCount } = await db.query('UPDATE third_party_services SET is_active = false WHERE id = $1', [id]);
+      if (rowCount === 0) return res.status(404).json({ message: 'Third-party service not found' });
+      res.json({ message: 'Third-party service archived (historical invoice records preserved)' });
+    } else {
+      await db.query('DELETE FROM third_party_service_vehicle_prices WHERE third_party_service_id = $1', [id]);
+      const { rowCount } = await db.query('DELETE FROM third_party_services WHERE id = $1', [id]);
+      if (rowCount === 0) return res.status(404).json({ message: 'Third-party service not found' });
+      res.json({ message: 'Third-party service deleted permanently' });
+    }
   } catch (err) {
-    console.error(err);
+    console.error('Error deleting third-party service:', err);
     res.status(500).json({ message: 'Server error' });
   }
 });

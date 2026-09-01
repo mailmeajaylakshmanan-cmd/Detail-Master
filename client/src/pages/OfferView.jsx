@@ -8,7 +8,7 @@ import api from '../api/axios.js';
 import toast from 'react-hot-toast';
 import brandLogo from '../assets/brand-logo-for-invoice.png';
 import goldenCar from '../assets/new-invoice-add.png';
-import ResponsiveDocumentWrapper from '../components/ResponsiveDocumentWrapper.jsx';
+import StandardDocumentLayout from '../components/StandardDocumentLayout.jsx';
 import { generatePDFBlob, downloadElementPDF } from '../utils/pdfGenerator.js';
 
 function fmt(n) {
@@ -53,40 +53,32 @@ export default function OfferView() {
   }
 
   async function fetchPDFBlob() {
-    try {
-      return await generatePDFBlob('invoice-print', `DETAILING MASTERS-Offer-${offer?.offerNo || id}.pdf`);
-    } catch (err) {
-      console.warn('[PDF] Client generation fallback, attempting server...', err);
-      const response = await api.get(`/offers/${id}/pdf`);
-      const base64 = response.data.base64;
-      const byteCharacters = atob(base64);
-      const byteNumbers = new Array(byteCharacters.length);
-      for (let i = 0; i < byteCharacters.length; i++) {
-        byteNumbers[i] = byteCharacters.charCodeAt(i);
-      }
-      return new Blob([new Uint8Array(byteNumbers)], { type: 'application/pdf' });
+    const response = await api.get(`/offers/${id}/pdf`);
+    const base64 = response.data.base64;
+    const byteCharacters = atob(base64);
+    const byteNumbers = new Array(byteCharacters.length);
+    for (let i = 0; i < byteCharacters.length; i++) {
+      byteNumbers[i] = byteCharacters.charCodeAt(i);
     }
+    return new Blob([new Uint8Array(byteNumbers)], { type: 'application/pdf' });
   }
 
   async function handleDownloadPDF() {
     if (!offer) return;
     setDownloading(true);
     try {
-      await downloadElementPDF('invoice-print', `DETAILING MASTERS-Offer-${offer.offerNo}.pdf`);
+      const blob = await fetchPDFBlob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `DETAILING MASTERS-Offer-${offer.offerNo}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
       toast.success('Offer downloaded successfully!');
     } catch (err) {
-      console.warn('[PDF] Direct download failed, falling back to blob...', err);
-      try {
-        const blob = await fetchPDFBlob();
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `DETAILING MASTERS-Offer-${offer.offerNo}.pdf`;
-        a.click();
-        URL.revokeObjectURL(url);
-      } catch (blobErr) {
-        toast.error('Could not download PDF');
-      }
+      toast.error('Could not download PDF');
     } finally {
       setDownloading(false);
     }
@@ -180,97 +172,30 @@ export default function OfferView() {
       </div>
 
       <div className="pb-8">
-      <ResponsiveDocumentWrapper documentWidth={820}>
-        <div id="invoice-print" style={{ ...doc.wrap, display: 'flex', flexDirection: 'column', minHeight: '1122px' }}>
-        
-        {/* HEADER */}
-        <div style={{ position: 'relative', height: '115px', backgroundColor: '#EBEBED', width: '100%', WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>
-          {/* Layer 1: Top Left Yellow Square */}
-          <div style={{ position: 'absolute', top: 0, left: 0, width: '100px', height: '100px', background: '#FFD700', zIndex: 1 }}></div>
-
-          {/* Layer 2: Right Black Polygon */}
-          <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: '#000000', clipPath: 'polygon(65% 0, 100% 0, 100% 75%, 57.5% 75%)', zIndex: 2 }}></div>
-          
-          {/* Layer 3: Right Yellow Bar */}
-          <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: '#FFD700', clipPath: 'polygon(57.5% 75%, 100% 75%, 100% 85%, 56.5% 85%)', zIndex: 3 }}></div>
-
-          {/* Layer 4: Black Splinter */}
-          <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: '#000000', clipPath: 'polygon(50% 0, 65% 0, 49% 100%, 35% 100%)', zIndex: 4 }}></div>
-
-          {/* Layer 5: Yellow Stripe */}
-          <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: '#FFD700', clipPath: 'polygon(50% 0, 61% 0, 49% 100%, 35% 100%)', zIndex: 5 }}></div>
-
-          {/* Layer 6: Main Left Black Polygon */}
-          <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: '#2B2A2A', clipPath: 'polygon(4% 0, 60% 0, 45% 100%, 0 100%, 0 25%)', zIndex: 6 }}></div>
-
-          <div style={{ position: 'relative', zIndex: 10, display: 'flex', justifyContent: 'space-between', padding: '2px 40px 2px 45px', height: '100%' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
-              {/* Logo with pure white shield background */}
-              <div style={{ position: 'relative', filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.5))', zIndex: 20 }}>
-                <svg width="0" height="0" style={{ position: 'absolute' }}>
-                  <clipPath id="shield-clip" clipPathUnits="objectBoundingBox">
-                    <path d="M 0 0.02 Q 0.5 -0.02 1 0.02 L 1 0.65 C 1 0.88 0.7 1 0.5 1 C 0.3 1 0 0.88 0 0.65 Z" />
-                  </clipPath>
-                </svg>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'transparent', clipPath: 'url(#shield-clip)', width: 88, height: 108, WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>
-                  <img src={brandLogo} alt="Logo" style={{ height: '100%', width: '100%', objectFit: 'fill', filter: 'drop-shadow(0 0 1px #fff) drop-shadow(0 0 2px rgba(255,255,255,0.9))' }} />
-                </div>
+        <StandardDocumentLayout
+          documentTitle="OFFER PACKAGE"
+          titleFontSize={26}
+          customFooter={
+            <div style={{ position: 'relative', width: '100%', marginTop: 'auto', display: 'flex', flexDirection: 'column' }}>
+              {/* VIP Badge */}
+              <div style={{ position: 'absolute', right: 40, bottom: 80, width: 60, height: 80, background: '#0f172a', clipPath: 'polygon(0 0, 100% 0, 100% 75%, 50% 100%, 0 75%)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', paddingTop: 8, zIndex: 10, boxShadow: '0 10px 25px rgba(0,0,0,0.2)' }}>
+                <div style={{ fontSize: 11, fontWeight: 800, color: '#fff', letterSpacing: '1px' }}>VIP</div>
+                <div style={{ fontSize: 12, fontWeight: 900, color: '#F6CB59', marginTop: 2 }}>OFFER</div>
+                <div style={{ fontSize: 8, fontWeight: 600, color: '#94a3b8', marginTop: 2, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Exclusive</div>
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1 }}>
-                <span style={{ 
-                    fontFamily: "'Cinzel', 'Trajan Pro', 'Georgia', serif", 
-                    fontSize: 28, 
-                    margin: 0, 
-                    letterSpacing: '3px', 
-                    fontWeight: 600,
-                    background: 'linear-gradient(to right, #BF953F, #FCF6BA, #B38728, #FBF5B7, #AA771C)',
-                    WebkitBackgroundClip: 'text',
-                    WebkitTextFillColor: 'transparent',
-                    WebkitPrintColorAdjust: 'exact',
-                    printColorAdjust: 'exact',
-                }}>DETAILING</span>
-                <span style={{ 
-                    fontFamily: "'Cinzel', 'Trajan Pro', 'Georgia', serif", 
-                    fontSize: 28, 
-                    margin: 0, 
-                    letterSpacing: '3px', 
-                    fontWeight: 600,
-                    background: 'linear-gradient(to right, #BF953F, #FCF6BA, #B38728, #FBF5B7, #AA771C)',
-                    WebkitBackgroundClip: 'text',
-                    WebkitTextFillColor: 'transparent',
-                    WebkitPrintColorAdjust: 'exact',
-                    printColorAdjust: 'exact',
-                }}>MASTERS</span>
+
+              {/* Bottom address bar */}
+              <div style={{ borderTop: `1px solid ${borderCol}`, padding: '16px 40px', textAlign: 'center', backgroundColor: '#f9fafb' }}>
+                <p style={{ margin: 0, fontSize: 12, color: textDark, fontWeight: 500 }}>
+                  <strong>Detailing Masters</strong>, Opposite KTM Bike Showroom, Chankai, Marthandam, Tamil Nadu 629155.
+                </p>
+                <p style={{ margin: '4px 0 0', fontSize: 11, color: textMuted }}>
+                  Ph: +91 9994122652 | E-mail: detailingmasters2024@gmail.com
+                </p>
               </div>
             </div>
-
-            {/* Center Accent Logo */}
-            <div style={{ flex: 1, position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-               <img src={goldenCar} alt="Car Accent" style={{ height: '70px', objectFit: 'contain', filter: 'drop-shadow(2px 2px 4px rgba(0,0,0,0.4))', position: 'relative', left: '50%', top: '10%' }} />
-            </div>
-
-            <div style={{ display: 'flex', alignItems: 'flex-start', paddingRight: '15px', paddingTop: '20px' }}>
-              <h1 style={{ 
-                  fontFamily: "'Montserrat', 'Open Sans', sans-serif",
-                  fontSize: 26,
-                  fontWeight: 500, 
-                  margin: 0, 
-                  letterSpacing: '0.05em',
-                  color: '#FFFFFF',
-                  WebkitPrintColorAdjust: 'exact',
-                  printColorAdjust: 'exact',
-                  filter: 'drop-shadow(1px 1px 2px rgba(0,0,0,0.6))',
-                  textAlign: 'right'
-              }}>OFFER PACKAGE</h1>
-            </div>
-          </div>
-        </div>
-
-        {/* Global Watermark */}
-        <div style={{ position: 'absolute', top: '115px', bottom: 0, left: 0, right: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none', zIndex: 50 }}>
-           <img src={brandLogo} style={{ width: '450px', opacity: 0.04, filter: 'grayscale(100%)' }} />
-        </div>
-
+          }
+        >
         {/* Vehicle Specs Table */}
         <div style={{ padding: '0 40px', marginTop: 20 }}>
           <div style={{ textAlign: 'center', fontWeight: 700, fontSize: 13, marginBottom: 8, color: '#111827' }}>VEHICLE SPECS</div>
@@ -389,30 +314,7 @@ export default function OfferView() {
             </ul>
           </div>
         </div>
-
-        {/* BOTTOM SECTION (VIP BADGE + FOOTER) */}
-        <div style={{ position: 'relative', width: '100%', marginTop: 'auto', display: 'flex', flexDirection: 'column' }}>
-          {/* VIP Badge */}
-          <div style={{ position: 'absolute', right: 40, bottom: 80, width: 60, height: 80, background: '#0f172a', clipPath: 'polygon(0 0, 100% 0, 100% 75%, 50% 100%, 0 75%)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', paddingTop: 8, zIndex: 10, boxShadow: '0 10px 25px rgba(0,0,0,0.2)' }}>
-            <div style={{ fontSize: 11, fontWeight: 800, color: '#fff', letterSpacing: '1px' }}>VIP</div>
-            <div style={{ fontSize: 12, fontWeight: 900, color: '#F6CB59', marginTop: 2 }}>OFFER</div>
-            <div style={{ fontSize: 8, fontWeight: 600, color: '#94a3b8', marginTop: 2, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Exclusive</div>
-          </div>
-
-          {/* Bottom address bar */}
-          <div style={{ borderTop: `1px solid ${borderCol}`, padding: '16px 40px', textAlign: 'center', backgroundColor: '#f9fafb' }}>
-            <p style={{ margin: 0, fontSize: 12, color: textDark, fontWeight: 500 }}>
-              <strong>Detailing Masters</strong>, Opposite KTM Bike Showroom, Chankai, Marthandam, Tamil Nadu 629155.
-            </p>
-            <p style={{ margin: '4px 0 0', fontSize: 11, color: textMuted }}>
-              Ph: +91 9994122652 | E-mail: detailingmasters2024@gmail.com
-            </p>
-          </div>
-        </div>
-
-        </div>
-
-      </ResponsiveDocumentWrapper>
+        </StandardDocumentLayout>
       </div>
 
       <style>{`
@@ -497,11 +399,17 @@ const bar = {
 };
 const doc = {
   wrap: {
-    maxWidth: 820, margin: '0 auto',
-    background: '#ffffff',
+    width: '210mm',
+    height: '296mm', // 1mm less than A4 to prevent any risk of rounding spillover to a second page
+    boxSizing: 'border-box',
+    margin: '0 auto',
+    background: '#EBEBED',
     boxShadow: '0 12px 40px rgba(0,0,0,0.06)',
     fontFamily: "'Inter', system-ui, sans-serif",
     position: 'relative',
     border: '1px solid #e5e7eb',
+    display: 'flex',
+    flexDirection: 'column',
+    overflow: 'hidden',
   }
 };

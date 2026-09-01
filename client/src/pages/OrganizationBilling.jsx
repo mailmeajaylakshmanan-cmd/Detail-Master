@@ -69,13 +69,13 @@ export default function OrganizationBilling() {
   const summary = data?.summary || { invoiceCount: 0, totalRevenue: 0, totalProfit: 0, totalOutstanding: 0 };
 
   return (
-    <div className="p-4 lg:p-8 max-w-[1400px] mx-auto space-y-6">
-      <div className="flex items-center gap-3">
-        <Link to="/master-organization" className="text-gray-500 hover:text-gray-700 text-sm flex items-center gap-1">
-          <ArrowLeft size={16} /> Organizations
+    <div className="p-3 sm:p-4 lg:p-8 max-w-[1400px] mx-auto space-y-4 sm:space-y-6">
+      <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+        <Link to="/master-organization" className="text-gray-500 hover:text-gray-700 text-xs sm:text-sm flex items-center gap-1">
+          <ArrowLeft size={14} /> Organizations
         </Link>
         <span className="text-gray-300">/</span>
-        <h1 className="text-xl font-bold text-gray-900">{organization?.name || 'Organization'} — Billing</h1>
+        <h1 className="text-base sm:text-xl font-bold text-gray-900">{organization?.name || 'Organization'} — Billing</h1>
       </div>
 
       <div className="bg-white/90 backdrop-blur-md rounded-2xl shadow-sm border border-gray-200 p-4 flex flex-wrap items-center gap-3">

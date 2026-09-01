@@ -196,77 +196,103 @@ export default function OrganizationTable({ rows, onEdit, onDelete, canDelete })
           </table>
         </div>
 
-        {/* Mobile Cards */}
-        <div className="block lg:hidden flex flex-col gap-5 py-2">
+        {/* ── Mobile B2B Corporate Storytelling Cards ── */}
+        <div className="block lg:hidden flex flex-col gap-3.5 py-2">
           {pageRows.map((row, idx) => {
+            const activeVehicles = row.vehicles && row.vehicles.filter(v => v.isActive !== false);
+
             return (
-              <div key={row.id} className="bg-white/60 backdrop-blur-2xl border border-white/80 rounded-[24px] p-5 shadow-[0_8px_32px_rgba(0,0,0,0.06)] flex flex-col gap-4 relative cursor-pointer active:scale-[0.98] transition-all">
-                <div className="flex justify-between items-start">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div
-                      className="w-11 h-11 rounded-[12px] flex items-center justify-center text-[14px] font-black shrink-0 shadow-sm border border-white/50"
-                      style={{
-                        backgroundColor: idx % 3 === 0 ? '#FEF9C3' : idx % 3 === 1 ? '#E0E7FF' : '#FFE4E6',
-                        color: idx % 3 === 0 ? '#854D0E' : idx % 3 === 1 ? '#3730A3' : '#9F1239'
-                      }}
-                    >
+              <div
+                key={row.id}
+                className="bg-white/85 backdrop-blur-2xl border border-white/90 rounded-3xl p-4 shadow-[0_8px_30px_rgba(0,0,0,0.05)] hover:shadow-[0_20px_40px_rgba(0,0,0,0.09)] flex flex-col gap-3 relative cursor-pointer active:scale-[0.99] transition-all overflow-hidden group"
+              >
+                {/* Gold Top Highlight */}
+                <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-[#F6CB59] to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+
+                {/* Line 1: Avatar, Org Name, and Actions */}
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                    <div className="w-10 h-10 rounded-2xl bg-black text-[#F6CB59] flex items-center justify-center text-[15px] font-black shrink-0 shadow-md border border-gray-800 group-hover:scale-105 transition-transform">
                       {String(row.org_name || 'O').charAt(0).toUpperCase()}
                     </div>
-                    <div className="min-w-0 pr-2">
-                      <div className="flex items-center gap-2">
-                        <span className="font-black text-[16px] text-gray-900 truncate tracking-tight">{row.org_name}</span>
-                      </div>
-                      <div className="text-[11px] font-bold text-gray-500 mt-0.5 tracking-wider uppercase">
-                        ID: #{row.id}
+                    <div className="min-w-0 flex-1">
+                      <h3 className="font-black text-[15px] sm:text-[16px] text-gray-900 truncate tracking-tight">
+                        {row.org_name}
+                      </h3>
+                      <div className="text-[10px] font-bold text-gray-400 mt-0.5 tracking-wider uppercase">
+                        Org ID #{row.id}
                       </div>
                     </div>
                   </div>
                   
-                  <div className="flex gap-2 shrink-0">
-                     <button
-                       type="button"
-                       onClick={(e) => { e.stopPropagation(); onEdit(row.raw); }}
-                       className="w-9 h-9 rounded-full bg-black flex items-center justify-center text-white shadow-md active:scale-95 transition-transform"
-                     >
-                       <Edit3 size={15} strokeWidth={2.5} />
-                     </button>
-                     <Link
-                       to={`/master-organization/${row.id}/billing`}
-                       onClick={(e) => { e.stopPropagation(); }}
-                       className="w-9 h-9 rounded-full bg-black flex items-center justify-center text-white shadow-md active:scale-95 transition-transform"
-                     >
-                       <Receipt size={15} strokeWidth={2.5} />
-                     </Link>
-                     {canDelete && (
-                       <button
-                         type="button"
-                         onClick={(e) => { e.stopPropagation(); onDelete(row.id); }}
-                         className="w-9 h-9 rounded-full bg-rose-600 flex items-center justify-center text-white shadow-md active:scale-95 transition-transform"
-                       >
-                         <Trash2 size={15} strokeWidth={2.5} />
-                       </button>
-                     )}
+                  <div className="flex items-center gap-1.5 shrink-0" onClick={(e) => e.stopPropagation()}>
+                    <button
+                      type="button"
+                      onClick={() => onEdit(row.raw)}
+                      className="w-8 h-8 rounded-xl bg-white text-gray-700 border border-gray-200 shadow-xs flex items-center justify-center hover:bg-black hover:text-[#F6CB59] transition-all"
+                      title="Edit Organization"
+                    >
+                      <Edit3 size={13} strokeWidth={2.5} />
+                    </button>
+                    <Link
+                      to={`/master-organization/${row.id}/billing`}
+                      className="w-8 h-8 rounded-xl bg-black text-[#F6CB59] shadow-xs flex items-center justify-center hover:scale-105 transition-transform"
+                      title="Organization Billing & Invoices"
+                    >
+                      <Receipt size={13} strokeWidth={2.5} />
+                    </Link>
+                    {canDelete && (
+                      <button
+                        type="button"
+                        onClick={() => onDelete(row.id)}
+                        className="w-8 h-8 rounded-xl bg-white text-rose-600 border border-rose-200 shadow-xs flex items-center justify-center hover:bg-rose-600 hover:text-white transition-all"
+                        title="Delete Organization"
+                      >
+                        <Trash2 size={13} strokeWidth={2.5} />
+                      </button>
+                    )}
                   </div>
                 </div>
                 
-                <div className="grid grid-cols-2 gap-3 bg-white/50 p-4 rounded-2xl border border-white/60 mt-1 shadow-sm">
-                  <div className="flex items-center gap-2 text-[13px] font-bold text-gray-800 min-w-0">
-                    <User size={14} className="text-gray-400 shrink-0" />
-                    <span className="truncate">{row.contact_person || 'N/A'}</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-[13px] font-bold text-gray-800 min-w-0 justify-end">
-                    <Phone size={14} className="text-gray-400 shrink-0" />
-                    <span className="truncate">{row.phone ? `+91 ${String(row.phone).replace('+91', '').trim()}` : 'N/A'}</span>
-                  </div>
-                  <div className="flex items-start gap-2 text-[13px] font-bold text-gray-800 col-span-2 pt-3 mt-1 border-t border-gray-200/50">
-                    <Car size={14} className="text-gray-400 shrink-0 mt-0.5" />
-                    <span className="truncate whitespace-normal leading-tight">
-                      {row.vehicles && row.vehicles.filter(v => v.isActive !== false).length > 0 ? (
-                        row.vehicles.filter(v => v.isActive !== false).slice(0, 3).map(v => `${v.make} ${v.model}`).join(', ')
-                      ) : (
-                        <span className="text-gray-400">No vehicles</span>
-                      )}
+                {/* Line 2: Corporate Fleet Story Strip */}
+                <div className="bg-gray-50/90 p-2.5 rounded-2xl border border-gray-200/60">
+                  <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-wider mb-1.5">
+                    <span className="text-gray-500 flex items-center gap-1">
+                      <Car size={11} className="text-amber-600" />
+                      <span>Corporate Fleet</span>
                     </span>
+                    <span className="text-amber-900 font-bold bg-[#F6CB59]/30 px-2 py-0.5 rounded-md">
+                      {activeVehicles?.length || 0} Fleet Vehicles
+                    </span>
+                  </div>
+                  {activeVehicles && activeVehicles.length > 0 ? (
+                    <div className="flex flex-wrap gap-1.5">
+                      {activeVehicles.slice(0, 4).map((v, vIdx) => (
+                        <span key={vIdx} className="bg-white px-2 py-1 rounded-xl text-[11px] font-bold text-gray-800 border border-gray-200 shadow-xs flex items-center gap-1 max-w-full min-w-0">
+                          <span className="truncate">{v.make} {v.model}</span>
+                          {v.plate && <span className="text-[10px] font-mono text-gray-400 shrink-0">({v.plate})</span>}
+                        </span>
+                      ))}
+                      {activeVehicles.length > 4 && (
+                        <span className="bg-gray-200/70 text-gray-600 text-[10px] font-bold px-2 py-1 rounded-xl shrink-0">
+                          +{activeVehicles.length - 4} more
+                        </span>
+                      )}
+                    </div>
+                  ) : (
+                    <span className="text-xs text-gray-400 italic">No fleet vehicles registered</span>
+                  )}
+                </div>
+
+                {/* Line 3: Contact Person & Phone */}
+                <div className="flex items-center justify-between pt-2 border-t border-gray-100 text-xs">
+                  <div className="flex items-center gap-1 text-gray-700 font-bold">
+                    <User size={12} className="text-gray-400" />
+                    <span>{row.contact_person || 'N/A'}</span>
+                  </div>
+                  <div className="flex items-center gap-1 text-gray-700 font-bold">
+                    <Phone size={12} className="text-gray-400" />
+                    <span>{row.phone ? `+91 ${String(row.phone).replace('+91', '').trim()}` : 'N/A'}</span>
                   </div>
                 </div>
               </div>

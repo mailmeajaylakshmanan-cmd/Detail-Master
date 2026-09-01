@@ -240,6 +240,7 @@ const ServiceVehicleModal = memo(function ServiceVehicleModal({ isOpen, onClose,
 const ServiceChip = memo(function ServiceChip({ opt, checked, onToggle, resolvedPrice, vehicleTypeName }) {
   let displayPrice = resolvedPrice;
   let labelSuffix = vehicleTypeName || '';
+
   if (!vehicleTypeName && opt.vehiclePrices && opt.vehiclePrices.length > 0) {
     const minP = Math.min(...opt.vehiclePrices.map(vp => Number(vp.price)).filter(p => p > 0));
     if (isFinite(minP)) {
@@ -247,6 +248,7 @@ const ServiceChip = memo(function ServiceChip({ opt, checked, onToggle, resolved
       labelSuffix = ' (From)';
     }
   }
+
   let safePrice = 0;
   if (typeof displayPrice === 'number') {
     safePrice = isNaN(displayPrice) ? 0 : displayPrice;
@@ -257,13 +259,13 @@ const ServiceChip = memo(function ServiceChip({ opt, checked, onToggle, resolved
     safePrice = Number(opt.price || 0) || 0;
   }
   return (
-    <label className={`flex items-center gap-2 cursor-pointer px-4 py-2.5 rounded-xl text-[13px] font-bold transition-all border ${checked
-        ? 'bg-gray-900 text-white border-gray-900 shadow-md shadow-gray-900/20'
-        : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50 hover:border-gray-300'
+    <label className={`flex items-center gap-1.5 cursor-pointer px-3 py-1.5 rounded-lg text-[12px] font-bold transition-all border ${checked
+        ? 'bg-gray-900 text-white border-gray-900 shadow-sm'
+        : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50 hover:border-gray-300'
       }`}>
       <input type="checkbox" checked={checked} onChange={e => onToggle(opt, e.target.checked)} className="sr-only" />
       <span>{opt.name}</span>
-      <span className={`text-[11px] font-bold px-2 py-0.5 rounded-md ${checked ? 'bg-gray-800 text-[#FFD700]' : 'bg-slate-100 text-slate-700'}`}>
+      <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded ${checked ? 'bg-gray-800 text-[#FFD700]' : 'bg-slate-100 text-slate-700'}`}>
         ₹{safePrice.toLocaleString('en-IN')}{labelSuffix}
       </span>
     </label>
@@ -296,36 +298,26 @@ const ThirdPartyServiceChip = memo(function ThirdPartyServiceChip({ opt, checked
   }
 
   return (
-    <label className={`flex flex-col gap-1 cursor-pointer px-4 py-3 rounded-xl text-[13px] font-bold transition-all border ${checked
-        ? 'bg-amber-500 text-white border-amber-500 shadow-md shadow-amber-500/20'
-        : 'bg-white text-gray-800 border-gray-200 hover:bg-amber-50 hover:border-amber-200 shadow-2xs'
+    <label className={`flex items-center justify-between gap-2.5 cursor-pointer px-3 py-1.5 rounded-lg text-[12px] font-bold transition-all border ${checked
+        ? 'bg-amber-500 text-white border-amber-500 shadow-sm'
+        : 'bg-white text-gray-800 border-gray-200 hover:bg-amber-50 hover:border-amber-200'
       }`}>
       <input type="checkbox" checked={checked} onChange={e => onToggle(opt, e.target.checked)} className="sr-only" />
-      <div className="flex items-center justify-between gap-3">
-        <span className="flex items-center gap-1.5 font-bold">
-          <Truck size={14} className={checked ? 'text-white' : 'text-amber-500'} />
-          {opt.name}
-        </span>
-        <span className={`text-[12px] font-black font-mono ${checked ? 'text-white' : 'text-gray-900'}`}>
-          ₹{fullPrice.toLocaleString('en-IN')}{labelSuffix}
-        </span>
-      </div>
-      <div className={`text-[11px] font-medium flex items-center justify-between gap-2 flex-wrap ${checked ? 'text-amber-100' : 'text-gray-500'}`}>
-        <span>{opt.vendorName ? `Vendor: ${opt.vendorName}` : 'Third-Party'}</span>
-        {labourCostTotal > 0 ? (
-          <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${checked ? 'bg-amber-600/60 text-white' : 'bg-amber-100/80 text-amber-900'}`}>
-            Labour: {labourCount} × ₹{labourCharge.toLocaleString('en-IN')} (₹{labourCostTotal.toLocaleString('en-IN')})
-          </span>
-        ) : null}
-      </div>
+      <span className="flex items-center gap-1.5">
+        <Truck size={13} className={checked ? 'text-white' : 'text-amber-500'} />
+        {opt.name}
+      </span>
+      <span className={`text-[11px] font-mono font-bold ${checked ? 'text-white' : 'text-gray-900'}`}>
+        ₹{fullPrice.toLocaleString('en-IN')}{labelSuffix}
+      </span>
     </label>
   );
 });
 
 const VehicleChip = memo(function VehicleChip({ opt, checked, onToggle }) {
   return (
-    <label className={`flex items-center gap-2 cursor-pointer px-4 py-2.5 rounded-xl text-[13px] font-bold transition-all border ${checked
-        ? 'bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-600/20'
+    <label className={`flex items-center gap-1.5 cursor-pointer px-3 py-1.5 rounded-lg text-[12px] font-bold transition-all border ${checked
+        ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
         : 'bg-white text-gray-600 border-gray-200 hover:bg-blue-50 hover:border-blue-200'
       }`}>
       <input type="checkbox" checked={checked} onChange={e => onToggle(opt, e.target.checked)} className="sr-only" />
@@ -402,51 +394,65 @@ const SelectedServiceRow = memo(function SelectedServiceRow({ cur, onDesc, onPri
     return (allVehicles || []).filter(v => cur.vehicle_ids.includes(v.id));
   }, [cur.vehicle_ids, allVehicles]);
 
+  const hasOffers = !readOnly && assignedOffers && assignedOffers.length > 0;
+
   return (
-    <div className="flex flex-col gap-3 bg-gray-50 p-4 rounded-xl border border-gray-200/80 shadow-2xs">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="sm:w-2/5 font-bold text-[14px] text-gray-900 flex items-center gap-2">
-          <CheckCircle2 size={14} className="text-emerald-500 shrink-0" />
-          <span>{cur.service}</span>
+    <div className="flex flex-col gap-2.5 bg-white p-3.5 rounded-xl border border-gray-200/90 shadow-2xs hover:border-gray-300 transition-colors">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+        {/* Service Name */}
+        <div className="md:w-1/3 font-bold text-[13px] text-gray-900 flex items-center gap-2 shrink-0">
+          <CheckCircle2 size={15} className="text-emerald-500 shrink-0" />
+          <span className="truncate">{cur.service}</span>
         </div>
 
-        <div className="flex-1 flex flex-col gap-2">
+        {/* Instructions / Notes */}
+        <div className="flex-1 min-w-0">
           <input
-            className={`${inputCls} bg-white shadow-sm border-gray-200 ${readOnly ? 'pointer-events-none opacity-80' : ''}`}
-            placeholder="Detail instructions / description"
+            className={`${inputCls} bg-gray-50/70 border border-gray-200/80 rounded-lg py-1.5 px-3 text-xs`}
+            placeholder="Instructions / category note (optional)"
             value={cur.description || ''}
             onChange={onDesc}
             readOnly={readOnly}
           />
-          {!readOnly && assignedOffers && assignedOffers.length > 0 && (
-            <select
-              className={`${inputCls} bg-white shadow-sm border-gray-200 text-xs py-1.5`}
-              value={cur.assigned_offer_id || ''}
-              onChange={e => onRedeemPackage(e.target.value)}
-            >
-              <option value="">-- Don't redeem from package --</option>
-              {assignedOffers.map(offer => (
-                <option key={offer.id} value={offer.id}>
-                  Redeem from: {offer.packageName} ({offer.totalWashes - offer.completedWashes} left)
-                </option>
-              ))}
-            </select>
-          )}
         </div>
 
-        <div className="sm:w-36 flex flex-col gap-1 items-end">
-          <MoneyInput value={cur.price || cur.total || ''} onChange={val => onPrice && onPrice(val)} disabled={readOnly} />
+        {/* Price & Vehicle Action */}
+        <div className="md:w-36 flex items-center justify-end gap-2 shrink-0">
+          <div className="w-28">
+            <MoneyInput value={cur.price || cur.total || ''} onChange={val => onPrice && onPrice(val)} disabled={readOnly} />
+          </div>
           {vehicleOptions && vehicleOptions.length > 1 && (
-            <button type="button" onClick={onVehiclesChange} className="text-blue-600 font-bold text-[11px] hover:underline flex items-center gap-1">
-              Edit Vehicles ({(cur?.vehicle_ids || []).length})
+            <button type="button" onClick={onVehiclesChange} className="text-blue-600 font-bold text-[11px] hover:underline whitespace-nowrap">
+              Edit ({(cur?.vehicle_ids || []).length})
             </button>
           )}
         </div>
       </div>
 
+      {/* Package Redemption row (Only if assigned offer available) */}
+      {hasOffers && (
+        <div className="flex items-center gap-2 pt-1 border-t border-gray-100 text-xs">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 flex items-center gap-1 shrink-0">
+            <Sparkles size={11} /> Package:
+          </span>
+          <select
+            className="bg-emerald-50/80 text-emerald-900 border border-emerald-200 rounded-lg text-xs py-1 px-2.5 font-medium focus:ring-1 focus:ring-emerald-500 max-w-sm"
+            value={cur.assigned_offer_id || ''}
+            onChange={e => onRedeemPackage(e.target.value)}
+          >
+            <option value="">-- Don't redeem from package --</option>
+            {assignedOffers.map(offer => (
+              <option key={offer.id} value={offer.id}>
+                Redeem: {offer.packageName} ({offer.totalWashes - offer.completedWashes} left)
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
       {/* Per-Vehicle Price Breakdown Pill List */}
       {appliedVehicles.length > 0 && (
-        <div className="flex flex-wrap gap-1.5 pt-2 border-t border-gray-200/50">
+        <div className="flex flex-wrap gap-1.5 pt-1.5 border-t border-gray-100 items-center">
           {appliedVehicles.map(v => {
             const vtId = v.vehicle_type_id;
             let vPrice = Number(serviceOption?.price || cur.price || 0);
@@ -456,11 +462,11 @@ const SelectedServiceRow = memo(function SelectedServiceRow({ cur, onDesc, onPri
               if (!isNaN(mapped) && mapped > 0) vPrice = mapped;
             }
             return (
-              <span key={v.id} className="text-[11px] font-bold bg-white text-gray-700 border border-gray-200 rounded-lg px-2.5 py-1 flex items-center gap-1.5 shadow-2xs">
+              <span key={v.id} className="text-[11px] font-semibold bg-gray-50 text-gray-700 border border-gray-200 rounded-md px-2 py-0.5 flex items-center gap-1.5">
                 <Car size={11} className="text-blue-500 shrink-0" />
                 <span>{[v.make, v.model].filter(Boolean).join(' ') || 'Vehicle'}{v.plate ? ` (${v.plate})` : ''}</span>
-                {v.type && <span className="text-[10px] bg-blue-50 text-blue-700 px-1.5 py-0.2 rounded font-extrabold uppercase">{v.type}</span>}
-                <span className="font-mono text-gray-900 font-bold">₹{vPrice.toLocaleString('en-IN')}</span>
+                {v.type && <span className="text-[9px] bg-blue-100 text-blue-800 px-1 rounded font-bold uppercase">{v.type}</span>}
+                <span className="font-mono text-gray-900 font-bold ml-1">₹{vPrice.toLocaleString('en-IN')}</span>
               </span>
             );
           })}
@@ -613,7 +619,7 @@ const ThirdPartyServiceRow = memo(function ThirdPartyServiceRow({ item, onField,
   );
 });
 
-export default function InvoiceForm({ initial, onSubmit, loading }) {
+export default function InvoiceForm({ initial, onSubmit, loading, onCustomerSelect }) {
   const isOfferPurchase = initial?.is_offer_purchase === true;
   const navigate = useNavigate();
   const today = new Date().toISOString().slice(0, 10);
@@ -1310,27 +1316,27 @@ export default function InvoiceForm({ initial, onSubmit, loading }) {
         onCancel={() => { setConflictModal({ isOpen: false, conflicts: [] }); pendingPayloadRef.current = null; }}
         onProceed={handleProceedDespiteConflict}
       />
-      <form onSubmit={handleSubmit} className="w-full font-sans pb-12 relative z-10 flex flex-col lg:flex-row gap-8">
-        <div className="w-full lg:flex-1 flex flex-col gap-8 shrink-0">
-          <div className="flex items-center justify-between mb-2 border-b border-gray-200 pb-4">
-            <h1 className="text-2xl font-black text-gray-900 tracking-tight flex items-center gap-3">
-              <Hash size={20} className="text-gray-400" /> New Job Card
+      <form onSubmit={handleSubmit} className="w-full font-sans pb-12 relative z-10 grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
+        <div className="xl:col-span-8 flex flex-col gap-6">
+          <div className="flex items-center justify-between mb-1 border-b border-gray-200 pb-3">
+            <h1 className="text-xl font-black text-gray-900 tracking-tight flex items-center gap-2.5">
+              <Hash size={18} className="text-gray-400" /> {initial ? 'Edit Job Card' : 'New Job Card'}
             </h1>
-            <span className="font-mono text-sm text-gray-500 font-bold px-3 py-1 bg-gray-100 rounded-lg">
+            <span className="font-mono text-xs text-gray-600 font-bold px-2.5 py-1 bg-gray-100 rounded-lg">
               {initial?.invoiceNumber || initial?.invoiceNo || 'Draft Mode'}
             </span>
           </div>
 
-          <div className="flex flex-col gap-6">
-            <div className="bg-white/90 backdrop-blur-md rounded-2xl shadow-sm border border-gray-200 p-6 flex flex-col gap-5">
-              <div className="flex items-center gap-3">
-                <div className={`w-6 h-6 rounded-full flex items-center justify-center border-2 transition-colors ${isStep1Complete ? 'border-emerald-500 text-emerald-500 bg-emerald-50' : 'border-gray-300 text-gray-400 bg-gray-50'}`}>
-                  {isStep1Complete ? <CheckCircle2 size={14} className="fill-emerald-50" /> : <span className="text-[10px] font-bold">1</span>}
+          <div className="flex flex-col gap-5">
+            <div className="bg-white/90 backdrop-blur-md rounded-2xl shadow-sm border border-gray-200 p-4 sm:p-5 flex flex-col gap-4">
+              <div className="flex items-center gap-2.5">
+                <div className={`w-5 h-5 rounded-full flex items-center justify-center border-2 transition-colors ${isStep1Complete ? 'border-emerald-500 text-emerald-500 bg-emerald-50' : 'border-gray-300 text-gray-400 bg-gray-50'}`}>
+                  {isStep1Complete ? <CheckCircle2 size={12} className="fill-emerald-50" /> : <span className="text-[9px] font-bold">1</span>}
                 </div>
-                <h2 className="text-[15px] font-bold text-gray-900 tracking-tight">{clientType === 'individual' ? 'Client Details' : 'Organization Details'}</h2>
-                <div className="ml-auto flex items-center gap-1 bg-gray-100 p-1 rounded-lg">
-                  <button type="button" onClick={() => { setClientType('individual'); setForm(f => ({ ...f, customer: { name: '', phone: '', address: '', vehicles: [] }, vehicleId: null, selectedVehicleIds: [], vehicleVisitMeta: {} })); }} className={`px-3 py-1 text-[12px] font-bold rounded-md transition-colors ${clientType === 'individual' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}>Individual</button>
-                  <button type="button" onClick={() => { setClientType('organization'); setForm(f => ({ ...f, customer: { name: '', phone: '', address: '', vehicles: [] }, vehicleId: null, selectedVehicleIds: [], vehicleVisitMeta: {} })); }} className={`px-3 py-1 text-[12px] font-bold rounded-md transition-colors ${clientType === 'organization' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}>Organization</button>
+                <h2 className="text-[14px] font-bold text-gray-900 tracking-tight">{clientType === 'individual' ? 'Client Details' : 'Organization Details'}</h2>
+                <div className="ml-auto flex items-center gap-1 bg-gray-100 p-0.5 rounded-lg">
+                  <button type="button" onClick={() => { setClientType('individual'); setForm(f => ({ ...f, customer: { name: '', phone: '', address: '', vehicles: [] }, vehicleId: null, selectedVehicleIds: [], vehicleVisitMeta: {} })); }} className={`px-2.5 py-1 text-[11px] font-bold rounded-md transition-colors ${clientType === 'individual' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}>Individual</button>
+                  <button type="button" onClick={() => { setClientType('organization'); setForm(f => ({ ...f, customer: { name: '', phone: '', address: '', vehicles: [] }, vehicleId: null, selectedVehicleIds: [], vehicleVisitMeta: {} })); }} className={`px-2.5 py-1 text-[11px] font-bold rounded-md transition-colors ${clientType === 'organization' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}>Organization</button>
                 </div>
               </div>
 
@@ -1417,12 +1423,12 @@ export default function InvoiceForm({ initial, onSubmit, loading }) {
               </div>
             </div>
 
-            <div className="bg-white/90 backdrop-blur-md rounded-2xl shadow-sm border border-gray-200 p-6 flex flex-col gap-5">
-              <div className="flex items-center gap-3">
-                <div className={`w-6 h-6 rounded-full flex items-center justify-center border-2 transition-colors ${isStep2Complete ? 'border-emerald-500 text-emerald-500 bg-emerald-50' : 'border-gray-300 text-gray-400 bg-gray-50'}`}>
-                  {isStep2Complete ? <CheckCircle2 size={14} className="fill-emerald-50" /> : <span className="text-[10px] font-bold">2</span>}
+            <div className="bg-white rounded-2xl shadow-xs border border-gray-200 p-4 sm:p-5 flex flex-col gap-4">
+              <div className="flex items-center gap-2.5">
+                <div className={`w-5 h-5 rounded-full flex items-center justify-center border-2 transition-colors ${isStep2Complete ? 'border-emerald-500 text-emerald-500 bg-emerald-50' : 'border-gray-300 text-gray-400 bg-gray-50'}`}>
+                  {isStep2Complete ? <CheckCircle2 size={12} className="fill-emerald-50" /> : <span className="text-[9px] font-bold">2</span>}
                 </div>
-                <h2 className="text-[15px] font-bold text-gray-900 tracking-tight">Vehicle Identifiers</h2>
+                <h2 className="text-[14px] font-bold text-gray-900 tracking-tight">Vehicle Identifiers</h2>
               </div>
 
               {clientType === 'individual' ? (
@@ -1526,17 +1532,17 @@ export default function InvoiceForm({ initial, onSubmit, loading }) {
               )}
             </div>
 
-            <div className="bg-white/90 backdrop-blur-md rounded-2xl shadow-sm border border-gray-200 p-6 flex flex-col gap-5">
-              <div className="flex items-center gap-3">
-                <div className={`w-6 h-6 rounded-full flex items-center justify-center border-2 transition-colors ${isStep3Complete ? 'border-emerald-500 text-emerald-500 bg-emerald-50' : 'border-gray-300 text-gray-400 bg-gray-50'}`}>
-                  {isStep3Complete ? <CheckCircle2 size={14} className="fill-emerald-50" /> : <span className="text-[10px] font-bold">3</span>}
+            <div className="bg-white rounded-2xl shadow-xs border border-gray-200 p-4 sm:p-5 flex flex-col gap-4">
+              <div className="flex items-center gap-2.5">
+                <div className={`w-5 h-5 rounded-full flex items-center justify-center border-2 transition-colors ${isStep3Complete ? 'border-emerald-500 text-emerald-500 bg-emerald-50' : 'border-gray-300 text-gray-400 bg-gray-50'}`}>
+                  {isStep3Complete ? <CheckCircle2 size={12} className="fill-emerald-50" /> : <span className="text-[9px] font-bold">3</span>}
                 </div>
-                <h2 className="text-[15px] font-bold text-gray-900 tracking-tight">Services Grid</h2>
+                <h2 className="text-[14px] font-bold text-gray-900 tracking-tight">Services Grid</h2>
                 {isOfferPurchase && <span className="text-[11px] font-medium text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">(Offer Purchase - Read Only)</span>}
               </div>
               <div>
                 {!isOfferPurchase && (
-                  <div className="flex flex-wrap gap-2.5">
+                  <div className="flex flex-wrap gap-2">
                     {serviceOptions.filter(o => o.isActive !== false).map(opt => {
                       const badgeInfo = getServiceBadgeInfo(opt, activeVehicleIds);
                       return (
@@ -1551,17 +1557,17 @@ export default function InvoiceForm({ initial, onSubmit, loading }) {
                       );
                     })}
                     {serviceOptions.length === 0 && (
-                      <div className="text-[13px] font-medium text-gray-500 p-4 border border-dashed border-gray-300 rounded-xl bg-gray-50">
+                      <div className="text-[12px] font-medium text-gray-500 p-3 border border-dashed border-gray-300 rounded-xl bg-gray-50">
                         No services available.
                       </div>
                     )}
                   </div>
                 )}
                 {form.services.length > 0 && (
-                  <div className="mt-6 flex flex-col gap-3">
-                    {form.services.map(cur => (
+                  <div className="mt-4 flex flex-col gap-2.5">
+                    {form.services.map((cur, idx) => (
                       <SelectedServiceRow
-                        key={cur.service_id || cur.service}
+                        key={`service-${cur.service_id || cur.service}-${idx}`}
                         cur={cur}
                         onDesc={e => updateServiceField(cur.service, 'description', e.target.value)}
                         onPrice={val => updateServiceField(cur.service, 'price', val)}
@@ -1579,17 +1585,17 @@ export default function InvoiceForm({ initial, onSubmit, loading }) {
               </div>
             </div>
 
-            <div className="bg-white/90 backdrop-blur-md rounded-2xl shadow-sm border border-gray-200 p-6 flex flex-col gap-5">
-              <div className="flex items-center gap-3">
-                <div className="w-6 h-6 rounded-full flex items-center justify-center border-2 border-gray-300 text-gray-400 bg-gray-50">
-                  <Truck size={12} />
+            <div className="bg-white rounded-2xl shadow-xs border border-gray-200 p-4 sm:p-5 flex flex-col gap-4">
+              <div className="flex items-center gap-2.5">
+                <div className="w-5 h-5 rounded-full flex items-center justify-center border-2 border-gray-300 text-gray-400 bg-gray-50">
+                  <Truck size={11} />
                 </div>
-                <h2 className="text-[15px] font-bold text-gray-900 tracking-tight">Third-Party Services</h2>
-                <span className="text-[11px] font-medium text-gray-400">(Optional — vendor-provided work)</span>
+                <h2 className="text-[14px] font-bold text-gray-900 tracking-tight">Third-Party Services</h2>
+                <span className="text-[11px] font-medium text-gray-400">(Optional — vendor work)</span>
               </div>
               <div>
                 {!isOfferPurchase && (
-                  <div className="flex flex-wrap gap-2.5">
+                  <div className="flex flex-wrap gap-2">
                     {thirdPartyOptions.filter(t => t.isActive !== false).map(opt => {
                       const badgeInfo = getThirdPartyBadgeInfo(opt, activeVehicleIds);
                       return (
@@ -1604,7 +1610,7 @@ export default function InvoiceForm({ initial, onSubmit, loading }) {
                       );
                     })}
                     {thirdPartyOptions.length === 0 && (
-                      <div className="text-[13px] font-medium text-gray-500 p-4 border border-dashed border-gray-300 rounded-xl bg-gray-50">
+                      <div className="text-[12px] font-medium text-gray-500 p-3 border border-dashed border-gray-300 rounded-xl bg-gray-50">
                         No vendor services available.
                       </div>
                     )}
@@ -1612,7 +1618,7 @@ export default function InvoiceForm({ initial, onSubmit, loading }) {
                 )}
 
                 {form.thirdPartyItems.length > 0 && (
-                  <div className="mt-6 flex flex-col gap-3">
+                  <div className="mt-4 flex flex-col gap-2.5">
                     {form.thirdPartyItems.map((item, idx) => (
                       <ThirdPartyServiceRow
                         key={idx}
@@ -1631,24 +1637,24 @@ export default function InvoiceForm({ initial, onSubmit, loading }) {
               </div>
             </div>
 
-            <div className="bg-white/90 backdrop-blur-md rounded-2xl shadow-sm border border-gray-200 p-6 flex flex-col gap-5">
-              <div className="flex items-center gap-3">
-                <div className="w-6 h-6 rounded-full flex items-center justify-center border-2 border-gray-300 text-gray-400 bg-gray-50">
-                  <Settings size={12} />
+            <div className="bg-white rounded-2xl shadow-xs border border-gray-200 p-4 sm:p-5 flex flex-col gap-4">
+              <div className="flex items-center gap-2.5">
+                <div className="w-5 h-5 rounded-full flex items-center justify-center border-2 border-gray-300 text-gray-400 bg-gray-50">
+                  <Settings size={11} />
                 </div>
-                <h2 className="text-[15px] font-bold text-gray-900 tracking-tight">Additional Terms & Notes</h2>
+                <h2 className="text-[14px] font-bold text-gray-900 tracking-tight">Additional Terms & Notes</h2>
               </div>
-              <div className="flex flex-col gap-4">
+              <div className="flex flex-col gap-3">
                 <Field label="Special Notes for Client">
-                  <textarea className={`${inputCls} resize-none h-16 bg-gray-50 border-gray-200`} value={form.notes} onChange={e => setF('notes', e.target.value)} placeholder="e.g. Thanks for your business!" />
+                  <textarea className={`${inputCls} resize-none h-14 bg-gray-50 border-gray-200 rounded-xl`} value={form.notes} onChange={e => setF('notes', e.target.value)} placeholder="e.g. Thanks for your business!" />
                 </Field>
-                <label className="flex items-center gap-3 cursor-pointer group mt-2">
+                <label className="flex items-center gap-2.5 cursor-pointer group mt-1">
                   <input type="checkbox" checked={form.showTerms} onChange={e => setF('showTerms', e.target.checked)} className="w-4 h-4 text-gray-900 border-gray-300 rounded focus:ring-gray-900" />
-                  <span className="text-[13px] font-bold text-gray-700 group-hover:text-gray-900 transition-colors">Include Terms & Conditions on Invoice</span>
+                  <span className="text-[12px] font-bold text-gray-700 group-hover:text-gray-900 transition-colors">Include Terms & Conditions on Invoice</span>
                 </label>
                 {form.showTerms && (
                   <Field label="Terms & Conditions">
-                    <textarea className={`${inputCls} resize-none h-20 bg-gray-50 border-gray-200`} value={form.termsAndConditions} onChange={e => setF('termsAndConditions', e.target.value)} placeholder="Enter custom terms or leave blank for default terms." />
+                    <textarea className={`${inputCls} resize-none h-16 bg-gray-50 border-gray-200 rounded-xl`} value={form.termsAndConditions} onChange={e => setF('termsAndConditions', e.target.value)} placeholder="Enter custom terms or leave blank for default terms." />
                   </Field>
                 )}
               </div>
@@ -1656,22 +1662,22 @@ export default function InvoiceForm({ initial, onSubmit, loading }) {
           </div>
         </div>
 
-        <div className="w-full lg:w-[420px] shrink-0">
-          <div className="sticky top-6 flex flex-col gap-4">
-            <div className="bg-white shadow-xl shadow-gray-200/50 rounded-3xl border border-gray-100 overflow-hidden flex flex-col">
-              <div className="bg-gray-900 p-5 text-white flex flex-col gap-1">
+        <div className="xl:col-span-4 sticky top-6">
+          <div className="flex flex-col gap-4">
+            <div className="bg-white shadow-lg shadow-gray-200/50 rounded-2xl border border-gray-200 overflow-hidden flex flex-col">
+              <div className="bg-gray-900 p-4 text-white flex flex-col gap-1">
                 <div className="flex items-center justify-between">
-                  <h3 className="font-bold text-[15px] tracking-wide flex items-center gap-2">
-                    <Receipt size={16} className="text-gray-400" /> Payment Summary
+                  <h3 className="font-bold text-[14px] tracking-wide flex items-center gap-2">
+                    <Receipt size={15} className="text-[#F6CB59]" /> Payment Summary
                   </h3>
-                  <span className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${sc.bg} ${sc.text} shadow-sm border border-white/20`}>
+                  <span className={`flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider ${sc.bg} ${sc.text} shadow-sm border border-white/20`}>
                     <span className={`w-1.5 h-1.5 rounded-full ${sc.dot}`} />
                     {sc.label}
                   </span>
                 </div>
               </div>
 
-              <div className="p-6 flex flex-col gap-5 bg-[#fafafa]">
+              <div className="p-4 sm:p-5 flex flex-col gap-4 bg-[#fafafa]">
                 <div className="flex flex-col gap-3">
                   <div className="flex items-center justify-between text-[14px]">
                     <span className="font-bold text-gray-500">Sub Total</span>

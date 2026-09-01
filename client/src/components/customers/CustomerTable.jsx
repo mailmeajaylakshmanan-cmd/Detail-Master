@@ -208,81 +208,105 @@ export default function CustomerTable({ rows, selectedId, onSelect, onEdit, onDe
           </table>
         </div>
 
-        {/* Mobile Cards */}
-        <div className="block lg:hidden flex flex-col gap-5 py-2">
+        {/* ── Mobile VIP Storytelling Cards ── */}
+        <div className="block lg:hidden flex flex-col gap-3.5 py-2">
           {pageRows.map((row, idx) => {
             return (
-              <div key={row.id} className="bg-white/60 backdrop-blur-2xl border border-white/80 rounded-[24px] p-5 shadow-[0_8px_32px_rgba(0,0,0,0.06)] flex flex-col gap-4 relative cursor-pointer active:scale-[0.98] transition-all" onClick={() => onSelect(row.phone)}>
-                <div className="flex justify-between items-start">
-                  <div className="flex items-center gap-3 min-w-0">
+              <div
+                key={row.id}
+                className="bg-white/85 backdrop-blur-2xl border border-white/90 rounded-3xl p-4 shadow-[0_8px_30px_rgba(0,0,0,0.05)] hover:shadow-[0_20px_40px_rgba(0,0,0,0.09)] flex flex-col gap-3 relative cursor-pointer active:scale-[0.99] transition-all overflow-hidden group"
+                onClick={() => onSelect(row.phone)}
+              >
+                {/* Gold Accent Line */}
+                <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-[#F6CB59] to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+
+                {/* Line 1: Avatar, Name, VIP, and Actions */}
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2.5 min-w-0 flex-1">
                     <div
-                      className="w-11 h-11 rounded-full flex items-center justify-center text-[14px] font-black shrink-0 shadow-sm border border-white/50"
+                      className="w-10 h-10 rounded-2xl flex items-center justify-center text-[14px] font-black shrink-0 shadow-sm border border-white/80"
                       style={{
-                        backgroundColor: idx % 3 === 0 ? '#FEF9C3' : idx % 3 === 1 ? '#E0E7FF' : '#FFE4E6',
-                        color: idx % 3 === 0 ? '#854D0E' : idx % 3 === 1 ? '#3730A3' : '#9F1239'
+                        backgroundColor: row.isVIP ? '#000000' : idx % 3 === 0 ? '#FEF9C3' : idx % 3 === 1 ? '#E0E7FF' : '#FFE4E6',
+                        color: row.isVIP ? '#F6CB59' : idx % 3 === 0 ? '#854D0E' : idx % 3 === 1 ? '#3730A3' : '#9F1239'
                       }}
                     >
                       {String(row.name).charAt(0).toUpperCase()}
                     </div>
-                    <div className="min-w-0 pr-2">
-                      <div className="flex items-center gap-2">
-                        <span className="font-black text-[16px] text-gray-900 truncate tracking-tight">{row.name}</span>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="font-black text-[15px] sm:text-[16px] text-gray-900 truncate tracking-tight">
+                          {row.name}
+                        </span>
                         {row.isVIP && <VipBadge />}
                       </div>
-                      <div className="text-[11px] font-bold text-gray-500 mt-0.5 tracking-wider uppercase">
-                        ID: {row.customId}
+                      <div className="text-[10px] font-bold text-gray-400 mt-0.5 tracking-wider uppercase">
+                        {row.customId}
                       </div>
                     </div>
                   </div>
                   
-                  <div className="flex items-center gap-2 shrink-0">
+                  {/* Action Buttons */}
+                  <div className="flex items-center gap-1.5 shrink-0" onClick={(e) => e.stopPropagation()}>
                     <button
                       type="button"
-                      onClick={(e) => { e.stopPropagation(); onSelect(row.phone); }}
-                      className="w-9 h-9 rounded-full bg-black flex items-center justify-center text-white shadow-md active:scale-95 transition-transform"
+                      onClick={() => onSelect(row.phone)}
+                      className="w-8 h-8 rounded-xl bg-white text-gray-700 border border-gray-200 shadow-xs flex items-center justify-center hover:bg-black hover:text-[#F6CB59] transition-all"
+                      title="View Customer Profile"
                     >
-                      <Eye size={15} strokeWidth={2.5} />
+                      <Eye size={13} strokeWidth={2.5} />
                     </button>
                     <button
                       type="button"
-                      onClick={(e) => { e.stopPropagation(); onEdit(row.raw); }}
-                      className="w-9 h-9 rounded-full bg-black flex items-center justify-center text-white shadow-md active:scale-95 transition-transform"
+                      onClick={() => onEdit(row.raw)}
+                      className="w-8 h-8 rounded-xl bg-white text-gray-700 border border-gray-200 shadow-xs flex items-center justify-center hover:bg-black hover:text-[#F6CB59] transition-all"
+                      title="Edit Customer"
                     >
-                      <Edit3 size={15} strokeWidth={2.5} />
+                      <Edit3 size={13} strokeWidth={2.5} />
                     </button>
                     {canDelete && (
                       <button
                         type="button"
-                        onClick={(e) => { e.stopPropagation(); onDelete(row.id); }}
-                        className="w-9 h-9 rounded-full bg-rose-600 flex items-center justify-center text-white shadow-md active:scale-95 transition-transform"
+                        onClick={() => onDelete(row.id)}
+                        className="w-8 h-8 rounded-xl bg-white text-rose-600 border border-rose-200 shadow-xs flex items-center justify-center hover:bg-rose-600 hover:text-white transition-all"
+                        title="Delete Customer"
                       >
-                        <Trash2 size={15} strokeWidth={2.5} />
+                        <Trash2 size={13} strokeWidth={2.5} />
                       </button>
                     )}
                   </div>
                 </div>
                 
-                <div className="grid grid-cols-2 gap-3 bg-white/50 p-4 rounded-2xl border border-white/60 mt-1 shadow-sm">
-                  <div className="flex items-center gap-2 text-[13px] font-bold text-gray-800 min-w-0">
-                    <Phone size={14} className="text-gray-400 shrink-0" />
-                    <span className="truncate">+91 {String(row.phone).replace('+91', '').trim()}</span>
+                {/* Line 2: Garage Fleet Story */}
+                <div className="bg-gray-50/90 p-2.5 rounded-2xl border border-gray-200/60">
+                  <div className="flex items-center gap-1.5 text-[10px] font-black text-gray-500 uppercase tracking-wider mb-1.5">
+                    <Car size={11} className="text-amber-600" />
+                    <span>Garage Fleet ({row.vehicles?.length || 0})</span>
                   </div>
-                  <div className="flex items-center gap-2 text-[13px] font-bold text-gray-800 justify-end">
-                    <span className="text-[15px] font-black text-gray-900">₹{row.totalSpend.toLocaleString('en-IN')}</span>
+                  {row.vehicles && row.vehicles.length > 0 ? (
+                    <div className="flex flex-wrap gap-1.5">
+                      {row.vehicles.map((v, vIdx) => (
+                        <span key={vIdx} className="bg-white px-2 py-1 rounded-xl text-[11px] font-bold text-gray-800 border border-gray-200 shadow-xs flex items-center gap-1 max-w-full min-w-0">
+                          <span className="truncate">{v.make} {v.model}</span>
+                          {v.plate && <span className="text-[10px] font-mono text-gray-400 shrink-0">({v.plate})</span>}
+                        </span>
+                      ))}
+                    </div>
+                  ) : (
+                    <span className="text-xs text-gray-400 italic">No vehicles registered</span>
+                  )}
+                </div>
+
+                {/* Line 3: Phone, Last Visit & Lifetime Value */}
+                <div className="flex items-center justify-between pt-2 border-t border-gray-100 text-xs">
+                  <div className="flex items-center gap-1.5 text-gray-600 font-bold">
+                    <Phone size={11} className="text-gray-400" />
+                    <span>+91 {String(row.phone).replace('+91', '').trim()}</span>
                   </div>
-                  <div className="flex items-start gap-2 text-[13px] font-bold text-gray-800 col-span-2 pt-3 mt-1 border-t border-gray-200/50">
-                    <Car size={14} className="text-gray-400 shrink-0 mt-0.5" />
-                    <span className="truncate whitespace-normal leading-tight">
-                      {row.vehicles && row.vehicles.length > 0 ? (
-                        row.vehicles.map(v => `${v.make} ${v.model}`).join(', ')
-                      ) : (
-                        <span className="text-gray-400">No vehicles</span>
-                      )}
+                  <div className="text-right">
+                    <span className="text-[10px] font-black text-gray-400 uppercase tracking-wider block">Total Spent</span>
+                    <span className="text-sm font-black font-mono text-gray-950">
+                      ₹{row.totalSpend.toLocaleString('en-IN')}
                     </span>
-                  </div>
-                  <div className="flex items-center gap-2 text-[13px] font-bold text-gray-800 col-span-2 pt-3 border-t border-gray-200/50">
-                    <Calendar size={14} className="text-gray-400 shrink-0" />
-                    <span className="truncate text-gray-600">Last visit: {row.lastVisit ? formatDate(row.lastVisit) : 'Never'}</span>
                   </div>
                 </div>
               </div>

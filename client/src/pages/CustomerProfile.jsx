@@ -171,14 +171,14 @@ export default function CustomerProfile() {
   }
 
   return (
-    <div className="w-full flex flex-col gap-6 bg-transparent animate-fade-in pb-10">
+    <div className="w-full flex flex-col gap-4 sm:gap-6 bg-transparent animate-fade-in pb-10 p-2 sm:p-0">
       
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <Link to="/master-customer" className="w-9 h-9 flex items-center justify-center rounded-xl bg-white/60 border border-white/60 hover:bg-white text-gray-600 shadow-sm transition-colors">
-            <ArrowLeft size={18} />
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
+        <div className="flex items-center gap-2.5 sm:gap-3">
+          <Link to="/master-customer" className="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center rounded-xl bg-white/60 border border-white/60 hover:bg-white text-gray-600 shadow-xs transition-colors">
+            <ArrowLeft size={16} />
           </Link>
-          <h1 className="text-lg font-black text-gray-900 tracking-tight">Customer Profile</h1>
+          <h1 className="text-base sm:text-lg font-black text-gray-900 tracking-tight">Customer Profile</h1>
         </div>
       </div>
 

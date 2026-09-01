@@ -401,16 +401,16 @@ export default function WebsiteBookings() {
     <div className="w-full max-w-full space-y-4 animate-fade-in">
 
       {/* ── Top Header & Executive Toolbar ── */}
-      <div className="bg-white/80 backdrop-blur-2xl rounded-2xl shadow-[0_4px_24px_rgba(0,0,0,0.04)] border border-white p-4 lg:p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="bg-white/80 backdrop-blur-2xl rounded-2xl shadow-[0_4px_24px_rgba(0,0,0,0.04)] border border-white p-3.5 lg:p-5 flex flex-col md:flex-row md:items-center justify-between gap-3 sm:gap-4">
         
         {/* Title & Pipeline Badge */}
-        <div className="flex items-center gap-3.5 min-w-0">
-          <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-black to-gray-900 text-[#F6CB59] flex items-center justify-center shadow-md shrink-0 border border-gray-800">
-            <Globe size={22} strokeWidth={2.5} />
+        <div className="flex items-center gap-3 sm:gap-3.5 min-w-0">
+          <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-xl bg-gradient-to-br from-black to-gray-900 text-[#F6CB59] flex items-center justify-center shadow-md shrink-0 border border-gray-800">
+            <Globe className="w-4 h-4 sm:w-5 sm:h-5" strokeWidth={2.5} />
           </div>
           <div className="min-w-0">
             <div className="flex items-center gap-2">
-              <h1 className="text-lg lg:text-xl font-black text-gray-900 tracking-tight leading-none truncate">
+              <h1 className="text-base sm:text-lg lg:text-xl font-black text-gray-900 tracking-tight leading-none truncate">
                 Website Bookings
               </h1>
               <span className="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200/60">
@@ -418,7 +418,7 @@ export default function WebsiteBookings() {
                 Live Dispatch
               </span>
             </div>
-            <p className="text-[11px] font-bold text-gray-500 mt-0.5 tracking-wide uppercase">
+            <p className="text-[10px] sm:text-[11px] font-bold text-gray-500 mt-0.5 tracking-wide uppercase">
               Online Inquiries & Appointment Dispatch
             </p>
           </div>
@@ -429,7 +429,7 @@ export default function WebsiteBookings() {
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
           <input
             type="text"
-            className="w-full pl-9 pr-8 py-2 bg-white border border-gray-200/80 rounded-xl text-[12px] font-bold text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent transition-all shadow-xs"
+            className="w-full pl-9 pr-8 py-1.5 sm:py-2 bg-white border border-gray-200/80 rounded-xl text-[12px] font-bold text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent transition-all shadow-xs"
             placeholder="Search name, phone, car, service..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}

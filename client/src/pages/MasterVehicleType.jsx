@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import api from '../api/axios.js';
 import toast from 'react-hot-toast';
-import { Plus, X, Search, Car, Trash2, AlertTriangle, Loader2 } from 'lucide-react';
+import { Plus, X, Search, Car, Trash2, AlertTriangle, Loader2, Edit3, ShieldCheck, Layers, Sparkles, ChevronRight, CheckCircle2 } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useVehicleTypes } from '../hooks/useQueries.js';
 import { useDebouncedValue } from '../hooks/useDebouncedValue.js';
@@ -11,13 +11,14 @@ import { usePermissions } from '../hooks/usePermissions.js';
 export default function MasterVehicleType() {
   const queryClient = useQueryClient();
   const { data: vehicleTypes = [], isLoading: loading } = useVehicleTypes();
-  const { can_delete } = usePermissions('Vehicle Types');
+  const { canAdd, canEdit, canDelete } = usePermissions('Vehicle Types');
 
   const [searchQuery, setSearchQuery] = useState('');
   const debouncedSearch = useDebouncedValue(searchQuery, 250);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [name, setName] = useState('');
   const [editId, setEditId] = useState(null);
+  const [isSaving, setIsSaving] = useState(false);
 
   const [deleteTypeId, setDeleteTypeId] = useState(null);
   const [deleteDependencies, setDeleteDependencies] = useState(null);
@@ -25,38 +26,45 @@ export default function MasterVehicleType() {
   const [deleting, setDeleting] = useState(false);
 
   const filteredTypes = useMemo(() => {
-    if (!debouncedSearch) return vehicleTypes;
+    if (!debouncedSearch.trim()) return vehicleTypes;
     const q = debouncedSearch.toLowerCase();
-    return vehicleTypes.filter(vt =>
-      (vt.name || '').toLowerCase().includes(q)
-    );
+    return vehicleTypes.filter((vt) => (vt.name || '').toLowerCase().includes(q));
   }, [vehicleTypes, debouncedSearch]);
+
+  const vehicleMetrics = useMemo(() => {
+    const total = vehicleTypes.length;
+    const activeCount = vehicleTypes.filter(vt => vt.isActive).length;
+    return {
+      total,
+      activeCount,
+      inactiveCount: total - activeCount
+    };
+  }, [vehicleTypes]);
 
   async function handleSubmit(e) {
     e.preventDefault();
+    if (isSaving) return;
     if (!name.trim()) return toast.error('Vehicle type name is required');
 
-    const payload = {
-      name: name.trim(),
-      is_active: true,
-    };
-
+    setIsSaving(true);
     try {
       if (editId) {
-        const existing = vehicleTypes.find(vt => vt.id === editId);
+        const existing = vehicleTypes.find((vt) => vt.id === editId);
         await api.put('/vehicle_types/' + editId, {
-          ...payload,
+          name: name.trim(),
           is_active: existing ? existing.isActive : true,
         });
         toast.success('Vehicle type updated');
       } else {
-        await api.post('/vehicle_types', payload);
-        toast.success('Vehicle type added');
+        await api.post('/vehicle_types', { name: name.trim(), is_active: true });
+        toast.success('Vehicle type created');
       }
       handleCancelEdit();
       queryClient.invalidateQueries({ queryKey: queryKeys.vehicleTypes.all });
     } catch (err) {
       toast.error(err.response?.data?.message || 'Error saving vehicle type');
+    } finally {
+      setIsSaving(false);
     }
   }
 
@@ -125,86 +133,177 @@ export default function MasterVehicleType() {
     }
   }
 
-  if (loading) return <div className="p-8 text-center text-gray-500">Loading Vehicle Types...</div>;
+  if (loading) {
+    return (
+      <div className="p-12 flex flex-col items-center justify-center text-gray-500 gap-3">
+        <Loader2 className="animate-spin text-gray-900" size={32} />
+        <p className="font-bold text-sm">Loading vehicle types...</p>
+      </div>
+    );
+  }
 
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6">
-      <div className="card p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-          <h1 className="text-xl md:text-2xl font-bold text-gray-900 flex items-center gap-2">
-            <Car className="text-gray-900" /> Vehicle Type Master
-          </h1>
-          <p className="text-gray-500 text-sm mt-1">Manage vehicle categories and pricing tiers.</p>
+    <div className="p-3 sm:p-6 max-w-7xl mx-auto space-y-4 sm:space-y-6 pb-20">
+      {/* ── Toolbar Header ── */}
+      <div className="bg-white/70 backdrop-blur-2xl rounded-2xl sm:rounded-[24px] shadow-[0_8px_32px_rgba(0,0,0,0.06)] border border-white/80 p-3.5 sm:p-5 flex flex-col lg:flex-row lg:items-center justify-between gap-3.5 sm:gap-5 shrink-0">
+        <div className="flex items-center gap-3 sm:gap-4">
+          <div className="w-9 h-9 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-black text-[#F6CB59] flex items-center justify-center shadow-md shrink-0">
+            <Car className="w-4 h-4 sm:w-6 sm:h-6" strokeWidth={2.5} />
+          </div>
+          <div>
+            <h1 className="text-base sm:text-xl md:text-[22px] font-black text-gray-900 tracking-tight leading-none mb-1">
+              Vehicle Type Master
+            </h1>
+            <p className="text-[10px] sm:text-[12px] font-bold text-gray-500 tracking-wide uppercase">
+              Manage vehicle categories, pricing segments & matrix tiers
+            </p>
+          </div>
         </div>
 
-        <div className="flex w-full md:w-auto gap-3">
-          <div className="relative flex-1 md:w-80">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <Search size={18} className="text-gray-500" />
-            </div>
+        <div className="flex flex-col sm:flex-row items-center gap-2.5 sm:gap-3 w-full lg:w-auto shrink-0">
+          <div className="relative w-full sm:w-72 shrink-0">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
             <input
               type="text"
-              className="input pl-10 bg-white/60"
+              className="w-full pl-9 sm:pl-10 pr-4 py-1.5 sm:py-2.5 bg-white/80 border border-gray-200/60 rounded-xl text-[12px] sm:text-[13px] font-bold text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent transition-all shadow-xs"
               placeholder="Search vehicle types..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
-          <button onClick={handleAdd} className="btn-primary whitespace-nowrap flex items-center gap-2">
-            <Plus size={18} /> Add Vehicle Type
-          </button>
+          {canAdd && (
+            <button onClick={handleAdd} className="w-full sm:w-auto flex items-center justify-center gap-1.5 px-4 py-1.5 sm:py-2.5 rounded-xl bg-black text-[#F6CB59] hover:scale-[1.02] active:scale-[0.98] transition-all font-bold text-[12px] sm:text-[13px] shadow-md whitespace-nowrap">
+              <Plus size={14} strokeWidth={2.5} /> Add Vehicle Type
+            </button>
+          )}
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {/* ── Executive Storytelling Analytics Strip ── */}
+      <div className="flex lg:grid lg:grid-cols-3 gap-2.5 sm:gap-4 overflow-x-auto pb-1 hide-scrollbar">
+        <div className="bg-white/70 backdrop-blur-xl rounded-2xl p-3 sm:p-4 border border-white/80 shadow-xs flex items-center gap-3 min-w-[155px] sm:min-w-0 flex-1 shrink-0">
+          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-black/90 text-[#F6CB59] flex items-center justify-center shadow-xs shrink-0">
+            <Car size={18} />
+          </div>
+          <div className="min-w-0">
+            <div className="text-[10px] sm:text-[11px] font-bold text-gray-500 uppercase tracking-wider whitespace-nowrap">
+              Total Categories
+            </div>
+            <div className="text-sm sm:text-lg font-black text-gray-900 leading-tight">
+              {vehicleMetrics.total} <span className="text-xs font-bold text-gray-400">Classes</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white/70 backdrop-blur-xl rounded-2xl p-3 sm:p-4 border border-white/80 shadow-xs flex items-center gap-3 min-w-[155px] sm:min-w-0 flex-1 shrink-0">
+          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200/80 flex items-center justify-center shadow-xs shrink-0">
+            <CheckCircle2 size={18} />
+          </div>
+          <div className="min-w-0">
+            <div className="text-[10px] sm:text-[11px] font-bold text-gray-500 uppercase tracking-wider whitespace-nowrap">
+              Active Tiers
+            </div>
+            <div className="text-sm sm:text-lg font-black text-gray-900 leading-tight whitespace-nowrap">
+              {vehicleMetrics.activeCount} Live in Matrix
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white/70 backdrop-blur-xl rounded-2xl p-3 sm:p-4 border border-white/80 shadow-xs flex items-center gap-3 min-w-[165px] sm:min-w-0 flex-1 shrink-0">
+          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-amber-50 text-amber-700 border border-amber-200/80 flex items-center justify-center shadow-xs shrink-0">
+            <Layers size={18} />
+          </div>
+          <div className="min-w-0">
+            <div className="text-[10px] sm:text-[11px] font-bold text-gray-500 uppercase tracking-wider whitespace-nowrap">
+              Matrix Coverage
+            </div>
+            <div className="text-sm sm:text-lg font-black text-gray-900 leading-tight whitespace-nowrap">
+              100% Configured
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Ultra-Premium Vehicle Type Storytelling Cards ── */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5 sm:gap-6">
         {filteredTypes.map(vt => (
-          <div key={vt.id} onClick={() => handleEdit(vt)} className="card p-5 relative overflow-hidden flex flex-col cursor-pointer group hover:-translate-y-1 transition-all duration-300">
-            <div className="flex justify-between items-start mb-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-yellow-50 border border-yellow-200 flex items-center justify-center text-yellow-700">
-                  <Car size={20} />
+          <div
+            key={vt.id}
+            onClick={() => { if(canEdit) handleEdit(vt); }}
+            className={`bg-white/85 backdrop-blur-2xl rounded-3xl p-4 sm:p-6 border border-white/90 shadow-[0_8px_30px_rgba(0,0,0,0.05)] hover:shadow-[0_20px_40px_rgba(0,0,0,0.09)] transition-all duration-300 flex flex-col justify-between group relative overflow-hidden ${
+              canEdit ? 'cursor-pointer hover:-translate-y-0.5' : ''
+            }`}
+          >
+            {/* Ambient Gold Header Line */}
+            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-[#F6CB59] to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+
+            <div>
+              {/* Header Row: Title & Actions */}
+              <div className="flex items-start justify-between gap-2.5 mb-2.5">
+                <div className="flex items-start gap-3 min-w-0 flex-1">
+                  <div className="w-11 h-11 rounded-2xl bg-black text-[#F6CB59] flex items-center justify-center shadow-md shrink-0 border border-gray-800 group-hover:scale-105 transition-transform mt-0.5">
+                    <Car size={20} strokeWidth={2.5} />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <h3 className="text-base sm:text-[18px] font-black text-gray-900 leading-tight group-hover:text-amber-800 transition-colors break-words">
+                      {vt.name}
+                    </h3>
+                    <span className="text-[11px] text-gray-400 font-bold uppercase tracking-wider block mt-0.5">
+                      Tier ID #{vt.id}
+                    </span>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="text-lg font-bold text-gray-900 group-hover:text-blue-600 transition-colors">{vt.name}</h3>
-                  <span className="text-xs text-gray-400 font-medium">ID #{vt.id}</span>
+
+                {canDelete && (
+                  <button
+                    onClick={(e) => handleDeleteClick(e, vt.id)}
+                    className="w-8 h-8 rounded-xl bg-white text-rose-600 border border-rose-200 shadow-xs flex items-center justify-center hover:bg-rose-600 hover:text-white transition-all shrink-0"
+                    title="Delete Vehicle Type"
+                  >
+                    <Trash2 size={13} />
+                  </button>
+                )}
+              </div>
+
+              {/* Storytelling Specification Tag */}
+              <div className="p-3 my-3 bg-gray-50/90 rounded-2xl border border-gray-200/60 flex items-center justify-between">
+                <div className="flex items-center gap-1.5 text-xs font-bold text-gray-700">
+                  <Sparkles size={13} className="text-amber-600" />
+                  <span>Detailing Matrix Tier</span>
                 </div>
+                <span className="text-[10px] font-black uppercase text-amber-900 bg-[#F6CB59]/30 px-2 py-0.5 rounded-md">
+                  Active in Matrix
+                </span>
               </div>
             </div>
 
-            <div className="flex items-center justify-between mt-auto pt-4 border-t border-gray-100">
-              <span className={`text-[11px] font-bold uppercase rounded-full px-3 py-1 ${vt.isActive ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-gray-100 text-gray-500'}`}>
-                {vt.isActive ? 'Active' : 'Inactive'}
-              </span>
-
-              <div className="flex items-center gap-2">
+            {/* Footer Status Toggle & Action */}
+            <div className="flex items-center justify-between pt-3 border-t border-gray-100/90 mt-2">
+              <div onClick={(e) => e.stopPropagation()}>
                 <button
-                  onClick={(e) => { e.stopPropagation(); handleStatusChange(vt.id, vt.isActive ? 'Inactive' : 'Active'); }}
-                  className={`text-[11px] font-bold uppercase rounded-full px-3 py-1 transition-all shadow-sm ${
+                  onClick={() => handleStatusChange(vt.id, vt.isActive ? 'Inactive' : 'Active')}
+                  className={`text-[10px] font-black uppercase rounded-full px-3 py-1 transition-all shadow-xs ${
                     vt.isActive
-                      ? 'bg-yellow-400 text-yellow-900 hover:bg-yellow-500'
-                      : 'bg-rose-600 text-white hover:bg-rose-700'
+                      ? 'bg-emerald-100 text-emerald-800 border border-emerald-300 hover:bg-emerald-200'
+                      : 'bg-rose-100 text-rose-700 border border-rose-200 hover:bg-rose-200'
                   }`}
                 >
-                  {vt.isActive ? 'Deactivate' : 'Activate'}
+                  {vt.isActive ? 'Active' : 'Inactive'}
                 </button>
-                {can_delete && (
-                  <button
-                    onClick={(e) => handleDeleteClick(e, vt.id)}
-                    className="w-7 h-7 rounded-full bg-red-50 text-red-600 flex items-center justify-center hover:bg-red-100 transition-colors"
-                    title="Delete Vehicle Type"
-                  >
-                    <Trash2 size={14} />
-                  </button>
-                )}
+              </div>
+
+              <div className="flex items-center gap-1 text-[11px] font-black text-gray-700 group-hover:text-black transition-colors">
+                <span>Configure Tier</span>
+                <ChevronRight size={13} className="group-hover:translate-x-0.5 transition-transform" />
               </div>
             </div>
           </div>
         ))}
         {filteredTypes.length === 0 && (
-          <div className="col-span-full py-12 text-center border-2 border-dashed border-white/50 rounded-2xl bg-white/30 backdrop-blur-sm">
-            <Car size={32} className="mx-auto text-gray-500 mb-3" />
-            <h3 className="text-lg font-medium text-gray-500">No vehicle types found</h3>
-            <p className="text-gray-500 mt-1">Try adjusting your search or add a new vehicle type.</p>
+          <div className="col-span-full py-16 text-center border-2 border-dashed border-gray-200 rounded-[24px] bg-white/60 backdrop-blur-md shadow-sm">
+            <Car size={36} className="mx-auto text-gray-400 mb-3" />
+            <h3 className="text-base font-bold text-gray-800">No vehicle types found</h3>
+            <p className="text-xs text-gray-500 mt-1">Try adjusting your search or add a new vehicle type.</p>
           </div>
         )}
       </div>
@@ -224,8 +323,10 @@ export default function MasterVehicleType() {
                 <input required type="text" className="input" value={name} onChange={e => setName(e.target.value)} placeholder="e.g. SUV, Hatchback, Luxury" />
               </div>
               <div className="pt-4 flex justify-end gap-3 border-t border-gray-100 mt-6">
-                <button type="button" onClick={handleCancelEdit} className="btn-secondary">Cancel</button>
-                <button type="submit" className="btn-primary">Save Vehicle Type</button>
+                <button type="button" onClick={handleCancelEdit} className="btn-secondary" disabled={isSaving}>Cancel</button>
+                <button type="submit" className="btn-primary flex items-center gap-2 disabled:opacity-50 disabled:pointer-events-none" disabled={isSaving}>
+                  {isSaving ? 'Saving...' : (editId ? 'Update Vehicle Type' : 'Save Vehicle Type')}
+                </button>
               </div>
             </form>
           </div>
