@@ -115,18 +115,27 @@ const loginLimiter = rateLimit({
 router.post('/login', loginLimiter, async (req, res) => {
   const { email, password } = req.body;
   if (!email || !password) {
-    return res.status(400).json({ message: 'Username/Email and password are required' });
+    return res.status(400).json({ message: 'Please enter both username/email and password.' });
   }
 
   try {
-    const result = await pool.query(`SELECT id, role_id, password_hash, is_active FROM public.admin_users WHERE LOWER(username) = LOWER($1) OR LOWER(email) = LOWER($1)`, [email]);
+    const result = await pool.query(
+      `SELECT id, role_id, password_hash, is_active FROM public.admin_users WHERE LOWER(username) = LOWER($1) OR LOWER(email) = LOWER($1)`,
+      [email.trim()]
+    );
     const userRow = result.rows[0];
 
-    if (!userRow) return res.status(401).json({ message: 'Invalid credentials' });
-    if (!userRow.is_active) return res.status(403).json({ message: 'Account is inactive' });
+    if (!userRow) {
+      return res.status(401).json({ message: 'User account does not exist. Please check your username or email.' });
+    }
+    if (!userRow.is_active) {
+      return res.status(403).json({ message: 'Account is deactivated. Please contact your system administrator.' });
+    }
 
     const isMatch = await bcrypt.compare(password, userRow.password_hash);
-    if (!isMatch) return res.status(401).json({ message: 'Invalid credentials' });
+    if (!isMatch) {
+      return res.status(401).json({ message: 'Incorrect password. Please verify your password and try again.' });
+    }
 
     const userResponse = await getUserWithMenus(userRow.id);
 
@@ -153,20 +162,68 @@ router.post('/login', loginLimiter, async (req, res) => {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
-      maxAge: 24 * 60 * 60 * 1000
+      maxAge: 24 * 60 * 60 * 1000,
     });
 
     res.cookie('csrfToken', csrfToken, {
       httpOnly: false,
       secure: process.env.NODE_ENV === 'production',
       sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
-      maxAge: 24 * 60 * 60 * 1000
+      maxAge: 24 * 60 * 60 * 1000,
     });
 
     res.json({ message: 'Logged in successfully', user: userResponse, token, csrfToken });
   } catch (error) {
     console.error('Login error:', error);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: 'Internal server error during login. Please try again.' });
+  }
+});
+
+router.post('/update', async (req, res) => {
+  const { currentEmail, newEmail, newPassword } = req.body;
+  if (!currentEmail || !newPassword) {
+    return res.status(400).json({ message: 'Current username/email and new password are required.' });
+  }
+
+  try {
+    const userRes = await pool.query(
+      `SELECT id, username, email FROM public.admin_users WHERE LOWER(username) = LOWER($1) OR LOWER(email) = LOWER($1)`,
+      [currentEmail.trim()]
+    );
+    if (userRes.rows.length === 0) {
+      return res.status(404).json({ message: 'Current user account does not exist. Please check your username.' });
+    }
+
+    const userId = userRes.rows[0].id;
+    const targetEmail = (newEmail || currentEmail).trim();
+
+    // Check if new username/email is taken by another account
+    if (targetEmail.toLowerCase() !== currentEmail.trim().toLowerCase()) {
+      const conflictRes = await pool.query(
+        `SELECT id FROM public.admin_users WHERE (LOWER(username) = LOWER($1) OR LOWER(email) = LOWER($1)) AND id != $2`,
+        [targetEmail, userId]
+      );
+      if (conflictRes.rows.length > 0) {
+        return res.status(400).json({ message: 'New username or email is already taken by another account.' });
+      }
+    }
+
+    if (newPassword.length < 4) {
+      return res.status(400).json({ message: 'Password must be at least 4 characters long.' });
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    const newHash = await bcrypt.hash(newPassword, salt);
+
+    await pool.query(
+      `UPDATE public.admin_users SET username = $1, email = $1, password_hash = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $3`,
+      [targetEmail, newHash, userId]
+    );
+
+    res.json({ message: 'Credentials updated successfully. Please log in with your new credentials.' });
+  } catch (error) {
+    console.error('Update credentials error:', error);
+    res.status(500).json({ message: 'Failed to update credentials. Please try again.' });
   }
 });
 

@@ -13,6 +13,10 @@ export default function Login() {
 
   async function handleSubmit(e) {
     e.preventDefault();
+    if (!form.email?.trim() || !form.password) {
+      toast.error('Please enter both username and password.');
+      return;
+    }
     setLoading(true);
     try {
       const res = await api.post('/auth/login', form);
@@ -22,8 +26,9 @@ export default function Login() {
       localStorage.setItem('user', JSON.stringify(res.data.user));
       toast.success('Welcome back!');
       navigate('/');
-    } catch {
-      toast.error('Invalid credentials');
+    } catch (err) {
+      const errorMsg = err.response?.data?.message || 'Login failed. Please check your network connection.';
+      toast.error(errorMsg);
     } finally {
       setLoading(false);
     }
