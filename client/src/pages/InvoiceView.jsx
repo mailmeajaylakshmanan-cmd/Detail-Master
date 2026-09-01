@@ -44,8 +44,27 @@ function mapMethodLabel(m) {
 }
 
 function normalizeInvoice(row) {
-  const makeModel = (row.vehicle_name || '').trim();
-  const parts = makeModel.split(/\s+/);
+  const makeModel = (row.vehicle_name || row.carMake || '').trim();
+  const parts = makeModel ? makeModel.split(/\s+/) : [];
+
+  const plate = (
+    row.license_vin ||
+    row.licensePlate ||
+    row.vehicle_number ||
+    row.vehicleVisits?.[0]?.license_vin ||
+    row.services?.find(s => s.vehicle_plate)?.vehicle_plate ||
+    row.thirdPartyServices?.find(t => t.vehicle_plate)?.vehicle_plate ||
+    ''
+  ).trim();
+
+  const fullCarMake = (
+    makeModel ||
+    row.vehicleVisits?.[0]?.make_model ||
+    row.services?.find(s => s.vehicle_name)?.vehicle_name ||
+    row.thirdPartyServices?.find(t => t.vehicle_name)?.vehicle_name ||
+    ''
+  ).trim();
+
   return {
     ...row,
     id: row.id,
@@ -57,9 +76,9 @@ function normalizeInvoice(row) {
       phone: row.client_phone || row.organization_phone || row.customer?.phone || '',
       address: row.client_address || row.organization_address || row.customer?.address || '',
     },
-    carMake: parts[0] || row.carMake || '',
-    carModel: parts.slice(1).join(' ') || row.carModel || '',
-    licensePlate: row.license_vin || row.licensePlate || '',
+    carMake: fullCarMake || (parts.length > 0 ? parts.join(' ') : '—'),
+    carModel: '',
+    licensePlate: plate || '—',
     total: Number(row.grand_total ?? row.total) || 0,
     subTotal: Number(row.sub_total ?? row.subTotal) || 0,
     discount: Number(row.discount) || 0,
@@ -412,10 +431,10 @@ export default function InvoiceView() {
            <div className="invoice-info-col" style={{ flex: '1 1 50%' }}>
               <h3 style={{ fontSize: 13, fontWeight: 700, margin: '0 0 12px 0', color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.05em' }}>CLIENT INFO</h3>
               <div style={{ fontSize: 14, color: '#111827', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                 <div style={{ display: 'flex', alignItems: 'center' }}><span style={{ width: 85, color: '#6B7280', fontSize: 13 }}>Name:</span> <span style={{ fontWeight: 500 }}>{invoice.customer?.name || 'John Doe'}</span></div>
-                 <div style={{ display: 'flex', alignItems: 'center' }}><span style={{ width: 85, color: '#6B7280', fontSize: 13 }}>Car Make:</span> <span style={{ fontWeight: 500 }}>{invoice.carMake || 'Porsche 911 GT3'}</span></div>
-                 <div style={{ display: 'flex', alignItems: 'center' }}><span style={{ width: 85, color: '#6B7280', fontSize: 13 }}>Vehicle No:</span> <span style={{ fontWeight: 500 }}>{invoice.licensePlate || 'DL-XX-YYYY'}</span></div>
-                 <div style={{ display: 'flex', alignItems: 'center' }}><span style={{ width: 85, color: '#6B7280', fontSize: 13 }}>Date:</span> <span style={{ fontWeight: 500 }}>{dateStr || '26 Oct 2023'}</span></div>
+                 <div style={{ display: 'flex', alignItems: 'center' }}><span style={{ width: 85, color: '#6B7280', fontSize: 13 }}>Name:</span> <span style={{ fontWeight: 500 }}>{invoice.customer?.name || '—'}</span></div>
+                 <div style={{ display: 'flex', alignItems: 'center' }}><span style={{ width: 85, color: '#6B7280', fontSize: 13 }}>Car Make:</span> <span style={{ fontWeight: 500 }}>{invoice.carMake || '—'}</span></div>
+                 <div style={{ display: 'flex', alignItems: 'center' }}><span style={{ width: 85, color: '#6B7280', fontSize: 13 }}>Vehicle No:</span> <span style={{ fontWeight: 500 }}>{invoice.licensePlate || '—'}</span></div>
+                 <div style={{ display: 'flex', alignItems: 'center' }}><span style={{ width: 85, color: '#6B7280', fontSize: 13 }}>Date:</span> <span style={{ fontWeight: 500 }}>{dateStr || '—'}</span></div>
               </div>
            </div>
         </div>

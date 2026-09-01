@@ -107,11 +107,19 @@ router.get('/', async (req, res) => {
            i.created_at, i.updated_at,
            c.full_name AS client_name, c.phone AS client_phone,
            o.org_name AS organization_name, o.phone AS organization_phone,
-           v.make_model AS vehicle_name, v.license_vin
+           COALESCE(v.make_model, iv_first.make_model) AS vehicle_name,
+           COALESCE(v.license_vin, iv_first.license_vin) AS license_vin
          FROM invoices i
          LEFT JOIN clients c ON i.client_id = c.id
          LEFT JOIN organizations o ON i.organization_id = o.id
          LEFT JOIN vehicles v ON i.vehicle_id = v.id
+         LEFT JOIN LATERAL (
+           SELECT iv.vehicle_id, v2.make_model, v2.license_vin
+           FROM invoice_vehicles iv
+           JOIN vehicles v2 ON iv.vehicle_id = v2.id
+           WHERE iv.invoice_order_id = i.id
+           LIMIT 1
+         ) iv_first ON true
          ${whereSql}
          ORDER BY i.created_at DESC
          LIMIT $${limitIdx} OFFSET $${offsetIdx}`,
@@ -144,12 +152,22 @@ router.get('/:id', async (req, res) => {
          i.*,
          c.full_name AS client_name, c.phone AS client_phone, c.email AS client_email, c.address AS client_address,
          o.org_name AS organization_name, o.phone AS organization_phone, o.email AS organization_email, o.address AS organization_address,
-         v.make_model AS vehicle_name, v.license_vin, v.vehicle_type,
+         COALESCE(v.make_model, iv_first.make_model) AS vehicle_name,
+         COALESCE(v.license_vin, iv_first.license_vin) AS license_vin,
+         COALESCE(v.vehicle_type, iv_first.vehicle_type) AS vehicle_type,
+         COALESCE(i.vehicle_id, iv_first.vehicle_id) AS vehicle_id,
          EXISTS(SELECT 1 FROM assigned_offers ao WHERE ao.purchase_invoice_order_id = i.id) AS is_offer_purchase
        FROM invoices i
        LEFT JOIN clients c ON i.client_id = c.id
        LEFT JOIN organizations o ON i.organization_id = o.id
        LEFT JOIN vehicles v ON i.vehicle_id = v.id
+       LEFT JOIN LATERAL (
+         SELECT iv.vehicle_id, v2.make_model, v2.license_vin, v2.vehicle_type
+         FROM invoice_vehicles iv
+         JOIN vehicles v2 ON iv.vehicle_id = v2.id
+         WHERE iv.invoice_order_id = i.id
+         LIMIT 1
+       ) iv_first ON true
        WHERE i.id = $1`,
       [id]
     );

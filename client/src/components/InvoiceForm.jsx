@@ -1227,24 +1227,51 @@ export default function InvoiceForm({ initial, onSubmit, loading, onCustomerSele
   );
 
   const vehicleOptions = useMemo(() => {
-    const vehicles = form.customer?.vehicles || [];
+    let vehicles = form.customer?.vehicles || [];
+
+    if (clientType === 'individual' && form.customer?.id) {
+      const dbCust = customers.find(c => String(c.id) === String(form.customer.id));
+      if (dbCust?.vehicles && dbCust.vehicles.length > 0) {
+        const existingIds = new Set(vehicles.map(v => String(v.id)));
+        const additional = dbCust.vehicles.filter(v => !existingIds.has(String(v.id)));
+        vehicles = [...vehicles, ...additional];
+      }
+    } else if (clientType === 'organization' && form.customer?.id) {
+      const dbOrg = organizations.find(o => String(o.id) === String(form.customer.id));
+      if (dbOrg?.vehicles && dbOrg.vehicles.length > 0) {
+        const existingIds = new Set(vehicles.map(v => String(v.id)));
+        const additional = dbOrg.vehicles.filter(v => !existingIds.has(String(v.id)));
+        vehicles = [...vehicles, ...additional];
+      }
+    }
+
+    if (form.vehicleId && !vehicles.some(v => String(v.id) === String(form.vehicleId)) && (form.carMake || form.licensePlate)) {
+      const parts = (form.carMake || '').split(/\s+/);
+      vehicles = [{
+        id: form.vehicleId,
+        make: parts[0] || form.carMake || '',
+        model: parts.slice(1).join(' ') || '',
+        plate: form.licensePlate || '',
+      }, ...vehicles];
+    }
+
     const pool = clientType === 'organization' ? vehicles.filter(v => v.isActive !== false) : vehicles;
-    // Defensive de-dupe by id — guards against a stale/duplicated cache ever
-    // rendering the same vehicle as two separate picker entries.
     const seen = new Set();
     const deduped = pool.filter(v => {
-      if (seen.has(v.id)) return false;
-      seen.add(v.id);
+      const key = String(v.id || `${v.make}-${v.model}-${v.plate}`);
+      if (seen.has(key)) return false;
+      seen.add(key);
       return true;
     });
+
     return deduped.map(v => ({
       value: v.id,
       label: `${[v.make, v.model].filter(Boolean).join(' ') || 'Vehicle'}${v.plate ? ` — ${v.plate}` : ''}`,
       vehicle: v,
     }));
-  }, [clientType, form.customer]);
+  }, [clientType, form.customer, customers, organizations, form.vehicleId, form.carMake, form.licensePlate]);
 
-  const selectedVehicle = vehicleOptions.find(v => v.value === form.vehicleId) || null;
+  const selectedVehicle = vehicleOptions.find(v => String(v.value) === String(form.vehicleId)) || null;
 
   const statusConfig = {
     pending: { label: 'Pending', bg: 'bg-rose-100', text: 'text-rose-700', dot: 'bg-rose-500' },

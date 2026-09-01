@@ -57,8 +57,8 @@ function mapMethodLabel(method) {
 
 function renderInvoiceHtml(inv) {
   const clientName = inv.client_name || inv.full_name || inv.org_name || 'Valued Customer';
-  const vehicleName = inv.vehicle_name || `${inv.vehicle_make || ''} ${inv.vehicle_model || ''}`.trim() || '—';
-  const vehiclePlate = inv.vehicle_number || inv.license_vin || '—';
+  const vehicleName = inv.vehicle_name || inv.carMake || inv.vehicleVisits?.[0]?.make_model || `${inv.vehicle_make || ''} ${inv.vehicle_model || ''}`.trim() || '—';
+  const vehiclePlate = inv.license_vin || inv.vehicle_number || inv.licensePlate || inv.vehicleVisits?.[0]?.license_vin || inv.services?.find(s => s.vehicle_plate)?.vehicle_plate || '—';
   const invoiceNo = inv.invoice_number || inv.invoiceNo || 'INV';
   const dateStr = fmtDate(inv.created_at || inv.date);
 
