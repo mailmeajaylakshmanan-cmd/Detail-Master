@@ -274,19 +274,7 @@ export default function Layout() {
           onNavigate={() => setIsMobileMenuOpen(false)}
         />
 
-        <div className="p-3 border-t border-white/40 shrink-0 space-y-2">
-          <NavLink
-            to="/dev-test-inspector"
-            className={({ isActive }) => `
-              w-full flex items-center justify-center gap-2 py-2 rounded-xl text-[12px] font-black transition-all border
-              ${isActive 
-                ? 'bg-amber-400 text-gray-950 border-amber-500 shadow-sm' 
-                : 'bg-amber-50/80 text-amber-900 border-amber-200/80 hover:bg-amber-100'}
-            `}
-          >
-            <Database size={14} className="text-amber-700" /> 🧪 DB Test Lab
-          </NavLink>
-
+        <div className="p-3 border-t border-white/40 shrink-0">
           <button
             type="button"
             onClick={handleLogout}
