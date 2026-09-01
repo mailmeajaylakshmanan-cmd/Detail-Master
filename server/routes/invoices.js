@@ -107,8 +107,8 @@ router.get('/', async (req, res) => {
            i.created_at, i.updated_at,
            c.full_name AS client_name, c.phone AS client_phone,
            o.org_name AS organization_name, o.phone AS organization_phone,
-           COALESCE(v.make_model, iv_first.make_model) AS vehicle_name,
-           COALESCE(v.license_vin, iv_first.license_vin) AS license_vin
+           COALESCE(v.make_model, iv_first.make_model, cv_first.make_model) AS vehicle_name,
+           COALESCE(v.license_vin, iv_first.license_vin, cv_first.license_vin) AS license_vin
          FROM invoices i
          LEFT JOIN clients c ON i.client_id = c.id
          LEFT JOIN organizations o ON i.organization_id = o.id
@@ -120,6 +120,14 @@ router.get('/', async (req, res) => {
            WHERE iv.invoice_order_id = i.id
            LIMIT 1
          ) iv_first ON true
+         LEFT JOIN LATERAL (
+           SELECT v3.id, v3.make_model, v3.license_vin
+           FROM vehicles v3
+           WHERE (i.client_id IS NOT NULL AND v3.client_id = i.client_id)
+              OR (i.organization_id IS NOT NULL AND v3.organization_id = i.organization_id)
+           ORDER BY v3.id ASC
+           LIMIT 1
+         ) cv_first ON true
          ${whereSql}
          ORDER BY i.created_at DESC
          LIMIT $${limitIdx} OFFSET $${offsetIdx}`,
@@ -152,10 +160,10 @@ router.get('/:id', async (req, res) => {
          i.*,
          c.full_name AS client_name, c.phone AS client_phone, c.email AS client_email, c.address AS client_address,
          o.org_name AS organization_name, o.phone AS organization_phone, o.email AS organization_email, o.address AS organization_address,
-         COALESCE(v.make_model, iv_first.make_model) AS vehicle_name,
-         COALESCE(v.license_vin, iv_first.license_vin) AS license_vin,
-         COALESCE(v.vehicle_type, iv_first.vehicle_type) AS vehicle_type,
-         COALESCE(i.vehicle_id, iv_first.vehicle_id) AS vehicle_id,
+         COALESCE(v.make_model, iv_first.make_model, cv_first.make_model) AS vehicle_name,
+         COALESCE(v.license_vin, iv_first.license_vin, cv_first.license_vin) AS license_vin,
+         COALESCE(v.vehicle_type, iv_first.vehicle_type, cv_first.vehicle_type) AS vehicle_type,
+         COALESCE(i.vehicle_id, iv_first.vehicle_id, cv_first.id) AS vehicle_id,
          EXISTS(SELECT 1 FROM assigned_offers ao WHERE ao.purchase_invoice_order_id = i.id) AS is_offer_purchase
        FROM invoices i
        LEFT JOIN clients c ON i.client_id = c.id
@@ -168,6 +176,14 @@ router.get('/:id', async (req, res) => {
          WHERE iv.invoice_order_id = i.id
          LIMIT 1
        ) iv_first ON true
+       LEFT JOIN LATERAL (
+         SELECT v3.id, v3.make_model, v3.license_vin, v3.vehicle_type
+         FROM vehicles v3
+         WHERE (i.client_id IS NOT NULL AND v3.client_id = i.client_id)
+            OR (i.organization_id IS NOT NULL AND v3.organization_id = i.organization_id)
+         ORDER BY v3.id ASC
+         LIMIT 1
+       ) cv_first ON true
        WHERE i.id = $1`,
       [id]
     );
@@ -367,6 +383,17 @@ router.post('/', async (req, res) => {
 
     await client.query('BEGIN');
 
+    let finalVehicleId = vehicle_id || null;
+    if (!finalVehicleId) {
+      if (client_id) {
+        const vRes = await client.query('SELECT id FROM vehicles WHERE client_id = $1 ORDER BY id ASC LIMIT 1', [client_id]);
+        if (vRes.rows.length > 0) finalVehicleId = vRes.rows[0].id;
+      } else if (organization_id) {
+        const vRes = await client.query('SELECT id FROM vehicles WHERE organization_id = $1 ORDER BY id ASC LIMIT 1', [organization_id]);
+        if (vRes.rows.length > 0) finalVehicleId = vRes.rows[0].id;
+      }
+    }
+
     let lines = [];
 
     // Support new payload format: service_items = [{ service_id, vehicle_ids: [1, 2] }]
@@ -378,7 +405,7 @@ router.post('/', async (req, res) => {
       req.body.service_items.forEach(si => {
         const dbSrv = sRes.rows.find(r => r.id === si.service_id);
         if (dbSrv) {
-          const vIds = Array.isArray(si.vehicle_ids) && si.vehicle_ids.length > 0 ? si.vehicle_ids : [vehicle_id || null];
+          const vIds = Array.isArray(si.vehicle_ids) && si.vehicle_ids.length > 0 ? si.vehicle_ids : [finalVehicleId || null];
           lines.push({
             service_id: si.service_id,
             unit_price: si.assigned_offer_id ? 0 : (Number(si.price) / vIds.length || 0),
@@ -394,7 +421,7 @@ router.post('/', async (req, res) => {
         return {
           service_id: id,
           unit_price: 0,
-          vehicle_ids: [vehicle_id || null]
+          vehicle_ids: [finalVehicleId || null]
         };
       });
     }
@@ -444,7 +471,7 @@ router.post('/', async (req, res) => {
         invoiceNumber,
         client_id || null,
         organization_id || null,
-        vehicle_id || null,
+        finalVehicleId || null,
         finalStatus,
         subTotal,
         discountAmt,
@@ -461,8 +488,12 @@ router.post('/', async (req, res) => {
 
     // ── Batch inserts (one round-trip each instead of one per line) ──
 
-    if (Array.isArray(vehicle_visits)) {
-      const visitRows = vehicle_visits
+    const visitsInput = Array.isArray(vehicle_visits) && vehicle_visits.length > 0
+      ? vehicle_visits
+      : (finalVehicleId ? [{ vehicle_id: finalVehicleId }] : []);
+
+    if (visitsInput.length > 0) {
+      const visitRows = visitsInput
         .filter(v => v && v.vehicle_id)
         .map(v => [
           invoice.id,
@@ -626,6 +657,19 @@ router.put('/:id', async (req, res) => {
     if (existing.rows.length === 0) {
       await client.query('ROLLBACK');
       return res.status(404).json({ message: 'Invoice not found' });
+    }
+
+    let finalVehicleId = vehicle_id || null;
+    if (!finalVehicleId) {
+      if (req.body.client_id || existing.rows[0].client_id) {
+        const cId = req.body.client_id || existing.rows[0].client_id;
+        const vRes = await client.query('SELECT id FROM vehicles WHERE client_id = $1 ORDER BY id ASC LIMIT 1', [cId]);
+        if (vRes.rows.length > 0) finalVehicleId = vRes.rows[0].id;
+      } else if (req.body.organization_id || existing.rows[0].organization_id) {
+        const oId = req.body.organization_id || existing.rows[0].organization_id;
+        const vRes = await client.query('SELECT id FROM vehicles WHERE organization_id = $1 ORDER BY id ASC LIMIT 1', [oId]);
+        if (vRes.rows.length > 0) finalVehicleId = vRes.rows[0].id;
+      }
     }
 
     if (Array.isArray(req.body.vehicle_visits)) {

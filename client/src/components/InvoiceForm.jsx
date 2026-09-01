@@ -1273,6 +1273,21 @@ export default function InvoiceForm({ initial, onSubmit, loading, onCustomerSele
 
   const selectedVehicle = vehicleOptions.find(v => String(v.value) === String(form.vehicleId)) || null;
 
+  // Auto-select first vehicle for individual clients if none selected yet
+  useEffect(() => {
+    if (clientType === 'individual' && form.customer?.id && !form.vehicleId && vehicleOptions.length > 0) {
+      const first = vehicleOptions[0]?.vehicle;
+      if (first) {
+        setForm(f => ({
+          ...f,
+          vehicleId: first.id,
+          carMake: `${first.make || ''} ${first.model || ''}`.trim(),
+          licensePlate: first.plate || '',
+        }));
+      }
+    }
+  }, [clientType, form.customer?.id, form.vehicleId, vehicleOptions]);
+
   const statusConfig = {
     pending: { label: 'Pending', bg: 'bg-rose-100', text: 'text-rose-700', dot: 'bg-rose-500' },
     partial: { label: 'Partial', bg: 'bg-blue-100', text: 'text-blue-700', dot: 'bg-blue-500' },
