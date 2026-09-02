@@ -1,8 +1,39 @@
+# Dependencies
 node_modules/
+
+# Environment files & Secrets
 .env
 .env.*
+!.env.example
+*.pem
+*.key
+*.cert
+
+# Local databases and SQLite files
+*.sqlite
+*.sqlite3
+*.db
+server/db/*.sqlite
+server/db/*.sqlite3
+server/db/*.db
+server/db/database.sqlite
+
+# Local database maintenance & reset scripts
+server/seed_kanyakumari.js
+server/reset_transactional_data.js
+server/migrate_prod.js
+server/kill_idle.js
+update_invoice_form.js
+update_ui.js
+
+# Build outputs
 dist/
+build/
 .DS_Store
 *.log
+
+# Test & report outputs
 playwright-report/
 test-results/
+coverage/
+server/__tests__/
