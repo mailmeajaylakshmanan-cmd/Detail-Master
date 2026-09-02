@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../db');
+const queryCache = require('../utils/queryCache');
 const { recalculateInvoiceTotals } = require('../utils/finance');
 const { buildBulkInsert } = require('../utils/db');
 const { getBrowser } = require('../utils/pdf');
@@ -162,23 +163,27 @@ router.get('/:id', async (req, res) => {
          o.org_name AS organization_name, o.phone AS organization_phone, o.email AS organization_email, o.address AS organization_address,
          COALESCE(v.make_model, iv_first.make_model, cv_first.make_model) AS vehicle_name,
          COALESCE(v.license_vin, iv_first.license_vin, cv_first.license_vin) AS license_vin,
-         COALESCE(v.vehicle_type, iv_first.vehicle_type, cv_first.vehicle_type) AS vehicle_type,
+         COALESCE(vt.name, v.vehicle_type, iv_first.vehicle_type_name, iv_first.vehicle_type, cv_first.vehicle_type_name, cv_first.vehicle_type) AS vehicle_type,
+         COALESCE(vt.name, v.vehicle_type, iv_first.vehicle_type_name, iv_first.vehicle_type, cv_first.vehicle_type_name, cv_first.vehicle_type) AS vehicle_type_name,
          COALESCE(i.vehicle_id, iv_first.vehicle_id, cv_first.id) AS vehicle_id,
          EXISTS(SELECT 1 FROM assigned_offers ao WHERE ao.purchase_invoice_order_id = i.id) AS is_offer_purchase
        FROM invoices i
        LEFT JOIN clients c ON i.client_id = c.id
        LEFT JOIN organizations o ON i.organization_id = o.id
        LEFT JOIN vehicles v ON i.vehicle_id = v.id
+       LEFT JOIN vehicle_types vt ON v.vehicle_type_id = vt.id
        LEFT JOIN LATERAL (
-         SELECT iv.vehicle_id, v2.make_model, v2.license_vin, v2.vehicle_type
+         SELECT iv.vehicle_id, v2.make_model, v2.license_vin, v2.vehicle_type, vt2.name AS vehicle_type_name
          FROM invoice_vehicles iv
          JOIN vehicles v2 ON iv.vehicle_id = v2.id
+         LEFT JOIN vehicle_types vt2 ON v2.vehicle_type_id = vt2.id
          WHERE iv.invoice_order_id = i.id
          LIMIT 1
        ) iv_first ON true
        LEFT JOIN LATERAL (
-         SELECT v3.id, v3.make_model, v3.license_vin, v3.vehicle_type
+         SELECT v3.id, v3.make_model, v3.license_vin, v3.vehicle_type, vt3.name AS vehicle_type_name
          FROM vehicles v3
+         LEFT JOIN vehicle_types vt3 ON v3.vehicle_type_id = vt3.id
          WHERE (i.client_id IS NOT NULL AND v3.client_id = i.client_id)
             OR (i.organization_id IS NOT NULL AND v3.organization_id = i.organization_id)
          ORDER BY v3.id ASC
@@ -196,19 +201,21 @@ router.get('/:id', async (req, res) => {
     const [servicesRes, thirdPartyRes, paymentsRes, vehicleVisitsRes, usagesRes] = await Promise.all([
       db.query(
         `SELECT isv.*, s.service_name, s.category, v.license_vin AS vehicle_plate,
-                v.make_model AS vehicle_name
+                v.make_model AS vehicle_name, v.vehicle_type, vt.name AS vehicle_type_name
          FROM invoice_services isv
          JOIN services s ON isv.service_id = s.id
          LEFT JOIN vehicles v ON isv.vehicle_id = v.id
+         LEFT JOIN vehicle_types vt ON v.vehicle_type_id = vt.id
          WHERE isv.invoice_order_id = $1
          ORDER BY isv.id ASC`,
         [id]
       ),
       db.query(
         `SELECT itp.*, v.license_vin AS vehicle_plate,
-                v.make_model AS vehicle_name
+                v.make_model AS vehicle_name, v.vehicle_type, vt.name AS vehicle_type_name
          FROM invoice_third_party_services itp
          LEFT JOIN vehicles v ON itp.vehicle_id = v.id
+         LEFT JOIN vehicle_types vt ON v.vehicle_type_id = vt.id
          WHERE itp.invoice_order_id = $1
          ORDER BY itp.id ASC`,
         [id]
@@ -626,6 +633,7 @@ router.post('/', async (req, res) => {
     );
 
     await client.query('COMMIT');
+    queryCache.del('dashboard_stats');
 
     res.status(201).json({
       ...refreshed.rows[0],
@@ -870,6 +878,7 @@ router.put('/:id', async (req, res) => {
     await recalculateInvoiceTotals(id, client);
     const refreshed = await client.query('SELECT * FROM invoices WHERE id = $1', [id]);
     await client.query('COMMIT');
+    queryCache.del('dashboard_stats');
     res.json(refreshed.rows[0]);
   } catch (err) {
     await client.query('ROLLBACK');
@@ -907,11 +916,32 @@ async function fetchInvoiceDataForPdf(id) {
        i.*,
        c.full_name AS client_name, c.phone AS client_phone, c.email AS client_email, c.address AS client_address,
        o.org_name AS organization_name, o.phone AS organization_phone, o.email AS organization_email, o.address AS organization_address,
-       v.make_model AS vehicle_name, v.license_vin, v.vehicle_type
+       COALESCE(v.make_model, iv_first.make_model, cv_first.make_model) AS vehicle_name,
+       COALESCE(v.license_vin, iv_first.license_vin, cv_first.license_vin) AS license_vin,
+       COALESCE(vt.name, v.vehicle_type, iv_first.vehicle_type_name, iv_first.vehicle_type, cv_first.vehicle_type_name, cv_first.vehicle_type) AS vehicle_type,
+       COALESCE(vt.name, v.vehicle_type, iv_first.vehicle_type_name, iv_first.vehicle_type, cv_first.vehicle_type_name, cv_first.vehicle_type) AS vehicle_type_name
      FROM invoices i
      LEFT JOIN clients c ON i.client_id = c.id
      LEFT JOIN organizations o ON i.organization_id = o.id
      LEFT JOIN vehicles v ON i.vehicle_id = v.id
+     LEFT JOIN vehicle_types vt ON v.vehicle_type_id = vt.id
+     LEFT JOIN LATERAL (
+       SELECT iv.vehicle_id, v2.make_model, v2.license_vin, v2.vehicle_type, vt2.name AS vehicle_type_name
+       FROM invoice_vehicles iv
+       JOIN vehicles v2 ON iv.vehicle_id = v2.id
+       LEFT JOIN vehicle_types vt2 ON v2.vehicle_type_id = vt2.id
+       WHERE iv.invoice_order_id = i.id
+       LIMIT 1
+     ) iv_first ON true
+     LEFT JOIN LATERAL (
+       SELECT v3.id, v3.make_model, v3.license_vin, v3.vehicle_type, vt3.name AS vehicle_type_name
+       FROM vehicles v3
+       LEFT JOIN vehicle_types vt3 ON v3.vehicle_type_id = vt3.id
+       WHERE (i.client_id IS NOT NULL AND v3.client_id = i.client_id)
+          OR (i.organization_id IS NOT NULL AND v3.organization_id = i.organization_id)
+       ORDER BY v3.id ASC
+       LIMIT 1
+     ) cv_first ON true
      WHERE i.id = $1`,
     [id]
   );
@@ -921,19 +951,21 @@ async function fetchInvoiceDataForPdf(id) {
   const [servicesRes, thirdPartyRes, paymentsRes] = await Promise.all([
     db.query(
       `SELECT isv.*, isv.grand_total AS total, s.service_name, s.category, v.license_vin AS vehicle_plate,
-              v.make_model AS vehicle_name
+              v.make_model AS vehicle_name, v.vehicle_type, vt.name AS vehicle_type_name
        FROM invoice_services isv
        JOIN services s ON isv.service_id = s.id
        LEFT JOIN vehicles v ON isv.vehicle_id = v.id
+       LEFT JOIN vehicle_types vt ON v.vehicle_type_id = vt.id
        WHERE isv.invoice_order_id = $1
        ORDER BY isv.id ASC`,
       [id]
     ),
     db.query(
       `SELECT itp.*, v.license_vin AS vehicle_plate,
-              v.make_model AS vehicle_name
+              v.make_model AS vehicle_name, v.vehicle_type, vt.name AS vehicle_type_name
        FROM invoice_third_party_services itp
        LEFT JOIN vehicles v ON itp.vehicle_id = v.id
+       LEFT JOIN vehicle_types vt ON v.vehicle_type_id = vt.id
        WHERE itp.invoice_order_id = $1
        ORDER BY itp.id ASC`,
       [id]

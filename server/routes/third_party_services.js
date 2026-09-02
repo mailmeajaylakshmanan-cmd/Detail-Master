@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../db');
+const queryCache = require('../utils/queryCache');
 const { requirePermission } = require('../middleware/permissions');
 
 router.use(requirePermission('Third-Party Services'));
@@ -20,31 +21,33 @@ async function saveVehiclePrices(tpServiceId, vehiclePrices) {
   }
 }
 
-// GET all third-party services (with vehicle_prices)
+// GET all third-party services (with vehicle_prices) — cached
 router.get('/', async (req, res) => {
   try {
-    const { rows: items } = await db.query('SELECT * FROM third_party_services ORDER BY created_at DESC');
-    const { rows: vpRows } = await db.query(`
-      SELECT tpsvp.id, tpsvp.third_party_service_id, tpsvp.vehicle_type_id, vt.name AS vehicle_type_name, tpsvp.selling_price
-      FROM third_party_service_vehicle_prices tpsvp
-      JOIN vehicle_types vt ON tpsvp.vehicle_type_id = vt.id
-    `);
+    const result = await queryCache.getOrSet('third_party_services_list', async () => {
+      const { rows: items } = await db.query('SELECT * FROM third_party_services ORDER BY created_at DESC');
+      const { rows: vpRows } = await db.query(`
+        SELECT tpsvp.id, tpsvp.third_party_service_id, tpsvp.vehicle_type_id, vt.name AS vehicle_type_name, tpsvp.selling_price
+        FROM third_party_service_vehicle_prices tpsvp
+        JOIN vehicle_types vt ON tpsvp.vehicle_type_id = vt.id
+      `);
 
-    const vpMap = {};
-    vpRows.forEach(vp => {
-      if (!vpMap[vp.third_party_service_id]) vpMap[vp.third_party_service_id] = [];
-      vpMap[vp.third_party_service_id].push({
-        id: vp.id,
-        vehicle_type_id: vp.vehicle_type_id,
-        vehicle_type_name: vp.vehicle_type_name,
-        selling_price: Number(vp.selling_price)
+      const vpMap = {};
+      vpRows.forEach(vp => {
+        if (!vpMap[vp.third_party_service_id]) vpMap[vp.third_party_service_id] = [];
+        vpMap[vp.third_party_service_id].push({
+          id: vp.id,
+          vehicle_type_id: vp.vehicle_type_id,
+          vehicle_type_name: vp.vehicle_type_name,
+          selling_price: Number(vp.selling_price)
+        });
       });
-    });
 
-    const result = items.map(t => ({
-      ...t,
-      vehicle_prices: vpMap[t.id] || []
-    }));
+      return items.map(t => ({
+        ...t,
+        vehicle_prices: vpMap[t.id] || []
+      }));
+    }, 300);
 
     res.json(result);
   } catch (err) {
@@ -125,6 +128,7 @@ router.post('/', async (req, res) => {
       selling_price: Number(vp.selling_price)
     }));
 
+    queryCache.del('third_party_services_list');
     res.status(201).json(createdItem);
   } catch (err) {
     console.error(err);
@@ -179,6 +183,7 @@ router.put('/:id', async (req, res) => {
       selling_price: Number(vp.selling_price)
     }));
 
+    queryCache.del('third_party_services_list');
     res.json(updatedItem);
   } catch (err) {
     console.error(err);
@@ -199,11 +204,13 @@ router.delete('/:id', async (req, res) => {
     if (hasUsage) {
       const { rowCount } = await db.query('UPDATE third_party_services SET is_active = false WHERE id = $1', [id]);
       if (rowCount === 0) return res.status(404).json({ message: 'Third-party service not found' });
+      queryCache.del('third_party_services_list');
       res.json({ message: 'Third-party service archived (historical invoice records preserved)' });
     } else {
       await db.query('DELETE FROM third_party_service_vehicle_prices WHERE third_party_service_id = $1', [id]);
       const { rowCount } = await db.query('DELETE FROM third_party_services WHERE id = $1', [id]);
       if (rowCount === 0) return res.status(404).json({ message: 'Third-party service not found' });
+      queryCache.del('third_party_services_list');
       res.json({ message: 'Third-party service deleted permanently' });
     }
   } catch (err) {

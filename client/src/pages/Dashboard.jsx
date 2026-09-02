@@ -4,9 +4,8 @@ import {
   IndianRupee, Calendar, Search, Activity, Users, FileText, CheckCircle2, CheckSquare, Clock, Plus, ChevronRight, MoreHorizontal, Car, Sparkles, Droplets, Shield, TrendingUp, Download
 } from 'lucide-react';
 import api from '../api/axios.js';
-import { useQuery } from '@tanstack/react-query';
 import { format } from 'date-fns';
-import { queryKeys } from '../api/queryKeys.js';
+import { useDashboardStats } from '../hooks/useQueries.js';
 import toast from 'react-hot-toast';
 import { usePermissions } from '../hooks/usePermissions.js';
 
@@ -17,12 +16,7 @@ export default function Dashboard() {
   
   const { can_view } = usePermissions('Dashboard');
 
-  const { data, isLoading } = useQuery({
-    queryKey: queryKeys.dashboard.stats(),
-    queryFn: async () => {
-      const res = await api.get('/dashboard/stats');
-      return res.data;
-    },
+  const { data, isLoading } = useDashboardStats({
     enabled: can_view,
   });
 

@@ -65,6 +65,19 @@ function normalizeInvoice(row) {
     ''
   ).trim();
 
+  const vType = (
+    row.vehicle_type ||
+    row.vehicle_type_name ||
+    row.vehicleType ||
+    row.vehicleVisits?.[0]?.vehicle_type_name ||
+    row.vehicleVisits?.[0]?.vehicle_type ||
+    row.services?.find(s => s.vehicle_type_name || s.vehicle_type)?.vehicle_type_name ||
+    row.services?.find(s => s.vehicle_type_name || s.vehicle_type)?.vehicle_type ||
+    row.thirdPartyServices?.find(t => t.vehicle_type_name || t.vehicle_type)?.vehicle_type_name ||
+    row.thirdPartyServices?.find(t => t.vehicle_type_name || t.vehicle_type)?.vehicle_type ||
+    ''
+  ).trim();
+
   return {
     ...row,
     id: row.id,
@@ -79,6 +92,9 @@ function normalizeInvoice(row) {
     carMake: fullCarMake || (parts.length > 0 ? parts.join(' ') : '—'),
     carModel: '',
     licensePlate: plate || '—',
+    vehicleType: vType || '—',
+    vehicle_type: vType,
+    vehicle_type_name: vType,
     total: Number(row.grand_total ?? row.total) || 0,
     subTotal: Number(row.sub_total ?? row.subTotal) || 0,
     discount: Number(row.discount) || 0,

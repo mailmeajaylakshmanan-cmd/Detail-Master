@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../db');
+const queryCache = require('../utils/queryCache');
 const { recalculateInvoiceTotals } = require('../utils/finance');
 const { requirePermission } = require('../middleware/permissions');
 
@@ -94,6 +95,7 @@ router.post('/', async (req, res) => {
 
     // Updates invoices.amount_paid + balance_due for this same invoice id
     const totals = await recalculateInvoiceTotals(invoice_order_id);
+    queryCache.del('dashboard_stats');
     res.status(201).json({ payment: rows[0], invoice_totals: totals });
   } catch (err) {
     console.error(err);
@@ -113,6 +115,7 @@ router.delete('/:id', async (req, res) => {
 
     await db.query('UPDATE payments SET is_active = FALSE WHERE id = $1', [id]);
     await recalculateInvoiceTotals(current[0].invoice_order_id);
+    queryCache.del('dashboard_stats');
 
     res.json({ message: 'Payment deleted successfully' });
   } catch (err) {

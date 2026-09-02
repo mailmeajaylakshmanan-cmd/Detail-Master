@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../db');
+const queryCache = require('../utils/queryCache');
 const { protect } = require('../middleware/auth');
 const { requirePermission } = require('../middleware/permissions');
 
@@ -19,36 +20,40 @@ async function saveVehiclePrices(serviceId, vehiclePrices) {
   }
 }
 
-// ✅ PUBLIC ROUTE: Anyone (including website visitors) can fetch services
+// ✅ PUBLIC ROUTE: Anyone (including website visitors) can fetch services — cached
 router.get('/', async (req, res) => {
   try {
     const { active_only } = req.query;
-    const query = active_only === 'true'
-      ? 'SELECT * FROM services WHERE is_active = true ORDER BY id ASC'
-      : 'SELECT * FROM services ORDER BY created_at DESC';
-    const { rows: services } = await db.query(query);
-    const { rows: vpRows } = await db.query(`
-      SELECT svp.id, svp.service_id, svp.vehicle_type_id, vt.name AS vehicle_type_name, svp.price
-      FROM service_vehicle_prices svp
-      JOIN vehicle_types vt ON svp.vehicle_type_id = vt.id
-    `);
+    const cacheKey = `services_list_${active_only === 'true' ? 'active' : 'all'}`;
 
-    const vpMap = {};
-    vpRows.forEach(vp => {
-      if (!vpMap[vp.service_id]) vpMap[vp.service_id] = [];
-      vpMap[vp.service_id].push({
-        id: vp.id,
-        vehicle_type_id: vp.vehicle_type_id,
-        vehicle_type_name: vp.vehicle_type_name,
-        price: Number(vp.price)
+    const result = await queryCache.getOrSet(cacheKey, async () => {
+      const query = active_only === 'true'
+        ? 'SELECT * FROM services WHERE is_active = true ORDER BY id ASC'
+        : 'SELECT * FROM services ORDER BY created_at DESC';
+      const { rows: services } = await db.query(query);
+      const { rows: vpRows } = await db.query(`
+        SELECT svp.id, svp.service_id, svp.vehicle_type_id, vt.name AS vehicle_type_name, svp.price
+        FROM service_vehicle_prices svp
+        JOIN vehicle_types vt ON svp.vehicle_type_id = vt.id
+      `);
+
+      const vpMap = {};
+      vpRows.forEach(vp => {
+        if (!vpMap[vp.service_id]) vpMap[vp.service_id] = [];
+        vpMap[vp.service_id].push({
+          id: vp.id,
+          vehicle_type_id: vp.vehicle_type_id,
+          vehicle_type_name: vp.vehicle_type_name,
+          price: Number(vp.price)
+        });
       });
-    });
 
-    const result = services.map(s => ({
-      ...s,
-      base_price: s.base_price !== undefined ? s.base_price : 0,
-      vehicle_prices: vpMap[s.id] || []
-    }));
+      return services.map(s => ({
+        ...s,
+        base_price: s.base_price !== undefined ? s.base_price : 0,
+        vehicle_prices: vpMap[s.id] || []
+      }));
+    }, 300);
 
     res.json(result);
   } catch (err) {
@@ -118,6 +123,7 @@ router.post('/', protect, requirePermission('Services'), async (req, res) => {
       price: Number(vp.price)
     }));
 
+    queryCache.delPrefix('services_');
     res.status(201).json(createdService);
   } catch (err) {
     console.error(err);
@@ -158,6 +164,7 @@ router.put('/:id', protect, requirePermission('Services'), async (req, res) => {
       price: Number(vp.price)
     }));
 
+    queryCache.delPrefix('services_');
     res.json(updatedService);
   } catch (err) {
     console.error(err);
@@ -214,11 +221,13 @@ router.delete('/:id', protect, requirePermission('Services'), async (req, res) =
     if (hasUsage) {
       const { rowCount } = await db.query('UPDATE services SET is_active = false WHERE id = $1', [id]);
       if (rowCount === 0) return res.status(404).json({ message: 'Service not found' });
+      queryCache.delPrefix('services_');
       res.json({ message: 'Service archived (historical records preserved)' });
     } else {
       await db.query('DELETE FROM service_vehicle_prices WHERE service_id = $1', [id]);
       const { rowCount } = await db.query('DELETE FROM services WHERE id = $1', [id]);
       if (rowCount === 0) return res.status(404).json({ message: 'Service not found' });
+      queryCache.delPrefix('services_');
       res.json({ message: 'Service deleted permanently' });
     }
   } catch (err) {

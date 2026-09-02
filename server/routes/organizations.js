@@ -1,59 +1,62 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../db');
+const queryCache = require('../utils/queryCache');
 const { requirePermission } = require('../middleware/permissions');
 
 router.use(requirePermission('Organizations'));
 const { protect } = require('../middleware/auth');
 
-// Get all organizations with vehicles
+// Get all organizations with vehicles — cached
 router.get('/', protect, async (req, res) => {
   try {
-    const { rows } = await db.query(`
-      SELECT
-        o.*,
-        COALESCE(
-          json_agg(
-            json_build_object(
-              'id', v.id,
-              'make_model', v.make_model,
-              'license_vin', v.license_vin,
-              'vehicle_type_id', v.vehicle_type_id,
-              'vehicle_type', vt.name,
-              'is_active', v.is_active
-            )
-            ORDER BY v.id DESC
-          ) FILTER (WHERE v.id IS NOT NULL),
-          '[]'
-        ) AS vehicles_json
-      FROM organizations o
-      LEFT JOIN vehicles v ON v.organization_id = o.id
-      LEFT JOIN vehicle_types vt ON v.vehicle_type_id = vt.id
-      GROUP BY o.id
-      ORDER BY o.org_name ASC
-    `);
+    const orgsWithVehicles = await queryCache.getOrSet('organizations_list', async () => {
+      const { rows } = await db.query(`
+        SELECT
+          o.*,
+          COALESCE(
+            json_agg(
+              json_build_object(
+                'id', v.id,
+                'make_model', v.make_model,
+                'license_vin', v.license_vin,
+                'vehicle_type_id', v.vehicle_type_id,
+                'vehicle_type', vt.name,
+                'is_active', v.is_active
+              )
+              ORDER BY v.id DESC
+            ) FILTER (WHERE v.id IS NOT NULL),
+            '[]'
+          ) AS vehicles_json
+        FROM organizations o
+        LEFT JOIN vehicles v ON v.organization_id = o.id
+        LEFT JOIN vehicle_types vt ON v.vehicle_type_id = vt.id
+        GROUP BY o.id
+        ORDER BY o.org_name ASC
+      `);
 
-    const orgsWithVehicles = rows.map(org => {
-      const vehiclesJson = typeof org.vehicles_json === 'string'
-        ? JSON.parse(org.vehicles_json)
-        : (org.vehicles_json || []);
-      const { vehicles_json, ...rest } = org;
-      return {
-        ...rest,
-        vehicles: vehiclesJson.map(v => {
-          const parts = v.make_model ? v.make_model.split(' ') : [''];
-          return {
-            id: v.id,
-            make: parts[0] || '',
-            model: parts.slice(1).join(' ') || '',
-            plate: v.license_vin || '',
-            vehicle_type_id: v.vehicle_type_id || null,
-            type: v.vehicle_type || '',
-            isActive: v.is_active !== false,
-          };
-        })
-      };
-    });
+      return rows.map(org => {
+        const vehiclesJson = typeof org.vehicles_json === 'string'
+          ? JSON.parse(org.vehicles_json)
+          : (org.vehicles_json || []);
+        const { vehicles_json, ...rest } = org;
+        return {
+          ...rest,
+          vehicles: vehiclesJson.map(v => {
+            const parts = v.make_model ? v.make_model.split(' ') : [''];
+            return {
+              id: v.id,
+              make: parts[0] || '',
+              model: parts.slice(1).join(' ') || '',
+              plate: v.license_vin || '',
+              vehicle_type_id: v.vehicle_type_id || null,
+              type: v.vehicle_type || '',
+              isActive: v.is_active !== false,
+            };
+          })
+        };
+      });
+    }, 300);
 
     res.json(orgsWithVehicles);
   } catch (err) {
@@ -97,6 +100,7 @@ router.post('/', protect, async (req, res) => {
       [org_name.trim(), contact_person || null, phone || null, email || null, address || null, is_active !== undefined ? is_active : true]
     );
 
+    queryCache.del('organizations_list');
     res.status(201).json({ ...result.rows[0], vehicles: [] });
   } catch (err) {
     console.error('Error creating organization:', err);
@@ -130,6 +134,7 @@ router.put('/:id', protect, async (req, res) => {
       return res.status(404).json({ error: 'Organization not found' });
     }
 
+    queryCache.del('organizations_list');
     res.json(result.rows[0]);
   } catch (err) {
     console.error('Error updating organization:', err);
@@ -212,6 +217,7 @@ router.delete('/:id', protect, async (req, res) => {
       return res.status(404).json({ error: 'Organization not found' });
     }
     
+    queryCache.del('organizations_list');
     res.json({ message: 'Organization deleted successfully' });
   } catch (err) {
     console.error('Error deleting organization:', err);

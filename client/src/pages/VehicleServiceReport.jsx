@@ -21,8 +21,40 @@ function fmtDate(d) {
 }
 
 function normalizeInvoice(row) {
-  const makeModel = (row.vehicle_name || '').trim();
-  const parts = makeModel.split(/\s+/);
+  const makeModel = (
+    row.vehicle_name ||
+    row.make_model ||
+    row.carMake ||
+    row.vehicleVisits?.[0]?.make_model ||
+    row.services?.find(s => s.vehicle_name)?.vehicle_name ||
+    row.thirdPartyServices?.find(t => t.vehicle_name)?.vehicle_name ||
+    ''
+  ).trim();
+  const parts = makeModel ? makeModel.split(/\s+/) : [];
+
+  const plate = (
+    row.license_vin ||
+    row.licensePlate ||
+    row.vehicle_number ||
+    row.vehicleVisits?.[0]?.license_vin ||
+    row.services?.find(s => s.vehicle_plate)?.vehicle_plate ||
+    row.thirdPartyServices?.find(t => t.vehicle_plate)?.vehicle_plate ||
+    ''
+  ).trim();
+
+  const vType = (
+    row.vehicle_type ||
+    row.vehicle_type_name ||
+    row.vehicleType ||
+    row.vehicleVisits?.[0]?.vehicle_type_name ||
+    row.vehicleVisits?.[0]?.vehicle_type ||
+    row.services?.find(s => s.vehicle_type_name || s.vehicle_type)?.vehicle_type_name ||
+    row.services?.find(s => s.vehicle_type_name || s.vehicle_type)?.vehicle_type ||
+    row.thirdPartyServices?.find(t => t.vehicle_type_name || t.vehicle_type)?.vehicle_type_name ||
+    row.thirdPartyServices?.find(t => t.vehicle_type_name || t.vehicle_type)?.vehicle_type ||
+    ''
+  ).trim();
+
   return {
     ...row,
     id: row.id,
@@ -34,10 +66,13 @@ function normalizeInvoice(row) {
       phone: row.client_phone || row.organization_phone || row.customer?.phone || '',
       address: row.client_address || row.organization_address || row.customer?.address || '',
     },
-    carMake: parts[0] || row.carMake || '',
+    carMake: parts[0] || row.carMake || '—',
     carModel: parts.slice(1).join(' ') || row.carModel || '',
-    licensePlate: row.license_vin || row.licensePlate || '',
-    vehicle_name: row.vehicle_name || row.make_model || '',
+    licensePlate: plate || '—',
+    vehicleType: vType || '—',
+    vehicle_type: vType,
+    vehicle_type_name: vType,
+    vehicle_name: makeModel,
     vehicleVisits: row.vehicleVisits || [],
     total: Number(row.grand_total ?? row.total) || 0,
     discount: Number(row.discount) || 0,
@@ -52,12 +87,14 @@ function normalizeInvoice(row) {
       price: Number(s.unit_price ?? s.price) || 0,
       vehicle_name: s.vehicle_name || '',
       vehicle_plate: s.vehicle_plate || '',
+      vehicle_type: s.vehicle_type_name || s.vehicle_type || '',
     })),
     thirdPartyServices: (row.thirdPartyServices || []).map(t => ({
       service_name: t.service_name || t.service,
       vendor_name: t.vendor_name || '',
       vehicle_name: t.vehicle_name || '',
       vehicle_plate: t.vehicle_plate || '',
+      vehicle_type: t.vehicle_type_name || t.vehicle_type || '',
     })),
     payments: row.payments || [],
   };

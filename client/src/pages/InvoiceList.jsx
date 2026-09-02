@@ -65,6 +65,57 @@ export default function InvoiceList() {
     status: status === 'All' ? '' : status,
   });
 
+  const invoices = data?.invoices || [];
+  const pagination = data?.pagination || { page: 1, totalPages: 1, total: 0 };
+  const totalResults = pagination.total || 0;
+
+  // Background Prefetch Next Page
+  useEffect(() => {
+    if (pagination.totalPages && page < pagination.totalPages) {
+      const nextPage = page + 1;
+      queryClient.prefetchQuery({
+        queryKey: queryKeys.invoices.list({
+          page: nextPage,
+          limit: PAGE_SIZE,
+          search: debouncedSearch,
+          status: status === 'All' ? '' : status,
+          clientId: '',
+        }),
+        queryFn: async () => {
+          const res = await api.get('/invoices', {
+            params: {
+              page: nextPage,
+              limit: PAGE_SIZE,
+              search: debouncedSearch || undefined,
+              status: status && status !== 'All' ? status : undefined,
+            },
+          });
+          const payload = res.data;
+          const rows = Array.isArray(payload?.invoices) ? payload.invoices : Array.isArray(payload) ? payload : [];
+          return {
+            invoices: rows.map(mapInvoice),
+            pagination: payload?.pagination || { page: nextPage, limit: PAGE_SIZE, total: 0, totalPages: pagination.totalPages },
+            raw: rows,
+          };
+        },
+        staleTime: 30 * 1000,
+      });
+    }
+  }, [page, pagination.totalPages, debouncedSearch, status, queryClient]);
+
+  // Predictive On-Hover Prefetch for invoice details
+  const handleRowHover = (invId) => {
+    if (!invId) return;
+    queryClient.prefetchQuery({
+      queryKey: queryKeys.invoices.detail(invId),
+      queryFn: async () => {
+        const res = await api.get(`/invoices/${invId}`);
+        return res.data;
+      },
+      staleTime: 60 * 1000,
+    });
+  };
+
   const handleExportCSV = () => {
     if (!invoices || invoices.length === 0) {
       toast.error('No invoices to export');
@@ -94,10 +145,6 @@ export default function InvoiceList() {
     document.body.removeChild(link);
     toast.success('Invoices exported successfully!');
   };
-
-  const invoices = data?.invoices || [];
-  const pagination = data?.pagination || { page: 1, totalPages: 1, total: 0 };
-  const totalResults = pagination.total || 0;
 
   function badgeStatus(inv) {
     const s = (inv.displayStatus || inv.status || 'draft').toLowerCase();
@@ -253,7 +300,11 @@ export default function InvoiceList() {
                 const paid = total - balance;
                 
                 return (
-                  <tr key={inv.id} className="hover:bg-slate-50 transition-colors group bg-white">
+                  <tr
+                    key={inv.id}
+                    onMouseEnter={() => handleRowHover(inv.id)}
+                    className="hover:bg-slate-50 transition-colors group bg-white"
+                  >
                     <td className="px-5 py-4">
                       <input type="checkbox" className="rounded border-slate-300 text-gray-900 focus:ring-gray-900 w-4 h-4 cursor-pointer" />
                     </td>
@@ -330,7 +381,12 @@ export default function InvoiceList() {
             const balance = inv.balance || 0;
             
             return (
-              <div key={inv.id} className="bg-white/80 backdrop-blur-md border border-white/60 rounded-[20px] p-5 shadow-[0_2px_15px_rgba(0,0,0,0.03)] flex flex-col gap-4 relative active:scale-[0.98] transition-transform cursor-pointer" onClick={() => navigate(`/invoices/${inv.id}`)}>
+              <div
+                key={inv.id}
+                onMouseEnter={() => handleRowHover(inv.id)}
+                className="bg-white/80 backdrop-blur-md border border-white/60 rounded-[20px] p-5 shadow-[0_2px_15px_rgba(0,0,0,0.03)] flex flex-col gap-4 relative active:scale-[0.98] transition-transform cursor-pointer"
+                onClick={() => navigate(`/invoices/${inv.id}`)}
+              >
                  <div className="flex justify-between items-start">
                    <div>
                      <h3 className="font-bold text-slate-900 text-[16px] tracking-tight">{inv.organization_name || inv.client_name || inv.customer?.name || '—'}</h3>

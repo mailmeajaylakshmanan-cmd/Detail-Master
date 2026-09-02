@@ -40,9 +40,12 @@ const STATEMENTS = [
   `CREATE INDEX IF NOT EXISTS idx_organizations_org_name ON organizations (org_name)`,
   `CREATE INDEX IF NOT EXISTS idx_organizations_org_name_trgm ON organizations USING gin (org_name gin_trgm_ops)`,
 
-  // Services catalog
+  // Services catalog & vehicle pricing
   `CREATE INDEX IF NOT EXISTS idx_services_created_at ON services (created_at DESC)`,
+  `CREATE INDEX IF NOT EXISTS idx_service_vehicle_prices_svc_vt ON service_vehicle_prices (service_id, vehicle_type_id)`,
   `CREATE INDEX IF NOT EXISTS idx_third_party_created_at ON third_party_services (created_at DESC)`,
+  `CREATE INDEX IF NOT EXISTS idx_tpsvp_tp_vt ON third_party_service_vehicle_prices (third_party_service_id, vehicle_type_id)`,
+  `CREATE INDEX IF NOT EXISTS idx_vehicles_vehicle_type_id ON vehicles (vehicle_type_id)`,
 
   // Auth sessions
   `CREATE INDEX IF NOT EXISTS idx_login_sessions_token ON login_sessions (token) WHERE logout_at IS NULL`,

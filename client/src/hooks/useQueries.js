@@ -174,3 +174,30 @@ export function useAssignedOffers(clientId) {
     },
   });
 }
+
+// Single Invoice Detail Query with 60s stale time
+export function useInvoiceDetail(invoiceId) {
+  return useQuery({
+    queryKey: queryKeys.invoices.detail(invoiceId),
+    enabled: !!invoiceId,
+    staleTime: 60 * 1000,
+    queryFn: async () => {
+      const res = await api.get(`/invoices/${invoiceId}`);
+      return res.data;
+    },
+  });
+}
+
+// High-Performance Dashboard Stats Query
+export function useDashboardStats(options = {}) {
+  return useQuery({
+    queryKey: queryKeys.dashboard.stats(),
+    staleTime: 30 * 1000,
+    gcTime: 5 * 60 * 1000,
+    queryFn: async () => {
+      const res = await api.get('/dashboard/stats');
+      return res.data;
+    },
+    ...options,
+  });
+}

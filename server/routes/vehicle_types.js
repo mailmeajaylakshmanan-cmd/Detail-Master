@@ -1,14 +1,18 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../db');
+const queryCache = require('../utils/queryCache');
 const { requirePermission } = require('../middleware/permissions');
 
 router.use(requirePermission('Vehicle Types'));
 
-// GET all vehicle types
+// GET all vehicle types — cached
 router.get('/', async (req, res) => {
   try {
-    const { rows } = await db.query('SELECT * FROM vehicle_types ORDER BY id ASC');
+    const rows = await queryCache.getOrSet('vehicle_types_list', async () => {
+      const { rows } = await db.query('SELECT * FROM vehicle_types ORDER BY id ASC');
+      return rows;
+    }, 300);
     res.json(rows);
   } catch (err) {
     console.error('Error fetching vehicle types:', err);
@@ -43,6 +47,8 @@ router.post('/', async (req, res) => {
       [trimmedName, activeFlag]
     );
 
+    queryCache.del('vehicle_types_list');
+    queryCache.delPrefix('services_');
     res.status(201).json(rows[0]);
   } catch (err) {
     if (err.code === '23505') {
@@ -72,6 +78,8 @@ router.put('/:id', async (req, res) => {
     );
 
     if (rows.length === 0) return res.status(404).json({ message: 'Vehicle type not found' });
+    queryCache.del('vehicle_types_list');
+    queryCache.delPrefix('services_');
     res.json(rows[0]);
   } catch (err) {
     if (err.code === '23505') {
@@ -110,6 +118,8 @@ router.delete('/:id', async (req, res) => {
     const { id } = req.params;
     const { rowCount } = await db.query('DELETE FROM vehicle_types WHERE id = $1', [id]);
     if (rowCount === 0) return res.status(404).json({ message: 'Vehicle type not found' });
+    queryCache.del('vehicle_types_list');
+    queryCache.delPrefix('services_');
     res.json({ message: 'Vehicle type deleted successfully' });
   } catch (err) {
     if (err.code === '23503') {
