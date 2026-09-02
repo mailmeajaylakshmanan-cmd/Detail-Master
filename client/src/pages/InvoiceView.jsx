@@ -448,10 +448,10 @@ export default function InvoiceView() {
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, position: 'relative', zIndex: 1, backgroundColor: 'transparent' }}>
                  <thead>
                     <tr style={{ backgroundColor: '#0A0A0A', color: '#fff' }}>
-                       <th style={{ padding: '8px 10px', textAlign: 'left', fontWeight: 600, border: '1px solid #000', width: '50%' }}>Service</th>
+                       <th style={{ padding: '8px 10px', textAlign: 'left', fontWeight: 600, border: '1px solid #000', width: '45%' }}>Service</th>
                        <th style={{ padding: '8px 10px', textAlign: 'center', fontWeight: 600, border: '1px solid #000', width: '15%' }}>Quantity</th>
-                       <th style={{ padding: '8px 10px', textAlign: 'center', fontWeight: 600, border: '1px solid #000', width: '17.5%' }}>Unit Price (₹)</th>
-                       <th style={{ padding: '8px 10px', textAlign: 'center', fontWeight: 600, border: '1px solid #000', width: '17.5%' }}>Amount (₹)</th>
+                       <th style={{ padding: '8px 10px', textAlign: 'center', fontWeight: 600, border: '1px solid #000', width: '20%' }}>Unit Price (₹)</th>
+                       <th style={{ padding: '8px 10px', textAlign: 'center', fontWeight: 600, border: '1px solid #000', width: '20%' }}>Amount (₹)</th>
                     </tr>
                  </thead>
                  <tbody>
@@ -536,7 +536,19 @@ export default function InvoiceView() {
                     <tr>
                         <td colSpan="2" style={{ border: 'none', backgroundColor: 'transparent' }}></td>
                         <td colSpan="2" style={{ border: 'none', padding: 0, backgroundColor: 'transparent' }}>
-                           <div style={{ backgroundColor: invoice.total === 0 && invoice.services?.some(s => s.is_redeemed) ? '#22c55e' : '#F6CB59', color: invoice.total === 0 && invoice.services?.some(s => s.is_redeemed) ? 'white' : '#000', padding: '12px 16px', fontWeight: 800, fontSize: 16, textAlign: 'center', width: '100%', border: '1px solid #000', borderTop: 'none' }}>
+                           <div style={{
+                               backgroundColor: invoice.total === 0 && invoice.services?.some(s => s.is_redeemed) ? '#22c55e' : '#F6CB59',
+                               color: invoice.total === 0 && invoice.services?.some(s => s.is_redeemed) ? 'white' : '#000',
+                               padding: '10px 12px',
+                               fontWeight: 800,
+                               fontSize: 15,
+                               textAlign: 'center',
+                               width: '100%',
+                               border: '1px solid #000',
+                               borderTop: 'none',
+                               whiteSpace: 'nowrap',
+                               boxSizing: 'border-box'
+                           }}>
                               {invoice.total === 0 && invoice.services?.some(s => s.is_redeemed) ? 'GRAND TOTAL: ₹0.00 (Covered by Package)' : `GRAND TOTAL: ₹${fmt(invoice.total)}`}
                            </div>
                         </td>

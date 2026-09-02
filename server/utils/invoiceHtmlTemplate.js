@@ -316,20 +316,20 @@ function renderInvoiceHtml(inv) {
         <table style="width: 100%; border-collapse: collapse; font-size: 13px; background-color: transparent;">
           <thead>
             <tr style="background-color: #0A0A0A; color: #fff;">
-              <th style="padding: 8px 10px; text-align: left; font-weight: 600; border: 1px solid #000; width: 50%;">Service</th>
+              <th style="padding: 8px 10px; text-align: left; font-weight: 600; border: 1px solid #000; width: 45%;">Service</th>
               <th style="padding: 8px 10px; text-align: center; font-weight: 600; border: 1px solid #000; width: 15%;">Quantity</th>
-              <th style="padding: 8px 10px; text-align: center; font-weight: 600; border: 1px solid #000; width: 17.5%;">Unit Price (₹)</th>
-              <th style="padding: 8px 10px; text-align: center; font-weight: 600; border: 1px solid #000; width: 17.5%;">Amount (₹)</th>
+              <th style="padding: 8px 10px; text-align: center; font-weight: 600; border: 1px solid #000; width: 20%;">Unit Price (₹)</th>
+              <th style="padding: 8px 10px; text-align: center; font-weight: 600; border: 1px solid #000; width: 20%;">Amount (₹)</th>
             </tr>
           </thead>
           <tbody>
             ${servicesRowsHtml}
-            <tr>
-              <td colspan="2" style="border: none; background-color: transparent;"></td>
-              <td style="padding: 8px 10px; text-align: right; font-weight: 700; border: 1px solid #000;">Sub Total</td>
-              <td style="padding: 8px 10px; text-align: center; font-weight: 700; border: 1px solid #000;">₹${fmt(subTotal)}</td>
-            </tr>
             ${discount > 0 ? `
+              <tr>
+                <td colspan="2" style="border: none; background-color: transparent;"></td>
+                <td style="padding: 8px 10px; text-align: right; font-weight: 700; border: 1px solid #000;">Sub Total</td>
+                <td style="padding: 8px 10px; text-align: center; font-weight: 700; border: 1px solid #000;">₹${fmt(subTotal)}</td>
+              </tr>
               <tr>
                 <td colspan="2" style="border: none; background-color: transparent;"></td>
                 <td style="padding: 8px 10px; text-align: right; font-weight: 700; border: 1px solid #000;">Discount</td>
@@ -339,7 +339,7 @@ function renderInvoiceHtml(inv) {
             <tr>
               <td colspan="2" style="border: none; background-color: transparent;"></td>
               <td colspan="2" style="border: none; padding: 0; background-color: transparent;">
-                <div style="background-color: #F6CB59; color: #000; padding: 12px 16px; font-weight: 800; font-size: 16px; text-align: center; width: 100%; border: 1px solid #000; border-top: none;">
+                <div style="background-color: #F6CB59; color: #000; padding: 10px 12px; font-weight: 800; font-size: 15px; text-align: center; width: 100%; border: 1px solid #000; border-top: none; white-space: nowrap; box-sizing: border-box;">
                   GRAND TOTAL: ₹${fmt(grandTotal)}
                 </div>
               </td>
