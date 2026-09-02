@@ -453,7 +453,12 @@ router.post('/', async (req, res) => {
       0
     );
     const amountPaid = amountPaidFromPayments;
-    const balanceDue = grandTotal - amountPaid;
+    if (amountPaid > grandTotal + 0.01) {
+      return res.status(400).json({
+        message: `Total payments (₹${amountPaid.toLocaleString('en-IN')}) cannot exceed the grand total (₹${grandTotal.toLocaleString('en-IN')})`
+      });
+    }
+    const balanceDue = Math.max(0, Math.round((grandTotal - amountPaid) * 100) / 100);
     const finalStatus = mapStatus(status, balanceDue, grandTotal, amountPaid);
     const invoiceNumber = buildInvoiceNumber();
 

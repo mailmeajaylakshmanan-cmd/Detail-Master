@@ -102,11 +102,24 @@ async function scanOverdue() {
 }
 
 async function runReminderScan() {
+  const client = await db.pool.connect();
   try {
-    await scanHeadsUp();
-    await scanOverdue();
+    // Unique advisory lock ID for checkout reminders scan (738291)
+    // Ensures only one cluster worker/instance executes the cron scan at any time
+    const { rows } = await client.query('SELECT pg_try_advisory_lock(738291) AS acquired');
+    if (!rows[0]?.acquired) {
+      return; // Another instance is already performing this scan
+    }
+    try {
+      await scanHeadsUp();
+      await scanOverdue();
+    } finally {
+      await client.query('SELECT pg_advisory_unlock(738291)');
+    }
   } catch (err) {
     console.error('[serviceCompletionReminders] scan failed:', err);
+  } finally {
+    client.release();
   }
 }
 

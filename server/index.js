@@ -17,6 +17,7 @@ const app = express();
 
 const allowedOrigins = [
   ...(process.env.CLIENT_URL ? process.env.CLIENT_URL.split(',') : []),
+  ...(process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',') : []),
   'https://manage.detailingmasters.in',
   'https://detailingmasters.in',
   'http://localhost:5173',
@@ -39,8 +40,9 @@ app.use((req, res, next) => {
 });
 app.use(cors({
   origin(origin, cb) {
-    // Allow same-origin / server-to-server / local tools with no Origin header
-    if (!origin || allowedOrigins.includes(origin) || origin.endsWith('.vercel.app')) return cb(null, true);
+    // Allow requests with no Origin (like mobile apps, curl, or same-origin server requests)
+    if (!origin) return cb(null, true);
+    if (allowedOrigins.includes(origin)) return cb(null, true);
     return cb(new Error('Not allowed by CORS'));
   },
   credentials: true

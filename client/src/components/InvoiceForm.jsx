@@ -81,15 +81,15 @@ function Field({ label, required, children, invisibleLabel }) {
 
 const MoneyInput = memo(function MoneyInput({ value, onChange, autoFocus, disabled }) {
   return (
-    <div className="relative">
-      <IndianRupee size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+    <div className="relative w-full min-w-0">
+      <IndianRupee size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
       <input
         type="number" min="0"
         disabled={disabled}
         autoFocus={autoFocus}
         value={value}
         onChange={onChange}
-        className={`${inputCls} pl-8 pr-3 text-right font-mono min-w-[7rem] w-full disabled:opacity-50`}
+        className={`${inputCls} pl-7 pr-2.5 py-2 text-right font-mono min-w-0 w-full disabled:opacity-50`}
       />
     </div>
   );
@@ -101,45 +101,51 @@ const PaymentRow = memo(function PaymentRow({
 }) {
   const needsRef = method === 'UPI' || method === 'Bank Transfer';
   return (
-    <div className="flex flex-col gap-2 bg-gray-50/80 p-2 rounded-xl border border-gray-100 relative group transition-colors hover:bg-gray-100">
+    <div className="flex flex-col gap-1.5 bg-white/95 p-2.5 rounded-xl border border-gray-200 shadow-2xs relative group transition-all hover:border-gray-300">
       {!locked && (
         <button
           type="button"
           onClick={removePayment}
-          className="absolute -top-2.5 -right-2.5 w-6 h-6 rounded-full bg-white shadow-sm border border-gray-100 flex items-center justify-center text-gray-400 hover:text-rose-500 hover:border-rose-200 transition-all opacity-0 group-hover:opacity-100"
+          className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-white shadow-xs border border-gray-200 flex items-center justify-center text-gray-400 hover:text-rose-600 hover:border-rose-300 transition-all opacity-100 sm:opacity-0 group-hover:opacity-100 z-10"
+          title="Remove payment"
         >
-          <Trash2 size={12} />
+          <Trash2 size={11} />
         </button>
       )}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
-        <div className="w-full sm:w-1/3 flex items-center gap-2">
+      <div className="grid grid-cols-12 gap-1.5 items-center">
+        <div className="col-span-4 min-w-0">
           <MoneyInput value={amount} onChange={onAmount} disabled={locked} />
         </div>
-        <div className="w-full sm:w-1/3">
+        <div className="col-span-4 min-w-0">
           <DatePicker
             selected={date ? parseISO(date) : null}
             onChange={d => onDate(d ? format(d, 'yyyy-MM-dd') : '')}
             dateFormat="dd/MM/yyyy"
-            placeholderText="Date"
+            placeholderText="dd/mm/yyyy"
             wrapperClassName="w-full"
             portalId="root"
-            className={`${inputCls}`}
+            className="input block w-full px-2 py-2 text-xs font-medium text-gray-900 bg-white border border-gray-200/80 rounded-[14px] focus:outline-none focus:ring-2 focus:ring-[#F6CB59]/40 text-center"
             disabled={locked}
           />
         </div>
-        <div className="w-full sm:w-1/3">
-          <select className={`${inputCls}`} value={method} onChange={onMethod} disabled={locked}>
+        <div className="col-span-4 min-w-0">
+          <select
+            className="input block w-full px-2 py-2 text-xs font-bold text-gray-800 bg-white border border-gray-200/80 rounded-[14px] focus:outline-none focus:ring-2 focus:ring-[#F6CB59]/40 truncate"
+            value={method}
+            onChange={onMethod}
+            disabled={locked}
+          >
             <option value="Cash">Cash</option>
             <option value="UPI">UPI</option>
-            <option value="Bank Transfer">Bank Transfer</option>
+            <option value="Bank Transfer">Bank</option>
             <option value="Card">Card</option>
           </select>
         </div>
       </div>
       {needsRef && (
         <input
-          className={`${inputCls}`}
-          placeholder="Transaction / reference no (optional)"
+          className="input block w-full px-3 py-1.5 text-xs font-medium text-gray-900 bg-gray-50/80 border border-gray-200/80 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#F6CB59]/40"
+          placeholder="Transaction / ref no (optional)"
           value={referenceNo || ''}
           onChange={onReferenceNo}
           disabled={locked}
@@ -337,16 +343,16 @@ function formatLocalDateTime(d) {
 
 const VehicleVisitRow = memo(function VehicleVisitRow({ label, meta, onField, onCopyToAll, showCopyToAll }) {
   return (
-    <div className="flex flex-col gap-3 bg-blue-50/50 p-4 rounded-xl border border-blue-100">
+    <div className="flex flex-col gap-3 bg-blue-50/50 p-3.5 sm:p-4 rounded-xl border border-blue-100">
       <div className="flex items-center justify-between">
-        <div className="text-[13px] font-bold text-gray-900">{label}</div>
+        <div className="text-[13px] font-bold text-gray-900 truncate pr-2">{label}</div>
         {showCopyToAll && (
-          <button type="button" onClick={onCopyToAll} className="text-[11px] font-bold text-blue-600 hover:underline">
-            Use this visitor for all vehicles
+          <button type="button" onClick={onCopyToAll} className="text-[11px] font-bold text-blue-600 hover:underline shrink-0">
+            Use for all
           </button>
         )}
       </div>
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3">
         <Field label="Visitor Name">
           <input className={inputCls} placeholder="Who dropped this off" value={meta.visitorName || ''} onChange={e => onField('visitorName', e.target.value)} />
         </Field>
@@ -1358,10 +1364,10 @@ export default function InvoiceForm({ initial, onSubmit, loading, onCustomerSele
         onCancel={() => { setConflictModal({ isOpen: false, conflicts: [] }); pendingPayloadRef.current = null; }}
         onProceed={handleProceedDespiteConflict}
       />
-      <form onSubmit={handleSubmit} className="w-full font-sans pb-12 relative z-10 grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
-        <div className="xl:col-span-8 flex flex-col gap-6">
+      <form onSubmit={handleSubmit} className="w-full font-sans pb-12 relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-5 lg:gap-6 items-start">
+        <div className="lg:col-span-7 xl:col-span-7 2xl:col-span-8 flex flex-col gap-5 min-w-0">
           <div className="flex items-center justify-between mb-1 border-b border-gray-200 pb-3">
-            <h1 className="text-xl font-black text-gray-900 tracking-tight flex items-center gap-2.5">
+            <h1 className="text-lg sm:text-xl font-black text-gray-900 tracking-tight flex items-center gap-2 sm:gap-2.5">
               <Hash size={18} className="text-gray-400" /> {initial ? 'Edit Job Card' : 'New Job Card'}
             </h1>
             <span className="font-mono text-xs text-gray-600 font-bold px-2.5 py-1 bg-gray-100 rounded-lg">
@@ -1704,12 +1710,12 @@ export default function InvoiceForm({ initial, onSubmit, loading, onCustomerSele
           </div>
         </div>
 
-        <div className="xl:col-span-4 sticky top-6">
+        <div className="lg:col-span-5 xl:col-span-5 2xl:col-span-4 lg:sticky lg:top-20 min-w-0">
           <div className="flex flex-col gap-4">
             <div className="bg-white shadow-lg shadow-gray-200/50 rounded-2xl border border-gray-200 overflow-hidden flex flex-col">
-              <div className="bg-gray-900 p-4 text-white flex flex-col gap-1">
+              <div className="bg-gray-900 p-3.5 sm:p-4 text-white flex flex-col gap-1">
                 <div className="flex items-center justify-between">
-                  <h3 className="font-bold text-[14px] tracking-wide flex items-center gap-2">
+                  <h3 className="font-bold text-xs sm:text-[14px] tracking-wide flex items-center gap-2">
                     <Receipt size={15} className="text-[#F6CB59]" /> Payment Summary
                   </h3>
                   <span className={`flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider ${sc.bg} ${sc.text} shadow-sm border border-white/20`}>
@@ -1719,15 +1725,15 @@ export default function InvoiceForm({ initial, onSubmit, loading, onCustomerSele
                 </div>
               </div>
 
-              <div className="p-4 sm:p-5 flex flex-col gap-4 bg-[#fafafa]">
-                <div className="flex flex-col gap-3">
-                  <div className="flex items-center justify-between text-[14px]">
+              <div className="p-3.5 sm:p-5 flex flex-col gap-3.5 sm:gap-4 bg-[#fafafa]">
+                <div className="flex flex-col gap-2.5 sm:gap-3">
+                  <div className="flex items-center justify-between text-xs sm:text-[14px]">
                     <span className="font-bold text-gray-500">Sub Total</span>
                     <span className="font-mono font-bold text-gray-900">₹{fmt(subTotal)}</span>
                   </div>
                   <div className="flex items-center justify-between group">
-                    <span className="font-bold text-gray-500 text-[14px]">Discount</span>
-                    <div className="w-28">
+                    <span className="font-bold text-gray-500 text-xs sm:text-[14px]">Discount</span>
+                    <div className="w-28 sm:w-36">
                       <MoneyInput value={form.discount} onChange={e => setF('discount', e.target.value)} />
                     </div>
                   </div>
@@ -1741,13 +1747,13 @@ export default function InvoiceForm({ initial, onSubmit, loading, onCustomerSele
                 <div className="border-t border-dashed border-gray-300" />
 
                 <div className="flex items-end justify-between">
-                  <span className="font-black text-gray-900 text-[15px] uppercase tracking-wider">Grand Total</span>
-                  <span className="font-mono font-black text-gray-900 text-3xl tracking-tighter">₹{fmt(total)}</span>
+                  <span className="font-black text-gray-900 text-xs sm:text-[15px] uppercase tracking-wider">Grand Total</span>
+                  <span className="font-mono font-black text-gray-900 text-2xl sm:text-3xl tracking-tighter">₹{fmt(total)}</span>
                 </div>
 
-                <div className="mt-2 bg-white rounded-2xl border border-gray-200 p-4 shadow-sm flex flex-col gap-3">
+                <div className="mt-1 bg-white rounded-2xl border border-gray-200 p-3 sm:p-4 shadow-sm flex flex-col gap-2.5 sm:gap-3">
                   <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">Payments Received</span>
+                    <span className="text-[10px] sm:text-[11px] font-bold text-gray-400 uppercase tracking-widest">Payments Received</span>
                     <button
                       type="button"
                       disabled={form.payments.length >= 4}
@@ -1808,16 +1814,16 @@ export default function InvoiceForm({ initial, onSubmit, loading, onCustomerSele
                   </div>
                 </div>
 
-                <div className={`flex items-center justify-between p-4 rounded-2xl border ${balance <= 0 ? 'bg-emerald-50 border-emerald-200' : 'bg-rose-50 border-rose-200'}`}>
-                  <span className="text-[12px] font-bold uppercase tracking-wider text-gray-600">Balance Due</span>
-                  <span className={`font-mono font-black text-xl ${balance <= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>₹{fmt(Math.max(0, balance))}</span>
+                <div className={`flex items-center justify-between p-3 sm:p-4 rounded-2xl border ${balance <= 0 ? 'bg-emerald-50 border-emerald-200' : 'bg-rose-50 border-rose-200'}`}>
+                  <span className="text-[11px] sm:text-[12px] font-bold uppercase tracking-wider text-gray-600">Balance Due</span>
+                  <span className={`font-mono font-black text-lg sm:text-xl ${balance <= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>₹{fmt(Math.max(0, balance))}</span>
                 </div>
               </div>
 
               <button
                 type="submit"
                 disabled={loading || checkingConflicts}
-                className={`w-full py-5 text-[15px] font-black tracking-widest uppercase text-slate-900 bg-[#F6CB59] hover:bg-[#e5c603] flex items-center justify-center gap-2 transition-colors ${(loading || checkingConflicts) ? 'opacity-70 pointer-events-none' : ''}`}
+                className={`w-full py-4 sm:py-5 text-xs sm:text-[15px] font-black tracking-widest uppercase text-slate-900 bg-[#F6CB59] hover:bg-[#e5c603] flex items-center justify-center gap-2 transition-colors ${(loading || checkingConflicts) ? 'opacity-70 pointer-events-none' : ''}`}
               >
                 {(loading || checkingConflicts) ? (
                   <div className="w-5 h-5 border-2 border-slate-900/30 border-t-slate-900 rounded-full animate-spin" />
@@ -1827,7 +1833,7 @@ export default function InvoiceForm({ initial, onSubmit, loading, onCustomerSele
                 {checkingConflicts ? 'Checking Schedule…' : initial ? 'Update Invoice' : 'Create Invoice'}
               </button>
             </div>
-            <p className="text-center text-[11px] font-medium text-gray-400 mt-2 px-6">
+            <p className="text-center text-[10px] sm:text-[11px] font-medium text-gray-400 mt-1 px-4">
               Review all services and financial details before generating the final order.
             </p>
           </div>

@@ -68,7 +68,7 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="relative animate-fade-in -m-3 sm:-m-6 p-3 sm:p-6 min-h-screen">
+    <div className="relative animate-fade-in w-full min-w-0 pb-12">
       
       <div className="relative z-10 space-y-4 sm:space-y-6">
         {/* ── Page Header ── */}

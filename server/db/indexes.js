@@ -46,6 +46,31 @@ const STATEMENTS = [
 
   // Auth sessions
   `CREATE INDEX IF NOT EXISTS idx_login_sessions_token ON login_sessions (token) WHERE logout_at IS NULL`,
+
+  // Database-Level Financial & Data Integrity Constraints
+  `DO $$ 
+   BEGIN
+     IF NOT EXISTS (
+       SELECT 1 FROM pg_constraint WHERE conname = 'chk_invoices_balance_due_non_negative'
+     ) THEN
+       ALTER TABLE invoices ADD CONSTRAINT chk_invoices_balance_due_non_negative CHECK (balance_due >= 0);
+     END IF;
+     IF NOT EXISTS (
+       SELECT 1 FROM pg_constraint WHERE conname = 'chk_invoices_grand_total_non_negative'
+     ) THEN
+       ALTER TABLE invoices ADD CONSTRAINT chk_invoices_grand_total_non_negative CHECK (grand_total >= 0);
+     END IF;
+     IF NOT EXISTS (
+       SELECT 1 FROM pg_constraint WHERE conname = 'chk_invoices_discount_non_negative'
+     ) THEN
+       ALTER TABLE invoices ADD CONSTRAINT chk_invoices_discount_non_negative CHECK (discount >= 0);
+     END IF;
+     IF NOT EXISTS (
+       SELECT 1 FROM pg_constraint WHERE conname = 'chk_payments_amount_positive'
+     ) THEN
+       ALTER TABLE payments ADD CONSTRAINT chk_payments_amount_positive CHECK (amount > 0);
+     END IF;
+   END $$;`,
 ];
 
 async function ensureIndexes() {

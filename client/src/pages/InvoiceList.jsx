@@ -129,7 +129,7 @@ export default function InvoiceList() {
   };
 
   return (
-    <div className="space-y-3 pb-20 p-2.5 sm:p-6 lg:p-8 bg-transparent min-h-full">
+    <div className="space-y-4 w-full min-w-0 pb-16 bg-transparent">
       <div className="bg-white/60 backdrop-blur-2xl rounded-2xl sm:rounded-[24px] shadow-[0_8px_32px_rgba(0,0,0,0.06)] border border-white/80 p-3.5 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 shrink-0">
         <div className="flex items-center gap-3 sm:gap-4">
           <div className="w-9 h-9 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-black text-[#F6CB59] flex items-center justify-center shadow-md shrink-0">
@@ -162,7 +162,7 @@ export default function InvoiceList() {
       </div>
 
       {/* Tabs and Filters */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
         <div className="flex overflow-x-auto hide-scrollbar w-full sm:w-auto gap-2">
           {TABS.map((tab) => {
             const isActive = status === tab.id;
@@ -170,7 +170,7 @@ export default function InvoiceList() {
               <button
                 key={tab.id}
                 onClick={() => { setStatus(tab.id); setPage(1); }}
-                className={`flex items-center gap-2 px-4 py-2.5 rounded-t-lg text-sm font-medium whitespace-nowrap transition-colors border-b-2 ${
+                className={`flex items-center gap-2 px-3.5 py-2 rounded-t-lg text-xs sm:text-sm font-bold whitespace-nowrap transition-colors border-b-2 ${
                   isActive 
                     ? 'border-gray-900 text-gray-900' 
                     : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
@@ -178,7 +178,7 @@ export default function InvoiceList() {
               >
                 {tab.label}
                 {isActive && (
-                  <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-blue-100 text-blue-700">
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-700">
                     {totalResults}
                   </span>
                 )}
@@ -187,33 +187,33 @@ export default function InvoiceList() {
           })}
         </div>
         
-        <div className="flex items-center gap-3 w-full sm:w-auto shrink-0 border-b border-slate-100 sm:border-none pb-3 sm:pb-0">
-          <button className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors shadow-sm">
-            <ArrowUpDown size={16} className="text-slate-400" />
+        <div className="flex items-center gap-2 w-full sm:w-auto shrink-0 border-b border-slate-100 sm:border-none pb-2 sm:pb-0">
+          <button className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors shadow-xs">
+            <ArrowUpDown size={14} className="text-slate-400" />
             Sort
           </button>
-          <button className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors shadow-sm">
-            <Filter size={16} className="text-slate-400" />
+          <button className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors shadow-xs">
+            <Filter size={14} className="text-slate-400" />
             Filter
           </button>
         </div>
       </div>
 
-      <div className="bg-white/60 backdrop-blur-xl border border-white/50 rounded-3xl overflow-hidden shadow-[0_8px_30px_rgba(0,0,0,0.04)]">
+      <div className="bg-white/60 backdrop-blur-xl border border-white/50 rounded-2xl sm:rounded-3xl overflow-hidden shadow-[0_8px_30px_rgba(0,0,0,0.04)]">
         {/* Toolbar */}
-        <div className="p-4 flex flex-col sm:flex-row justify-between items-center gap-4 border-b border-slate-200">
+        <div className="p-3 sm:p-4 flex flex-col sm:flex-row justify-between items-center gap-3 border-b border-slate-200">
           <div className="relative w-full sm:w-80">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
             <input
               type="text"
               placeholder="Search invoice"
-              className="w-full pl-10 pr-4 py-2 text-sm bg-white/50 border border-white/60 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#F6CB59]/30 focus:border-[#F6CB59] transition-all text-slate-800 placeholder:text-slate-400 shadow-sm backdrop-blur-md"
+              className="w-full pl-9 pr-4 py-1.5 text-xs sm:text-sm bg-white/50 border border-white/60 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#F6CB59]/30 focus:border-[#F6CB59] transition-all text-slate-800 placeholder:text-slate-400 shadow-sm backdrop-blur-md font-medium"
               value={search}
               onChange={e => { setSearch(e.target.value); setPage(1); }}
             />
           </div>
-          <div className="text-sm text-slate-500 font-medium">
-            Showing <span className="font-semibold text-slate-700">{totalResults === 0 ? 0 : `${(page - 1) * PAGE_SIZE + 1}–${Math.min(page * PAGE_SIZE, totalResults)}`}</span> of <span className="font-semibold text-slate-700">{totalResults}</span> results
+          <div className="text-xs sm:text-sm text-slate-500 font-medium">
+            Showing <span className="font-bold text-slate-700">{totalResults === 0 ? 0 : `${(page - 1) * PAGE_SIZE + 1}–${Math.min(page * PAGE_SIZE, totalResults)}`}</span> of <span className="font-bold text-slate-700">{totalResults}</span> results
           </div>
         </div>
 
@@ -226,17 +226,17 @@ export default function InvoiceList() {
         )}
 
         {/* Table - Desktop Only */}
-        <div className="hidden lg:block overflow-x-auto">
+        <div className="hidden lg:block overflow-x-auto custom-scrollbar">
           <table className="w-full text-left whitespace-nowrap">
             <thead>
               <tr className="bg-white border-b border-slate-200 text-slate-500">
-                <th className="px-5 py-3 w-12"><input type="checkbox" className="rounded border-slate-300 text-gray-900 focus:ring-gray-900 w-4 h-4 cursor-pointer" /></th>
-                <th className="px-5 py-3 text-sm font-medium"><div className="flex items-center gap-1 cursor-pointer hover:text-slate-800">Invoice <ArrowUpDown size={14} className="opacity-50" /></div></th>
-                <th className="px-5 py-3 text-sm font-medium">Client/Customer</th>
-                <th className="px-5 py-3 text-sm font-medium"><div className="flex items-center gap-1 cursor-pointer hover:text-slate-800">Amount <ArrowUpDown size={14} className="opacity-50" /></div></th>
-                <th className="px-5 py-3 text-sm font-medium"><div className="flex items-center gap-1 cursor-pointer hover:text-slate-800">Due Date <ArrowUpDown size={14} className="opacity-50" /></div></th>
-                <th className="px-5 py-3 text-sm font-medium"><div className="flex items-center gap-1 cursor-pointer hover:text-slate-800">Status <ArrowUpDown size={14} className="opacity-50" /></div></th>
-                <th className="px-5 py-3 text-sm font-medium text-center">Action</th>
+                <th className="px-3.5 sm:px-5 py-3 w-10"><input type="checkbox" className="rounded border-slate-300 text-gray-900 focus:ring-gray-900 w-4 h-4 cursor-pointer" /></th>
+                <th className="px-3.5 sm:px-5 py-3 text-xs sm:text-sm font-bold"><div className="flex items-center gap-1 cursor-pointer hover:text-slate-800">Invoice <ArrowUpDown size={13} className="opacity-50" /></div></th>
+                <th className="px-3.5 sm:px-5 py-3 text-xs sm:text-sm font-bold">Client/Customer</th>
+                <th className="px-3.5 sm:px-5 py-3 text-xs sm:text-sm font-bold"><div className="flex items-center gap-1 cursor-pointer hover:text-slate-800">Amount <ArrowUpDown size={13} className="opacity-50" /></div></th>
+                <th className="px-3.5 sm:px-5 py-3 text-xs sm:text-sm font-bold"><div className="flex items-center gap-1 cursor-pointer hover:text-slate-800">Due Date <ArrowUpDown size={13} className="opacity-50" /></div></th>
+                <th className="px-3.5 sm:px-5 py-3 text-xs sm:text-sm font-bold"><div className="flex items-center gap-1 cursor-pointer hover:text-slate-800">Status <ArrowUpDown size={13} className="opacity-50" /></div></th>
+                <th className="px-3.5 sm:px-5 py-3 text-xs sm:text-sm font-bold text-center">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">

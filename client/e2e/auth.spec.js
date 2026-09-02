@@ -16,21 +16,21 @@ test.describe('Authentication & Diagnostics E2E Tests', () => {
     await expect(page.locator('text=Please enter both username and password')).toBeVisible();
   });
 
-  test('should show exact error for non-existent username', async ({ page }) => {
+  test('should show generic error for non-existent username (no enumeration)', async ({ page }) => {
     await page.fill('input[type="text"]', 'unknown_user_999');
     await page.fill('input[type="password"]', 'anyPassword123');
     await page.click('button[type="submit"]');
     await expect(
-      page.locator('text=User account does not exist. Please check your username or email.')
+      page.locator('text=Invalid username/email or password.')
     ).toBeVisible({ timeout: 8000 });
   });
 
-  test('should show exact error for incorrect password', async ({ page }) => {
+  test('should show generic error for incorrect password (no enumeration)', async ({ page }) => {
     await page.fill('input[type="text"]', 'admin');
     await page.fill('input[type="password"]', 'WrongPasswordXYZ');
     await page.click('button[type="submit"]');
     await expect(
-      page.locator('text=Incorrect password. Please verify your password and try again.')
+      page.locator('text=Invalid username/email or password.')
     ).toBeVisible({ timeout: 8000 });
   });
 });

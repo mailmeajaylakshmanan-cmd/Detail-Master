@@ -33,8 +33,8 @@ async function recalculateInvoiceTotals(invoiceId, executor = db) {
   }
   const amount_paid = parseFloat(rows[0]?.amount_paid) || 0;
   const discount = parseFloat(rows[0]?.discount) || 0;
-  const grand_total = Math.max(0, sub_total - discount);
-  const balance_due = grand_total - amount_paid;
+  const grand_total = Math.max(0, Math.round((sub_total - discount) * 100) / 100);
+  const balance_due = Math.max(0, Math.round((grand_total - amount_paid) * 100) / 100);
 
   await executor.query(
     `UPDATE invoices

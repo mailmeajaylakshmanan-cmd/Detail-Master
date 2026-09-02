@@ -126,7 +126,7 @@ router.post('/login', loginLimiter, async (req, res) => {
     const userRow = result.rows[0];
 
     if (!userRow) {
-      return res.status(401).json({ message: 'User account does not exist. Please check your username or email.' });
+      return res.status(401).json({ message: 'Invalid username/email or password.' });
     }
     if (!userRow.is_active) {
       return res.status(403).json({ message: 'Account is deactivated. Please contact your system administrator.' });
@@ -134,7 +134,7 @@ router.post('/login', loginLimiter, async (req, res) => {
 
     const isMatch = await bcrypt.compare(password, userRow.password_hash);
     if (!isMatch) {
-      return res.status(401).json({ message: 'Incorrect password. Please verify your password and try again.' });
+      return res.status(401).json({ message: 'Invalid username/email or password.' });
     }
 
     const userResponse = await getUserWithMenus(userRow.id);

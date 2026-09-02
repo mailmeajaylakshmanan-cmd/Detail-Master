@@ -145,13 +145,13 @@ export default function EditInvoice() {
   if (!invoice) return <div className="text-gray-500 text-center py-20">Loading...</div>;
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 max-w-[1440px] mx-auto space-y-6">
-      <div className="flex items-center gap-3 mb-4">
-        <Link to={`/invoices/${id}`} className="text-gray-500 hover:text-gray-900 text-sm font-semibold flex items-center gap-1.5 transition-colors">
+    <div className="w-full max-w-full mx-auto space-y-5">
+      <div className="flex items-center gap-2 mb-2">
+        <Link to={`/invoices/${id}`} className="text-gray-500 hover:text-gray-900 text-xs sm:text-sm font-semibold flex items-center gap-1.5 transition-colors">
           ← View Invoice
         </Link>
         <span className="text-gray-300">/</span>
-        <h1 className="text-lg font-bold text-gray-900">Edit {invoice.invoiceNo}</h1>
+        <h1 className="text-sm sm:text-base font-bold text-gray-900">Edit {invoice.invoiceNo}</h1>
       </div>
       <InvoiceForm initial={invoice} onSubmit={handleSubmit} loading={loading} />
     </div>

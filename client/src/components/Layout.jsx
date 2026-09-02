@@ -153,6 +153,25 @@ function SidebarNav({ navItems, openGroups, setOpenGroups, onNavigate }) {
   );
 }
 
+function getPageTitle(pathname) {
+  if (pathname === '/') return 'Dashboard';
+  if (pathname === '/invoices') return 'Invoices & Records';
+  if (pathname === '/invoices/new') return 'New Job Card';
+  if (pathname.includes('/service-report')) return 'Vehicle Service Report';
+  if (pathname.includes('/edit')) return 'Edit Invoice';
+  if (pathname.startsWith('/invoices/')) return 'Invoice Details';
+  if (pathname.startsWith('/master-customer')) return 'Customer Database';
+  if (pathname.startsWith('/master-organization')) return 'Organization Management';
+  if (pathname.startsWith('/master-service')) return 'Master Services';
+  if (pathname.startsWith('/master-third-party-service')) return 'Third-Party Services';
+  if (pathname.startsWith('/master-vehicle-type')) return 'Vehicle Types';
+  if (pathname.startsWith('/master-offers') || pathname.startsWith('/assigned-offers') || pathname.startsWith('/offers/')) return 'Offer Management';
+  if (pathname.startsWith('/website-bookings')) return 'Online Bookings';
+  if (pathname.startsWith('/service-time')) return 'Service Time Management';
+  if (pathname.startsWith('/menu-assignment') || pathname.startsWith('/user-menu-assignment')) return 'Access Control';
+  return 'Detailing Masters';
+}
+
 export default function Layout() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -217,7 +236,7 @@ export default function Layout() {
   };
 
   return (
-    <div className="min-h-screen font-sans text-theme-brown flex overflow-hidden" style={{ background: 'linear-gradient(135deg, #FFFFFF 0%, #EBEBED 50%, #E5E5E0 100%)' }}>
+    <div className="min-h-screen font-sans text-theme-brown flex overflow-x-hidden relative" style={{ background: 'linear-gradient(135deg, #FFFFFF 0%, #EBEBED 50%, #E5E5E0 100%)' }}>
       
       {/* ── Background Aesthetic (Glassmorphism Warm Gradient) ── */}
       <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
@@ -236,121 +255,122 @@ export default function Layout() {
       <aside
         className={`
           print:hidden
-          fixed top-0 left-0 z-[70] h-full w-[280px] lg:w-[260px]
+          fixed top-0 left-0 z-[70] h-full w-[260px] lg:w-[240px] xl:w-[250px]
           bg-white/80 backdrop-blur-3xl border-r border-white/60
           flex flex-col shadow-[10px_0_40px_rgba(0,0,0,0.08)]
           transform transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]
-          ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}
-          ${isDesktopSidebarOpen ? 'lg:translate-x-0' : 'lg:-translate-x-full'}
-        `}
-      >
-        <div className="flex items-center justify-between px-3 py-4 border-b border-white/40 shrink-0 gap-2">
-            <Link to="/" className="flex items-center gap-2.5 min-w-0 flex-1" onClick={() => setIsMobileMenuOpen(false)}>
-              <img src={brandLogo} alt="Logo" className="h-12 w-auto object-contain shrink-0 bg-white rounded p-1" />
-              <span className="text-[14px] font-black tracking-tight leading-tight uppercase whitespace-nowrap drop-shadow-sm">
-                <span className="text-[#F6CB59]">DETAILING</span> <span className="text-black">MASTERS</span>
-              </span>
-            </Link>
-          <button
-            type="button"
-            onClick={() => setIsMobileMenuOpen(false)}
-            className="lg:hidden w-8 h-8 flex items-center justify-center rounded-full bg-white/60 text-gray-500 hover:text-rose-500 hover:bg-rose-50 shrink-0"
-          >
-            <X size={18} />
-          </button>
-          <button
-            type="button"
-            onClick={() => setIsDesktopSidebarOpen(false)}
-            className="hidden lg:flex w-8 h-8 items-center justify-center rounded-full bg-white/60 text-gray-500 hover:text-blue-600 hover:bg-blue-50 shrink-0"
-          >
-            <Menu size={18} />
-          </button>
-        </div>
-
-        <SidebarNav
-          navItems={navItems}
-          openGroups={openGroups}
-          setOpenGroups={setOpenGroups}
-          onNavigate={() => setIsMobileMenuOpen(false)}
-        />
-
-        <div className="p-3 border-t border-white/40 shrink-0">
-          <button
-            type="button"
-            onClick={handleLogout}
-            className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-white/60 bg-white/40 text-gray-900 text-[13px] font-extrabold hover:bg-rose-50 hover:text-rose-600 hover:border-rose-200 transition-colors"
-          >
-            <LogOut size={16} /> Sign Out
-          </button>
-        </div>
-      </aside>
-
-      {/* Main column */}
-      <div className={`flex-1 flex flex-col min-w-0 transition-all duration-300 ${isDesktopSidebarOpen ? 'lg:pl-[260px]' : 'lg:pl-0'} bg-transparent`}>
-        <header
-          className={`print:hidden sticky top-0 z-50 transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] bg-white/60 backdrop-blur-3xl ${
-            scrolled ? 'border-b border-white/80 shadow-[0_4px_30px_rgba(0,0,0,0.04)]' : 'border-b border-transparent'
-          }`}
+        ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}
+        ${isDesktopSidebarOpen ? 'lg:translate-x-0' : 'lg:-translate-x-full'}
+      `}
+    >
+      <div className="flex items-center justify-between px-3 py-4 border-b border-white/40 shrink-0 gap-2">
+          <Link to="/" className="flex items-center gap-2.5 min-w-0 flex-1" onClick={() => setIsMobileMenuOpen(false)}>
+            <img src={brandLogo} alt="Logo" className="h-10 xl:h-11 w-auto object-contain shrink-0 bg-white rounded p-1" />
+            <span className="text-[13px] xl:text-[14px] font-black tracking-tight leading-tight uppercase whitespace-nowrap drop-shadow-sm">
+              <span className="text-[#F6CB59]">DETAILING</span> <span className="text-black">MASTERS</span>
+            </span>
+          </Link>
+        <button
+          type="button"
+          onClick={() => setIsMobileMenuOpen(false)}
+          className="lg:hidden w-8 h-8 flex items-center justify-center rounded-full bg-white/60 text-gray-500 hover:text-rose-500 hover:bg-rose-50 shrink-0"
         >
-          <div className="px-3 sm:px-6 h-[52px] sm:h-[64px] flex items-center justify-between gap-2 sm:gap-3">
-            <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+          <X size={18} />
+        </button>
+        <button
+          type="button"
+          onClick={() => setIsDesktopSidebarOpen(false)}
+          className="hidden lg:flex w-8 h-8 items-center justify-center rounded-full bg-white/60 text-gray-500 hover:text-blue-600 hover:bg-blue-50 shrink-0"
+          title="Collapse Sidebar"
+        >
+          <Menu size={18} />
+        </button>
+      </div>
+
+      <SidebarNav
+        navItems={navItems}
+        openGroups={openGroups}
+        setOpenGroups={setOpenGroups}
+        onNavigate={() => setIsMobileMenuOpen(false)}
+      />
+
+      <div className="p-3 border-t border-white/40 shrink-0">
+        <button
+          type="button"
+          onClick={handleLogout}
+          className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-white/60 bg-white/40 text-gray-900 text-[13px] font-extrabold hover:bg-rose-50 hover:text-rose-600 hover:border-rose-200 transition-colors"
+        >
+          <LogOut size={16} /> Sign Out
+        </button>
+      </div>
+    </aside>
+
+    {/* Main column */}
+    <div className={`flex-1 flex flex-col min-w-0 transition-all duration-300 ${isDesktopSidebarOpen ? 'lg:pl-[240px] xl:pl-[250px]' : 'lg:pl-0'} bg-transparent`}>
+      <header
+        className={`print:hidden sticky top-0 z-50 transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] bg-white/60 backdrop-blur-3xl ${
+          scrolled ? 'border-b border-white/80 shadow-[0_4px_30px_rgba(0,0,0,0.04)]' : 'border-b border-transparent'
+        }`}
+      >
+        <div className="px-3.5 sm:px-6 h-[52px] sm:h-[60px] flex items-center justify-between gap-2 sm:gap-3">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+            <button
+              type="button"
+              onClick={() => setIsMobileMenuOpen(true)}
+              className="lg:hidden w-9 h-9 flex items-center justify-center rounded-xl bg-white/80 border border-gray-200/60 text-gray-800 hover:bg-white shadow-xs transition-all active:scale-95 shrink-0"
+              aria-label="Open menu"
+            >
+              <Menu size={18} />
+            </button>
+            
+            {!isDesktopSidebarOpen && (
               <button
                 type="button"
-                onClick={() => setIsMobileMenuOpen(true)}
-                className="lg:hidden w-9 h-9 flex items-center justify-center rounded-xl bg-white/80 border border-gray-200/60 text-gray-800 hover:bg-white shadow-xs transition-all active:scale-95 shrink-0"
-                aria-label="Open menu"
+                onClick={() => setIsDesktopSidebarOpen(true)}
+                className="hidden lg:flex w-9 h-9 items-center justify-center rounded-xl bg-white/80 border border-gray-200/60 text-gray-800 hover:bg-white shadow-xs transition-all active:scale-95 shrink-0"
+                aria-label="Open sidebar"
               >
                 <Menu size={18} />
               </button>
-              
-              {!isDesktopSidebarOpen && (
-                <button
-                  type="button"
-                  onClick={() => setIsDesktopSidebarOpen(true)}
-                  className="hidden lg:flex w-10 h-10 items-center justify-center rounded-xl bg-white/80 border border-gray-200/60 text-gray-800 hover:bg-white shadow-xs transition-all active:scale-95 shrink-0"
-                  aria-label="Open sidebar"
-                >
-                  <Menu size={20} />
-                </button>
-              )}
+            )}
 
-                <div className="lg:hidden flex items-center gap-2 min-w-0">
-                  <img src={brandLogo} alt="Logo" className="h-8 w-auto object-contain shrink-0 bg-white rounded p-0.5 shadow-xs" />
-                  <span className="text-xs font-black tracking-tight leading-tight uppercase truncate">
-                    <span className="text-[#F6CB59]">DETAILING</span> <span className="text-black">MASTERS</span>
-                  </span>
-                </div>
-              <p className="hidden lg:block text-sm font-bold text-gray-900 truncate ml-1">
-                Dashboard
-              </p>
-            </div>
-
-            <div className="flex items-center gap-2 sm:gap-3">
-              <div className="relative hidden md:block">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={15} />
-                <input
-                  type="text"
-                  placeholder="Search…"
-                  className="pl-9 pr-4 py-2 bg-white border border-gray-200 rounded-full text-sm font-bold focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 w-[180px] lg:w-[220px] text-gray-900 placeholder-gray-400 shadow-sm"
-                />
+              <div className="lg:hidden flex items-center gap-2 min-w-0">
+                <img src={brandLogo} alt="Logo" className="h-8 w-auto object-contain shrink-0 bg-white rounded p-0.5 shadow-xs" />
+                <span className="text-xs font-black tracking-tight leading-tight uppercase truncate">
+                  <span className="text-[#F6CB59]">DETAILING</span> <span className="text-black">MASTERS</span>
+                </span>
               </div>
-
-              <NotificationBell />
-
-              <Link
-                to="/invoices/new"
-                className="hidden lg:inline-flex btn-primary items-center gap-2 py-2 px-3.5 shadow-sm text-sm whitespace-nowrap"
-              >
-                <Plus size={15} /> Add New
-              </Link>
-            </div>
+            <p className="hidden lg:block text-sm font-bold text-gray-900 truncate ml-1">
+              {getPageTitle(location.pathname)}
+            </p>
           </div>
-        </header>
 
-        <main className="flex-1 w-full mx-auto px-4 sm:px-6 py-6 sm:py-8 pb-8 max-w-[1600px] bg-transparent print:p-0 print:max-w-none print:mx-0">
-          <Outlet />
-        </main>
-      </div>
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="relative hidden md:block">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={15} />
+              <input
+                type="text"
+                placeholder="Search…"
+                className="pl-9 pr-4 py-1.5 bg-white border border-gray-200 rounded-full text-xs sm:text-sm font-bold focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 w-[160px] lg:w-[200px] text-gray-900 placeholder-gray-400 shadow-sm"
+              />
+            </div>
+
+            <NotificationBell />
+
+            <Link
+              to="/invoices/new"
+              className="hidden sm:inline-flex btn-primary items-center gap-1.5 py-1.5 px-3 shadow-sm text-xs font-bold whitespace-nowrap"
+            >
+              <Plus size={14} /> Add New
+            </Link>
+          </div>
+        </div>
+      </header>
+
+      <main className="flex-1 w-full mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 max-w-[1750px] bg-transparent min-w-0 print:p-0 print:max-w-none print:mx-0">
+        <Outlet />
+      </main>
     </div>
+  </div>
   );
 }

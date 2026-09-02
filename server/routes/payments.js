@@ -33,14 +33,27 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ message: 'invoice_order_id and amount are required' });
     }
 
+    const paymentAmount = Number(amount);
+    if (isNaN(paymentAmount) || paymentAmount <= 0) {
+      return res.status(400).json({ message: 'Payment amount must be a valid positive number' });
+    }
+
     const rawMethod = payment_method || method;
     if (!rawMethod) {
       return res.status(400).json({ message: 'payment_method is required' });
     }
 
-    const invCheck = await db.query('SELECT id FROM invoices WHERE id = $1', [invoice_order_id]);
+    const invCheck = await db.query('SELECT id, grand_total, amount_paid, balance_due FROM invoices WHERE id = $1', [invoice_order_id]);
     if (invCheck.rows.length === 0) {
       return res.status(404).json({ message: 'Invoice not found' });
+    }
+
+    const invoice = invCheck.rows[0];
+    const currentBalanceDue = parseFloat(invoice.balance_due) || 0;
+    if (paymentAmount > currentBalanceDue + 0.01) {
+      return res.status(400).json({
+        message: `Payment amount of ₹${paymentAmount.toLocaleString('en-IN')} exceeds the remaining balance due of ₹${currentBalanceDue.toLocaleString('en-IN')}`
+      });
     }
 
     const finalMethod = mapPaymentMethod(rawMethod);

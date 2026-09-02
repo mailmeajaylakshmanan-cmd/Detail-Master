@@ -46,9 +46,9 @@ export default function NewInvoice() {
   }
 
   return (
-    <div className="p-4 lg:p-8 max-w-[1400px] mx-auto space-y-6">
+    <div className="w-full max-w-full mx-auto space-y-5">
       {existingInvoice && (
-        <div className="card px-6 py-4 mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-rose-50/50 border-rose-200">
+        <div className="card px-4 sm:px-6 py-3.5 sm:py-4 mb-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-rose-50/50 border-rose-200">
           <div>
             <p className="font-bold text-[14px] text-rose-900 flex items-center gap-2 mb-1">
               <AlertCircle size={16} /> Open Bill Found
@@ -59,7 +59,7 @@ export default function NewInvoice() {
           </div>
           <Link
             to={`/invoices/${existingInvoice.id}/edit`}
-            className="shrink-0 bg-white shadow-sm border border-rose-200 text-rose-700 hover:bg-rose-600 hover:text-white px-5 py-2.5 rounded-xl text-[13px] font-bold transition-all uppercase tracking-wider"
+            className="shrink-0 bg-white shadow-sm border border-rose-200 text-rose-700 hover:bg-rose-600 hover:text-white px-4 py-2 rounded-xl text-xs font-bold transition-all uppercase tracking-wider"
           >
             Edit Old Bill
           </Link>
