@@ -44,35 +44,7 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ message: 'payment_method is required' });
     }
 
-    const invCheck = await db.query('SELECT id, grand_total, amount_paid, balance_due FROM invoices WHERE id = $1', [invoice_order_id]);
-    if (invCheck.rows.length === 0) {
-      return res.status(404).json({ message: 'Invoice not found' });
-    }
-
-    const invoice = invCheck.rows[0];
-    const currentBalanceDue = parseFloat(invoice.balance_due) || 0;
-    if (paymentAmount > currentBalanceDue + 0.01) {
-      return res.status(400).json({
-        message: `Payment amount of ₹${paymentAmount.toLocaleString('en-IN')} exceeds the remaining balance due of ₹${currentBalanceDue.toLocaleString('en-IN')}`
-      });
-    }
-
     const finalMethod = mapPaymentMethod(rawMethod);
-
-    // Prevent duplicate payments (same invoice, amount, method within 15 seconds)
-    const duplicateCheck = await db.query(
-      `SELECT id FROM payments 
-       WHERE invoice_order_id = $1 
-         AND amount = $2 
-         AND payment_method = $3 
-         AND payment_date > NOW() - INTERVAL '15 seconds'`,
-      [invoice_order_id, amount, finalMethod]
-    );
-
-    if (duplicateCheck.rows.length > 0) {
-      return res.status(409).json({ message: 'Duplicate payment detected. Please wait a moment before trying again.' });
-    }
-
     const mappedMethod = finalMethod;
     // Cash: never store reference_no. UPI / bank_transfer: optional.
     const ref =
@@ -80,23 +52,74 @@ router.post('/', async (req, res) => {
         ? null
         : (reference_no || null);
 
-    const { rows } = await db.query(
-      `INSERT INTO payments (invoice_order_id, amount, payment_method, payment_date, reference_no, notes)
-       VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
-      [
-        invoice_order_id,
-        Number(amount),
-        mappedMethod,
-        payment_date || new Date(),
-        ref,
-        notes || null,
-      ]
-    );
+    // Everything from here runs inside one transaction, holding a row lock on
+    // the invoice for its duration. Without this, the balance check, the
+    // duplicate check, and the insert are three separate round-trips a
+    // concurrent request can slip between — two requests can both pass the
+    // duplicate check before either has inserted, creating two payment rows
+    // for what should've been one payment (a classic check-then-act race).
+    // FOR UPDATE makes a second concurrent request for the SAME invoice wait
+    // here until this transaction commits, so by the time it runs its own
+    // checks, this payment is already visible to it.
+    const client = await db.pool.connect();
+    try {
+      await client.query('BEGIN');
 
-    // Updates invoices.amount_paid + balance_due for this same invoice id
-    const totals = await recalculateInvoiceTotals(invoice_order_id);
-    queryCache.del('dashboard_stats');
-    res.status(201).json({ payment: rows[0], invoice_totals: totals });
+      const invCheck = await client.query('SELECT id, grand_total, amount_paid, balance_due FROM invoices WHERE id = $1 FOR UPDATE', [invoice_order_id]);
+      if (invCheck.rows.length === 0) {
+        await client.query('ROLLBACK');
+        return res.status(404).json({ message: 'Invoice not found' });
+      }
+
+      const invoice = invCheck.rows[0];
+      const currentBalanceDue = parseFloat(invoice.balance_due) || 0;
+      if (paymentAmount > currentBalanceDue + 0.01) {
+        await client.query('ROLLBACK');
+        return res.status(400).json({
+          message: `Payment amount of ₹${paymentAmount.toLocaleString('en-IN')} exceeds the remaining balance due of ₹${currentBalanceDue.toLocaleString('en-IN')}`
+        });
+      }
+
+      // Prevent duplicate payments (same invoice, amount, method within 15 seconds)
+      const duplicateCheck = await client.query(
+        `SELECT id FROM payments
+         WHERE invoice_order_id = $1
+           AND amount = $2
+           AND payment_method = $3
+           AND payment_date > NOW() - INTERVAL '15 seconds'`,
+        [invoice_order_id, amount, finalMethod]
+      );
+
+      if (duplicateCheck.rows.length > 0) {
+        await client.query('ROLLBACK');
+        return res.status(409).json({ message: 'Duplicate payment detected. Please wait a moment before trying again.' });
+      }
+
+      const { rows } = await client.query(
+        `INSERT INTO payments (invoice_order_id, amount, payment_method, payment_date, reference_no, notes)
+         VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
+        [
+          invoice_order_id,
+          Number(amount),
+          mappedMethod,
+          payment_date || new Date(),
+          ref,
+          notes || null,
+        ]
+      );
+
+      // Updates invoices.amount_paid + balance_due for this same invoice id
+      const totals = await recalculateInvoiceTotals(invoice_order_id, client);
+      await client.query('COMMIT');
+
+      queryCache.del('dashboard_stats');
+      res.status(201).json({ payment: rows[0], invoice_totals: totals });
+    } catch (err) {
+      await client.query('ROLLBACK');
+      throw err;
+    } finally {
+      client.release();
+    }
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Server error' });
