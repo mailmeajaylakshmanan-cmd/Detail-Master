@@ -66,10 +66,10 @@ export default function OrganizationTable({ rows, onEdit, onDelete, canDelete })
 
   return (
     <div className="flex-1 flex flex-col lg:overflow-hidden bg-transparent lg:bg-white/60 lg:backdrop-blur-xl lg:rounded-[24px] lg:shadow-[0_8px_32px_rgba(0,0,0,0.04)] lg:border lg:border-white/50">
-      <div className="flex-1 lg:overflow-y-auto lg:custom-scrollbar">
+      <div className="flex-1 lg:overflow-y-auto lg:custom-scrollbar min-h-[280px]">
         <div className="hidden lg:block">
           <table className="w-full border-collapse">
-          <thead className="sticky top-0 z-10 bg-white/40 backdrop-blur-md">
+          <thead className="sticky top-0 z-20 bg-white/80 backdrop-blur-md">
             <tr>
               {COLUMNS.map(col => (
                 <th
@@ -88,15 +88,20 @@ export default function OrganizationTable({ rows, onEdit, onDelete, canDelete })
           </thead>
           <tbody>
             {pageRows.map((row, idx) => {
+              const isNearBottom = (pageRows.length > 2 && idx >= pageRows.length - 2) || (pageRows.length <= 2 && idx === pageRows.length - 1 && pageRows.length > 1);
+              const isMenuOpen = openMenuId === row.id;
+
               return (
                 <tr
                   key={row.id}
-                  className={`transition-colors border-b border-gray-100/50 hover:bg-white/60`}
+                  className={`transition-colors border-b border-gray-100/50 hover:bg-white/60 ${
+                    isMenuOpen ? 'relative z-40 bg-white/80 shadow-xs' : 'relative z-10'
+                  }`}
                 >
                   <td className="px-5 py-4">
                     <div className="flex items-center gap-4">
                       <div
-                        className="w-10 h-10 rounded-[12px] flex items-center justify-center text-[13px] font-black shrink-0"
+                        className="w-10 h-10 rounded-[12px] flex items-center justify-center text-[13px] font-black shrink-0 shadow-xs"
                         style={{
                           backgroundColor: idx % 3 === 0 ? '#FEF9C3' : idx % 3 === 1 ? '#E0E7FF' : '#FFE4E6',
                           color: idx % 3 === 0 ? '#854D0E' : idx % 3 === 1 ? '#3730A3' : '#9F1239'
@@ -153,35 +158,39 @@ export default function OrganizationTable({ rows, onEdit, onDelete, canDelete })
                   <td className="px-5 py-4 text-right relative">
                     <button
                       type="button"
-                      onClick={(e) => { e.stopPropagation(); setOpenMenuId(openMenuId === row.id ? null : row.id); }}
-                      className="w-8 h-8 rounded-full flex items-center justify-center text-gray-400 hover:bg-gray-100 hover:text-gray-700 transition-colors"
+                      onClick={(e) => { e.stopPropagation(); setOpenMenuId(isMenuOpen ? null : row.id); }}
+                      className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${
+                        isMenuOpen ? 'bg-black text-[#F6CB59] shadow-xs' : 'text-gray-400 hover:bg-gray-100 hover:text-gray-700'
+                      }`}
                     >
                       <MoreVertical size={16} />
                     </button>
-                    {openMenuId === row.id && (
+                    {isMenuOpen && (
                       <div
                         ref={menuRef}
-                        className="absolute right-8 top-10 z-20 w-40 rounded-xl border border-gray-100 bg-white shadow-xl py-1 text-left"
+                        className={`absolute right-6 z-50 w-44 rounded-2xl border border-gray-200/80 bg-white/95 backdrop-blur-2xl shadow-[0_12px_36px_rgba(0,0,0,0.12)] py-1.5 text-left animate-scale-up ${
+                          isNearBottom ? 'bottom-10 origin-bottom-right' : 'top-10 origin-top-right'
+                        }`}
                       >
                         <button
                           type="button"
                           onClick={(e) => { e.stopPropagation(); onEdit(row.raw); setOpenMenuId(null); }}
-                          className="w-full flex items-center gap-2 px-4 py-2.5 text-[12px] font-semibold text-gray-700 hover:bg-gray-50 transition-colors"
+                          className="w-full flex items-center gap-2.5 px-4 py-2.5 text-[12px] font-bold text-gray-700 hover:bg-gray-50 hover:text-gray-950 transition-colors"
                         >
-                          <Edit3 size={14} /> Edit
+                          <Edit3 size={14} className="text-gray-500" /> Edit
                         </button>
                         <Link
                           to={`/master-organization/${row.id}/billing`}
                           onClick={(e) => { e.stopPropagation(); setOpenMenuId(null); }}
-                          className="w-full flex items-center gap-2 px-4 py-2.5 text-[12px] font-semibold text-gray-700 hover:bg-gray-50 transition-colors"
+                          className="w-full flex items-center gap-2.5 px-4 py-2.5 text-[12px] font-bold text-gray-700 hover:bg-gray-50 hover:text-gray-950 transition-colors"
                         >
-                          <Receipt size={14} /> View Billing
+                          <Receipt size={14} className="text-gray-500" /> View Billing
                         </Link>
                         {canDelete && (
                           <button
                             type="button"
                             onClick={(e) => { e.stopPropagation(); onDelete(row.id); setOpenMenuId(null); }}
-                            className="w-full flex items-center gap-2 px-4 py-2.5 text-[12px] font-semibold text-rose-600 hover:bg-rose-50 transition-colors"
+                            className="w-full flex items-center gap-2.5 px-4 py-2.5 text-[12px] font-bold text-rose-600 hover:bg-rose-50 transition-colors"
                           >
                             <Trash2 size={14} /> Delete
                           </button>

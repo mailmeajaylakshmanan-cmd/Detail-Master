@@ -1048,8 +1048,8 @@ export default function WebsiteBookings() {
 
       {/* ── Confirm Modal with Time Presets ── */}
       {confirmingId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-fade-in">
-          <div className="bg-white rounded-2xl p-5 sm:p-6 w-full max-w-md shadow-2xl border border-gray-100">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-0 sm:p-4 overflow-y-auto animate-fade-in">
+          <div className="bg-white rounded-t-[28px] sm:rounded-2xl p-5 sm:p-6 w-full max-w-md shadow-2xl border border-gray-100 max-h-[92vh] sm:max-h-[85vh] overflow-y-auto custom-scrollbar animate-scale-up">
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-base font-black text-gray-900 flex items-center gap-2">
                 <CheckCircle2 className="text-emerald-500" size={20} />
@@ -1163,13 +1163,13 @@ export default function WebsiteBookings() {
 
       {/* ── Schedule Conflict Warning Modal ── */}
       {conflictModal.isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col border border-amber-200">
-            <div className="flex items-center gap-2.5 p-4 border-b border-amber-100 bg-amber-50">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/50 backdrop-blur-sm overflow-y-auto animate-fade-in">
+          <div className="bg-white rounded-t-[28px] sm:rounded-2xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col border border-amber-200 animate-scale-up max-h-[92vh] sm:max-h-[85vh]">
+            <div className="flex items-center gap-2.5 p-4 border-b border-amber-100 bg-amber-50 shrink-0">
               <AlertTriangle size={20} className="text-amber-600 shrink-0" />
               <h3 className="font-black text-gray-900 text-base">Schedule Conflict Detected</h3>
             </div>
-            <div className="p-4 max-h-[50vh] overflow-y-auto flex flex-col gap-2">
+            <div className="p-4 overflow-y-auto custom-scrollbar flex flex-col gap-2 flex-1">
               {conflictModal.conflicts.map((c, i) => (
                 <div key={i} className="p-3 bg-amber-50/60 border border-amber-100 rounded-xl text-[12px]">
                   <span className="font-bold text-gray-900">{c.service_name}</span> is already scheduled{' '}
@@ -1183,7 +1183,7 @@ export default function WebsiteBookings() {
                 You can proceed if a secondary bay/technician team is available.
               </p>
             </div>
-            <div className="p-4 border-t border-gray-100 flex justify-end gap-2 bg-gray-50/50">
+            <div className="p-4 border-t border-gray-100 flex justify-end gap-2 bg-gray-50/50 shrink-0">
               <button
                 type="button"
                 onClick={() => setConflictModal({ isOpen: false, conflicts: [], booking: null, time: null })}
@@ -1205,8 +1205,8 @@ export default function WebsiteBookings() {
 
       {/* ── Cancel Reason Modal ── */}
       {cancellingId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-fade-in">
-          <div className="bg-white rounded-2xl p-5 sm:p-6 w-full max-w-md shadow-2xl border border-rose-100">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-0 sm:p-4 overflow-y-auto animate-fade-in">
+          <div className="bg-white rounded-t-[28px] sm:rounded-2xl p-5 sm:p-6 w-full max-w-md shadow-2xl border border-rose-100 max-h-[92vh] sm:max-h-[85vh] overflow-y-auto custom-scrollbar animate-scale-up">
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-base font-black text-rose-600 flex items-center gap-2">
                 <XCircle size={20} />
@@ -1270,8 +1270,8 @@ export default function WebsiteBookings() {
 
       {/* ── Convert to Live Invoice Modal (Prompt for Vehicle License Plate) ── */}
       {convertingBooking && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-fade-in">
-          <div className="bg-white rounded-2xl p-5 sm:p-6 w-full max-w-md shadow-2xl border border-gray-100">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-0 sm:p-4 overflow-y-auto animate-fade-in">
+          <div className="bg-white rounded-t-[28px] sm:rounded-2xl p-5 sm:p-6 w-full max-w-md shadow-2xl border border-gray-100 max-h-[92vh] sm:max-h-[85vh] overflow-y-auto custom-scrollbar animate-scale-up">
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-base font-black text-gray-900 flex items-center gap-2">
                 <Sparkles className="text-amber-500" size={20} />

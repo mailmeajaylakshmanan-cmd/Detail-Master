@@ -309,22 +309,36 @@ export default function MasterVehicleType() {
       </div>
 
       {isModalOpen && (
-        <div className="fixed inset-0 bg-black/20 backdrop-blur-md flex items-center justify-center z-50 p-4">
-          <div className="card w-full max-w-md overflow-hidden">
-            <div className="flex justify-between items-center p-5 border-b border-white/50">
-              <h3 className="text-lg font-bold text-gray-900">{editId ? 'Edit Vehicle Type' : 'Add New Vehicle Type'}</h3>
-              <button onClick={handleCancelEdit} className="text-gray-500 hover:text-white transition-colors">
-                <X size={20} />
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-md flex items-end sm:items-center justify-center z-[100] p-0 sm:p-4 overflow-y-auto">
+          <div className="w-full max-w-md bg-white/95 backdrop-blur-2xl shadow-2xl border border-white/60 rounded-t-[28px] sm:rounded-[24px] overflow-hidden flex flex-col max-h-[92vh] sm:max-h-[85vh] animate-scale-up">
+            {/* Sticky Header */}
+            <div className="flex justify-between items-center px-5 sm:px-6 py-4 sm:py-5 border-b border-gray-100/60 bg-white/60 shrink-0">
+              <div>
+                <h3 className="text-lg sm:text-xl font-black text-gray-900 tracking-tight">
+                  {editId ? 'Edit Vehicle Type' : 'Add New Vehicle Type'}
+                </h3>
+                <p className="text-[11px] font-bold text-gray-400">
+                  Category name for tiered service pricing
+                </p>
+              </div>
+              <button onClick={handleCancelEdit} className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 text-gray-500 hover:bg-red-50 hover:text-red-500 transition-colors">
+                <X size={18} />
               </button>
             </div>
-            <form onSubmit={handleSubmit} className="p-5 space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-500 mb-1.5">Vehicle Type Name *</label>
-                <input required type="text" className="input" value={name} onChange={e => setName(e.target.value)} placeholder="e.g. SUV, Hatchback, Luxury" />
+
+            {/* Scrollable Form Body */}
+            <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
+              <div className="px-5 sm:px-6 py-4 sm:py-5 space-y-4 overflow-y-auto custom-scrollbar flex-1">
+                <div>
+                  <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5">Vehicle Type Name *</label>
+                  <input required type="text" className="input" value={name} onChange={e => setName(e.target.value)} placeholder="e.g. SUV, Hatchback, Luxury" />
+                </div>
               </div>
-              <div className="pt-4 flex justify-end gap-3 border-t border-gray-100 mt-6">
-                <button type="button" onClick={handleCancelEdit} className="btn-secondary" disabled={isSaving}>Cancel</button>
-                <button type="submit" className="btn-primary flex items-center gap-2 disabled:opacity-50 disabled:pointer-events-none" disabled={isSaving}>
+
+              {/* Sticky Footer */}
+              <div className="px-5 sm:px-6 py-3.5 sm:py-4 border-t border-gray-100/60 flex justify-end gap-3 bg-gray-50/70 backdrop-blur-xl shrink-0">
+                <button type="button" onClick={handleCancelEdit} className="btn-secondary px-5" disabled={isSaving}>Cancel</button>
+                <button type="submit" className="btn-primary px-6 flex items-center gap-2 disabled:opacity-50 disabled:pointer-events-none" disabled={isSaving}>
                   {isSaving ? 'Saving...' : (editId ? 'Update Vehicle Type' : 'Save Vehicle Type')}
                 </button>
               </div>
@@ -335,10 +349,10 @@ export default function MasterVehicleType() {
 
       {/* Delete Dependency Warning Modal */}
       {deleteTypeId && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
-          <div className="w-full max-w-md bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden flex flex-col">
-            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-red-50/50 shrink-0">
-              <h2 className="text-lg font-bold text-red-700 flex items-center gap-2">
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-end sm:items-center justify-center z-[100] p-0 sm:p-4 overflow-y-auto">
+          <div className="w-full max-w-md bg-white rounded-t-[28px] sm:rounded-2xl shadow-xl border border-gray-100 overflow-hidden flex flex-col animate-scale-up">
+            <div className="px-5 sm:px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-red-50/50 shrink-0">
+              <h2 className="text-base sm:text-lg font-bold text-red-700 flex items-center gap-2">
                 <AlertTriangle size={20} /> Confirm Deletion
               </h2>
               <button
@@ -350,7 +364,7 @@ export default function MasterVehicleType() {
               </button>
             </div>
             
-            <div className="p-6">
+            <div className="p-5 sm:p-6">
               {checkingDependencies ? (
                 <div className="flex flex-col items-center justify-center py-6">
                   <Loader2 className="animate-spin text-red-500 mb-2" size={32} />
@@ -386,7 +400,7 @@ export default function MasterVehicleType() {
                     <button
                       type="button"
                       onClick={() => { setDeleteTypeId(null); setDeleteDependencies(null); }}
-                      className="btn-secondary"
+                      className="px-4 py-2 rounded-xl border border-gray-200 font-bold text-xs text-gray-700 hover:bg-gray-50"
                     >
                       Cancel
                     </button>
@@ -395,7 +409,7 @@ export default function MasterVehicleType() {
                         type="button"
                         onClick={confirmDelete}
                         disabled={deleting}
-                        className="btn-primary bg-red-600 hover:bg-red-700 focus:ring-red-500 flex items-center justify-center gap-2 min-w-[100px]"
+                        className="px-5 py-2 rounded-xl bg-red-600 text-white font-bold text-xs hover:bg-red-700 flex items-center justify-center gap-2 min-w-[100px] shadow-sm"
                       >
                         {deleting ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
                         <span>Delete</span>

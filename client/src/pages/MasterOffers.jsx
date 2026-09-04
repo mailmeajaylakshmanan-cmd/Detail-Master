@@ -437,87 +437,101 @@ export default function MasterOffers() {
 
       {/* Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-black/20 backdrop-blur-md flex items-center justify-center z-[9999] p-4">
-          <div className="card w-full max-w-3xl overflow-hidden bg-white">
-            <div className="flex justify-between items-center p-5 border-b border-white/50">
-              <h3 className="text-lg font-bold text-gray-900">{editId ? 'Edit Offer Template' : 'Add New Offer Template'}</h3>
-              <button onClick={handleCancelEdit} className="text-gray-500 hover:text-gray-900 transition-colors">
-                <X size={20} />
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-md flex items-end sm:items-center justify-center z-[100] p-0 sm:p-4 overflow-y-auto">
+          <div className="w-full max-w-3xl bg-white/95 backdrop-blur-2xl shadow-2xl border border-white/60 rounded-t-[28px] sm:rounded-[24px] flex flex-col max-h-[92vh] sm:max-h-[85vh] overflow-hidden animate-scale-up">
+            {/* Sticky Header */}
+            <div className="flex justify-between items-center px-5 sm:px-6 py-4 sm:py-5 border-b border-gray-100/60 bg-white/60 shrink-0">
+              <div>
+                <h3 className="text-lg sm:text-xl font-black text-gray-900 tracking-tight">
+                  {editId ? 'Edit Offer Template' : 'Add New Offer Template'}
+                </h3>
+                <p className="text-[11px] font-bold text-gray-400">
+                  Configure package services, washes, and validity
+                </p>
+              </div>
+              <button onClick={handleCancelEdit} className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 text-gray-500 hover:bg-red-50 hover:text-red-500 transition-colors">
+                <X size={18} />
               </button>
             </div>
-            <form onSubmit={handleSubmit} className="p-5">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                
-                {/* Left Column */}
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-900 mb-1.5">Package Name *</label>
-                    <input required type="text" className="input" value={name} onChange={e => setName(e.target.value)} placeholder="e.g. VIP Interior Detail" />
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-900 mb-1.5">Default Price (₹) *</label>
-                      <input required type="number" min="0" step="1" className="input" value={defaultPrice} onChange={e => setDefaultPrice(e.target.value)} placeholder="0" />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-900 mb-1.5">Validity (Days) *</label>
-                      <input required type="number" min="1" step="1" className="input" value={defaultValidityDays} onChange={e => setDefaultValidityDays(e.target.value)} placeholder="365" />
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-900 mb-1.5">Total Washes *</label>
-                      <input required type="number" min="0" step="1" className="input" value={totalWashes} onChange={e => setTotalWashes(e.target.value)} placeholder="0" />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-900 mb-1.5">Free Washes</label>
-                      <input required type="number" min="0" step="1" className="input" value={freeWashes} onChange={e => setFreeWashes(e.target.value)} placeholder="0" />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-900 mb-1.5">Description (Optional)</label>
-                    <textarea className="input min-h-[60px] resize-none" value={description} onChange={e => setDescription(e.target.value)} placeholder="Package details..." />
-                  </div>
-                </div>
 
-                {/* Right Column */}
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-900 mb-1.5">Standard Services (Included)</label>
-                    <Select
-                      isMulti
-                      styles={selectStyles()}
-                      menuPortalTarget={document.body}
-                      menuPosition="fixed"
-                      options={services.map(s => ({ value: s.id, label: s.name }))}
-                      value={services.filter(s => serviceIds.includes(s.id)).map(s => ({ value: s.id, label: s.name }))}
-                      onChange={opts => setServiceIds(opts.map(o => o.value))}
-                      placeholder="Select standard services..."
-                    />
+            {/* Scrollable Form Body */}
+            <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
+              <div className="px-5 sm:px-6 py-4 sm:py-5 overflow-y-auto custom-scrollbar flex-1">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+                  
+                  {/* Left Column */}
+                  <div className="space-y-3.5 sm:space-y-4">
+                    <div>
+                      <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5">Package Name *</label>
+                      <input required type="text" className="input" value={name} onChange={e => setName(e.target.value)} placeholder="e.g. VIP Interior Detail" />
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                      <div>
+                        <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5">Default Price (₹) *</label>
+                        <input required type="number" min="0" step="1" className="input" value={defaultPrice} onChange={e => setDefaultPrice(e.target.value)} placeholder="0" />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5">Validity (Days) *</label>
+                        <input required type="number" min="1" step="1" className="input" value={defaultValidityDays} onChange={e => setDefaultValidityDays(e.target.value)} placeholder="365" />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                      <div>
+                        <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5">Total Washes *</label>
+                        <input required type="number" min="0" step="1" className="input" value={totalWashes} onChange={e => setTotalWashes(e.target.value)} placeholder="0" />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5">Free Washes</label>
+                        <input required type="number" min="0" step="1" className="input" value={freeWashes} onChange={e => setFreeWashes(e.target.value)} placeholder="0" />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5">Description (Optional)</label>
+                      <textarea className="input min-h-[60px] resize-none" value={description} onChange={e => setDescription(e.target.value)} placeholder="Package details..." />
+                    </div>
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-900 mb-1.5">Third-Party Services (Included)</label>
-                    <Select
-                      isMulti
-                      styles={selectStyles()}
-                      menuPortalTarget={document.body}
-                      menuPosition="fixed"
-                      options={thirdPartyServices.map(s => ({ value: s.id, label: s.name }))}
-                      value={thirdPartyServices.filter(s => thirdPartyServiceIds.includes(s.id)).map(s => ({ value: s.id, label: s.name }))}
-                      onChange={opts => setThirdPartyServiceIds(opts.map(o => o.value))}
-                      placeholder="Select third-party services..."
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-900 mb-1.5">Terms (Optional)</label>
-                    <textarea className="input min-h-[86px] resize-none" value={terms} onChange={e => setTerms(e.target.value)} placeholder="Terms & Conditions..." />
-                  </div>
-                </div>
 
+                  {/* Right Column */}
+                  <div className="space-y-3.5 sm:space-y-4">
+                    <div>
+                      <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5">Standard Services (Included)</label>
+                      <Select
+                        isMulti
+                        styles={selectStyles()}
+                        menuPortalTarget={document.body}
+                        menuPosition="fixed"
+                        options={services.map(s => ({ value: s.id, label: s.name }))}
+                        value={services.filter(s => serviceIds.includes(s.id)).map(s => ({ value: s.id, label: s.name }))}
+                        onChange={opts => setServiceIds(opts.map(o => o.value))}
+                        placeholder="Select standard services..."
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5">Third-Party Services (Included)</label>
+                      <Select
+                        isMulti
+                        styles={selectStyles()}
+                        menuPortalTarget={document.body}
+                        menuPosition="fixed"
+                        options={thirdPartyServices.map(s => ({ value: s.id, label: s.name }))}
+                        value={thirdPartyServices.filter(s => thirdPartyServiceIds.includes(s.id)).map(s => ({ value: s.id, label: s.name }))}
+                        onChange={opts => setThirdPartyServiceIds(opts.map(o => o.value))}
+                        placeholder="Select third-party services..."
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5">Terms (Optional)</label>
+                      <textarea className="input min-h-[86px] resize-none" value={terms} onChange={e => setTerms(e.target.value)} placeholder="Terms & Conditions..." />
+                    </div>
+                  </div>
+
+                </div>
               </div>
-              <div className="pt-4 flex justify-end gap-3 border-t border-gray-100 mt-6">
-                <button type="button" onClick={handleCancelEdit} className="btn-secondary" disabled={isSaving}>Cancel</button>
-                <button type="submit" className="btn-primary flex items-center gap-2 disabled:opacity-50 disabled:pointer-events-none" disabled={isSaving}>
+
+              {/* Sticky Footer */}
+              <div className="px-5 sm:px-6 py-3.5 sm:py-4 border-t border-gray-100/60 flex justify-end gap-3 bg-gray-50/70 backdrop-blur-xl shrink-0">
+                <button type="button" onClick={handleCancelEdit} className="btn-secondary px-5" disabled={isSaving}>Cancel</button>
+                <button type="submit" className="btn-primary px-6 flex items-center gap-2 disabled:opacity-50 disabled:pointer-events-none" disabled={isSaving}>
                   {isSaving ? 'Saving...' : (editId ? 'Update Template' : 'Save Template')}
                 </button>
               </div>

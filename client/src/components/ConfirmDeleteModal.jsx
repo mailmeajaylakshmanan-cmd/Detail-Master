@@ -16,21 +16,21 @@ export default function ConfirmDeleteModal({
   const isDanger = confirmVariant === 'danger';
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-sm overflow-y-auto animate-fade-in">
       <div 
-        className="w-full max-w-md bg-white rounded-3xl shadow-2xl border border-gray-100 overflow-hidden transform transition-all scale-100 animate-scale-up"
+        className="w-full max-w-md bg-white rounded-t-[28px] sm:rounded-3xl shadow-2xl border border-gray-100 overflow-hidden transform transition-all scale-100 animate-scale-up"
         onClick={e => e.stopPropagation()}
       >
         {/* Header with Icon */}
-        <div className="p-6 pb-4 flex items-start gap-4">
-          <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 ${
+        <div className="p-5 sm:p-6 pb-3 sm:pb-4 flex items-start gap-3.5 sm:gap-4">
+          <div className={`w-11 h-11 sm:w-12 sm:h-12 rounded-2xl flex items-center justify-center shrink-0 ${
             isDanger ? 'bg-rose-50 text-rose-600 border border-rose-100' : 'bg-amber-50 text-amber-600 border border-amber-100'
           }`}>
-            {isDanger ? <Trash2 size={24} /> : <AlertTriangle size={24} />}
+            {isDanger ? <Trash2 size={22} /> : <AlertTriangle size={22} />}
           </div>
 
           <div className="flex-1 min-w-0 pr-2">
-            <h3 className="text-lg font-bold text-gray-900 tracking-tight leading-snug">
+            <h3 className="text-base sm:text-lg font-bold text-gray-900 tracking-tight leading-snug">
               {title}
             </h3>
             {itemName && (
@@ -51,19 +51,19 @@ export default function ConfirmDeleteModal({
         </div>
 
         {/* Body Message */}
-        <div className="px-6 py-2">
-          <p className="text-sm font-medium text-gray-600 leading-relaxed">
+        <div className="px-5 sm:px-6 py-2">
+          <p className="text-xs sm:text-sm font-medium text-gray-600 leading-relaxed">
             {message}
           </p>
         </div>
 
         {/* Actions Footer */}
-        <div className="p-6 pt-4 bg-gray-50/80 border-t border-gray-100 flex items-center justify-end gap-3">
+        <div className="p-5 sm:p-6 pt-3.5 sm:pt-4 bg-gray-50/80 border-t border-gray-100 flex items-center justify-end gap-2.5 sm:gap-3">
           <button
             type="button"
             onClick={onClose}
             disabled={loading}
-            className="px-5 py-2.5 rounded-xl text-xs font-bold text-gray-700 bg-white border border-gray-200 hover:bg-gray-100 transition-colors shadow-2xs"
+            className="px-4 sm:px-5 py-2.5 rounded-xl text-xs font-bold text-gray-700 bg-white border border-gray-200 hover:bg-gray-100 transition-colors shadow-2xs"
           >
             Cancel
           </button>

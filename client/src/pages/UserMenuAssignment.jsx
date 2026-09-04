@@ -374,10 +374,10 @@ export default function UserMenuAssignment() {
 
       {/* CREATE USER MODAL */}
       {isCreateModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
-          <div className="w-full max-w-lg bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden flex flex-col max-h-[90vh]">
-            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-gray-50/50 shrink-0">
-              <h2 className="text-lg font-black text-gray-900 flex items-center gap-2">
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-md flex items-end sm:items-center justify-center z-[100] p-0 sm:p-4 overflow-y-auto">
+          <div className="w-full max-w-lg bg-white/95 backdrop-blur-2xl shadow-2xl border border-white/60 rounded-t-[28px] sm:rounded-2xl overflow-hidden flex flex-col max-h-[92vh] sm:max-h-[90vh] animate-scale-up">
+            <div className="px-5 sm:px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-white/60 shrink-0">
+              <h2 className="text-base sm:text-lg font-black text-gray-900 flex items-center gap-2">
                 <Users className="text-[#F6CB59]" size={20} /> Create New User
               </h2>
               <button
@@ -389,9 +389,9 @@ export default function UserMenuAssignment() {
               </button>
             </div>
             
-            <form onSubmit={handleCreateUser} className="p-6 overflow-y-auto space-y-4">
+            <form onSubmit={handleCreateUser} className="p-5 sm:p-6 overflow-y-auto custom-scrollbar space-y-3.5 sm:space-y-4 flex-1">
               <div>
-                <label className="block text-sm font-bold text-gray-700 mb-1">Full Name</label>
+                <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Full Name</label>
                 <input
                   type="text"
                   required
@@ -401,9 +401,9 @@ export default function UserMenuAssignment() {
                   placeholder="e.g. John Doe"
                 />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-1">Username</label>
+                  <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Username</label>
                   <input
                     type="text"
                     required
@@ -414,7 +414,7 @@ export default function UserMenuAssignment() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-1">Password</label>
+                  <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Password</label>
                   <div className="relative">
                     <input
                       type={showPassword ? "text" : "password"}
@@ -435,7 +435,7 @@ export default function UserMenuAssignment() {
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-bold text-gray-700 mb-1">Email</label>
+                <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Email</label>
                 <input
                   type="email"
                   required
@@ -446,7 +446,7 @@ export default function UserMenuAssignment() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-bold text-gray-700 mb-1">Assign Role</label>
+                <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Assign Role</label>
                 <select
                   required
                   value={newUser.role_id}
@@ -460,11 +460,11 @@ export default function UserMenuAssignment() {
                 </select>
               </div>
 
-              <div className="pt-4 flex justify-end gap-3 border-t border-gray-100 mt-6">
+              <div className="pt-3 sm:pt-4 flex justify-end gap-3 border-t border-gray-100 mt-4 sm:mt-6">
                 <button
                   type="button"
                   onClick={() => setIsCreateModalOpen(false)}
-                  className="btn-secondary"
+                  className="btn-secondary px-5"
                 >
                   Cancel
                 </button>
@@ -484,14 +484,14 @@ export default function UserMenuAssignment() {
 
       {/* PERMISSION OVERRIDES MODAL */}
       {isPermissionModalOpen && selectedUser && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
-          <div className="w-full max-w-2xl bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden flex flex-col max-h-[90vh]">
-            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-gray-50/50 shrink-0">
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-md flex items-end sm:items-center justify-center z-[100] p-0 sm:p-4 overflow-y-auto">
+          <div className="w-full max-w-2xl bg-white/95 backdrop-blur-2xl shadow-2xl border border-white/60 rounded-t-[28px] sm:rounded-2xl overflow-hidden flex flex-col max-h-[92vh] sm:max-h-[90vh] animate-scale-up">
+            <div className="px-5 sm:px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-white/60 shrink-0">
               <div>
-                <h2 className="text-lg font-black text-gray-900 flex items-center gap-2">
+                <h2 className="text-base sm:text-lg font-black text-gray-900 flex items-center gap-2">
                   <Shield className="text-[#F6CB59]" size={20} /> Permissions: {selectedUser.full_name}
                 </h2>
-                <p className="text-xs text-gray-500 mt-1">Grant extra sidebar menus outside of their normal role.</p>
+                <p className="text-xs text-gray-500 mt-0.5">Grant extra sidebar menus outside of their normal role.</p>
               </div>
               <button
                 type="button"
@@ -502,16 +502,16 @@ export default function UserMenuAssignment() {
               </button>
             </div>
             
-            <div className="p-6 overflow-y-auto">
-              <div className="card overflow-hidden">
+            <div className="p-4 sm:p-6 overflow-y-auto custom-scrollbar flex-1">
+              <div className="card overflow-x-auto">
                 <table className="w-full text-left whitespace-nowrap">
                   <thead>
                     <tr className="bg-gray-50/50 border-b border-gray-100 text-[11px] font-black uppercase tracking-wider text-gray-500">
-                      <th className="px-4 py-4">Menu Item</th>
-                      <th className="px-4 py-4 text-center">Can View</th>
-                      <th className="px-4 py-4 text-center">Can Add</th>
-                      <th className="px-4 py-4 text-center">Can Edit</th>
-                      <th className="px-4 py-4 text-center">Can Delete</th>
+                      <th className="px-4 py-3 sm:py-4">Menu Item</th>
+                      <th className="px-4 py-3 sm:py-4 text-center">Can View</th>
+                      <th className="px-4 py-3 sm:py-4 text-center">Can Add</th>
+                      <th className="px-4 py-3 sm:py-4 text-center">Can Edit</th>
+                      <th className="px-4 py-3 sm:py-4 text-center">Can Delete</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
@@ -519,12 +519,12 @@ export default function UserMenuAssignment() {
                       const perms = userMenus[menu.id] || { can_view: false, can_add: false, can_edit: false, can_delete: false };
                       return (
                         <tr key={menu.id} className="hover:bg-gray-50/50 transition-colors">
-                          <td className="px-4 py-4 text-sm font-bold text-gray-800 flex items-center gap-2">
+                          <td className="px-4 py-3 sm:py-4 text-xs sm:text-sm font-bold text-gray-800 flex items-center gap-2">
                             {menu.parent_id && <span className="ml-4 text-gray-400">↳ </span>}
                             {menu.menu_name}
                           </td>
                           {['can_view', 'can_add', 'can_edit', 'can_delete'].map(field => (
-                            <td key={field} className="px-4 py-4 text-center">
+                            <td key={field} className="px-4 py-3 sm:py-4 text-center">
                               <button
                                 onClick={() => togglePermission(menu.id, field)}
                                 className={`w-11 h-6 rounded-full relative inline-flex items-center transition-colors cursor-pointer ${perms[field] ? 'bg-emerald-500' : 'bg-gray-200'}`}
@@ -541,11 +541,11 @@ export default function UserMenuAssignment() {
               </div>
             </div>
 
-            <div className="px-6 py-4 border-t border-gray-100 flex justify-end gap-3 bg-gray-50/50 shrink-0">
+            <div className="px-5 sm:px-6 py-3.5 sm:py-4 border-t border-gray-100 flex justify-end gap-3 bg-gray-50/70 backdrop-blur-xl shrink-0">
               <button
                 type="button"
                 onClick={() => setIsPermissionModalOpen(false)}
-                className="btn-secondary"
+                className="btn-secondary px-5"
               >
                 Cancel
               </button>
@@ -565,10 +565,10 @@ export default function UserMenuAssignment() {
 
       {/* CHANGE PASSWORD MODAL */}
       {isPasswordModalOpen && selectedUser && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
-          <div className="w-full max-w-sm bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden flex flex-col">
-            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-gray-50/50 shrink-0">
-              <h2 className="text-lg font-black text-gray-900 flex items-center gap-2">
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-md flex items-end sm:items-center justify-center z-[100] p-0 sm:p-4 overflow-y-auto">
+          <div className="w-full max-w-sm bg-white rounded-t-[28px] sm:rounded-2xl shadow-xl border border-gray-100 overflow-hidden flex flex-col animate-scale-up">
+            <div className="px-5 sm:px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-white/60 shrink-0">
+              <h2 className="text-base sm:text-lg font-black text-gray-900 flex items-center gap-2">
                 <Key className="text-[#F6CB59]" size={20} /> Change Password
               </h2>
               <button
@@ -580,12 +580,12 @@ export default function UserMenuAssignment() {
               </button>
             </div>
             
-            <form onSubmit={handleSavePassword} className="p-6 flex flex-col gap-4">
-              <p className="text-sm font-medium text-gray-600">
+            <form onSubmit={handleSavePassword} className="p-5 sm:p-6 flex flex-col gap-4">
+              <p className="text-xs sm:text-sm font-medium text-gray-600">
                 Updating password for <strong>{selectedUser.username}</strong>
               </p>
               <div>
-                <label className="block text-sm font-bold text-gray-700 mb-1">New Password</label>
+                <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">New Password</label>
                 <div className="relative">
                   <input
                     type={showPassword ? "text" : "password"}
@@ -610,7 +610,7 @@ export default function UserMenuAssignment() {
                 <button
                   type="button"
                   onClick={() => setIsPasswordModalOpen(false)}
-                  className="btn-secondary"
+                  className="btn-secondary px-5"
                 >
                   Cancel
                 </button>

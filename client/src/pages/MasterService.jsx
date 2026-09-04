@@ -780,167 +780,169 @@ export default function MasterService() {
 
       {/* Add / Edit Service Modal Popup */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-[9999] p-4 overflow-y-auto">
-          <div className="w-full max-w-2xl bg-white rounded-3xl shadow-2xl border border-gray-100 overflow-hidden flex flex-col my-8 transition-all">
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-md flex items-end sm:items-center justify-center z-[100] p-0 sm:p-4 overflow-y-auto">
+          <div className="w-full max-w-2xl bg-white/95 backdrop-blur-2xl shadow-2xl border border-white/60 rounded-t-[28px] sm:rounded-[24px] overflow-hidden flex flex-col max-h-[92vh] sm:max-h-[85vh] animate-scale-up">
             {/* Modal Header */}
-            <div className="flex justify-between items-center px-6 py-5 border-b border-gray-100 bg-gray-50/70">
+            <div className="flex justify-between items-center px-5 sm:px-6 py-4 sm:py-5 border-b border-gray-100/60 bg-white/60 shrink-0">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-black text-[#F6CB59] flex items-center justify-center shadow-md">
+                <div className="w-10 h-10 rounded-2xl bg-black text-[#F6CB59] flex items-center justify-center shadow-md shrink-0">
                   <Sparkles size={18} strokeWidth={2.5} />
                 </div>
                 <div>
-                  <h3 className="text-lg font-black text-gray-900 leading-tight">
+                  <h3 className="text-lg sm:text-xl font-black text-gray-900 leading-tight">
                     {editId ? 'Edit Service & Pricing' : 'Add New Service'}
                   </h3>
-                  <p className="text-xs font-bold text-gray-500">
+                  <p className="text-[11px] font-bold text-gray-400">
                     Set service details and vehicle category rates
                   </p>
                 </div>
               </div>
               <button
                 onClick={handleCancelEdit}
-                className="w-9 h-9 rounded-xl flex items-center justify-center text-gray-400 hover:bg-gray-200/70 hover:text-gray-900 transition-all"
+                className="w-8 h-8 rounded-full flex items-center justify-center bg-gray-100 text-gray-500 hover:bg-red-50 hover:text-red-500 transition-colors"
               >
-                <X size={20} />
+                <X size={18} />
               </button>
             </div>
 
             {/* Modal Body */}
-            <form onSubmit={handleSubmit} className="p-6 sm:p-7 space-y-6">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-black text-gray-700 uppercase tracking-wider mb-2">
-                    Service Name <span className="text-rose-500">*</span>
-                  </label>
-                  <input
-                    required
-                    type="text"
-                    className="w-full px-4 py-2.5 bg-gray-50/70 border border-gray-200 rounded-xl text-sm font-bold text-gray-900 placeholder:text-gray-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent transition-all"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="e.g. Foam Wash & Wax"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-black text-gray-700 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                    <Clock size={13} className="text-amber-700" />
-                    Estimate Duration
-                  </label>
-                  <input
-                    type="text"
-                    className="w-full px-4 py-2.5 bg-gray-50/70 border border-gray-200 rounded-xl text-sm font-bold text-gray-900 placeholder:text-gray-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent transition-all"
-                    value={estimateTime}
-                    onChange={(e) => setEstimateTime(e.target.value)}
-                    placeholder="e.g. 45 mins, 2-3 hrs"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-black text-gray-700 uppercase tracking-wider mb-2">
-                  Category / Description (Optional)
-                </label>
-                <input
-                  type="text"
-                  className="w-full px-4 py-2.5 bg-gray-50/70 border border-gray-200 rounded-xl text-sm font-bold text-gray-900 placeholder:text-gray-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent transition-all"
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder="e.g. Wash, Interior, Exterior, Detailing"
-                />
-              </div>
-
-              {/* Vehicle Type Pricing Matrix Box */}
-              <div className="border border-gray-200 rounded-2xl p-5 bg-gray-50/50 space-y-4">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-gray-200/80">
+            <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
+              <div className="px-5 sm:px-6 py-4 sm:py-5 space-y-4 sm:space-y-5 overflow-y-auto custom-scrollbar flex-1">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                   <div>
-                    <span className="text-xs font-black text-gray-900 uppercase tracking-wider flex items-center gap-1.5">
-                      <Car size={15} className="text-gray-700" />
-                      Vehicle Type Pricing
-                    </span>
-                    <p className="text-[11px] font-bold text-gray-500 mt-0.5">
-                      Enter the rate for each vehicle category
-                    </p>
+                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5">
+                      Service Name <span className="text-rose-500">*</span>
+                    </label>
+                    <input
+                      required
+                      type="text"
+                      className="input"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      placeholder="e.g. Foam Wash & Wax"
+                    />
                   </div>
 
-                  {/* Quick Fill Box */}
-                  <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl border border-gray-200 shadow-sm shrink-0">
-                    <span className="text-xs font-bold text-gray-500">Quick Set:</span>
-                    <div className="relative">
-                      <span className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-xs">
-                        ₹
-                      </span>
-                      <input
-                        type="number"
-                        min="0"
-                        step="1"
-                        placeholder="0"
-                        value={quickFillPrice}
-                        onChange={(e) => setQuickFillPrice(e.target.value)}
-                        className="w-20 pl-5 pr-2 py-1 text-xs font-mono font-bold bg-gray-50 border border-gray-200 rounded-lg text-right focus:bg-white focus:outline-none focus:ring-1 focus:ring-black"
-                      />
-                    </div>
-                    <button
-                      type="button"
-                      onClick={handleApplyQuickFill}
-                      className="px-3 py-1 bg-black text-[#F6CB59] rounded-lg text-xs font-black hover:bg-gray-800 transition-all flex items-center gap-1 shadow-sm"
-                    >
-                      <Zap size={12} /> Apply All
-                    </button>
+                  <div>
+                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
+                      <Clock size={12} className="text-amber-700" />
+                      Estimate Duration
+                    </label>
+                    <input
+                      type="text"
+                      className="input"
+                      value={estimateTime}
+                      onChange={(e) => setEstimateTime(e.target.value)}
+                      placeholder="e.g. 45 mins, 2-3 hrs"
+                    />
                   </div>
                 </div>
 
-                {/* Neatly Styled 2-Column Grid */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-                  {activeVehicleTypes.map((vt) => (
-                    <div
-                      key={vt.id}
-                      className="flex items-center justify-between px-4 py-3 rounded-2xl bg-white border border-gray-200/90 shadow-[0_1px_3px_rgba(0,0,0,0.03)] hover:border-gray-300 transition-all"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-xl bg-amber-50 border border-amber-200/60 text-amber-900 flex items-center justify-center font-black text-xs">
-                          {vt.name.charAt(0)}
-                        </div>
-                        <div>
-                          <div className="text-xs font-black text-gray-900">{vt.name}</div>
-                          <div className="text-[10px] font-bold text-gray-400">Vehicle Type</div>
-                        </div>
-                      </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5">
+                    Category / Description (Optional)
+                  </label>
+                  <input
+                    type="text"
+                    className="input"
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    placeholder="e.g. Wash, Interior, Exterior, Detailing"
+                  />
+                </div>
 
+                {/* Vehicle Type Pricing Matrix Box */}
+                <div className="border border-gray-200/80 rounded-2xl p-4 sm:p-5 bg-slate-50/60 space-y-3.5">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-gray-200/80">
+                    <div>
+                      <span className="text-xs font-black text-gray-900 uppercase tracking-wider flex items-center gap-1.5">
+                        <Car size={15} className="text-gray-700" />
+                        Vehicle Type Pricing
+                      </span>
+                      <p className="text-[10px] font-bold text-gray-400 mt-0.5">
+                        Enter the rate for each vehicle category
+                      </p>
+                    </div>
+
+                    {/* Quick Fill Box */}
+                    <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl border border-gray-200 shadow-xs shrink-0">
+                      <span className="text-xs font-bold text-gray-500">Quick Set:</span>
                       <div className="relative">
-                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-xs">
+                        <span className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-xs">
                           ₹
                         </span>
                         <input
                           type="number"
                           min="0"
                           step="1"
-                          className="w-28 pl-6 pr-3 py-1.5 text-xs font-mono font-black text-gray-900 bg-gray-50 border border-gray-200 rounded-xl text-right focus:bg-white focus:outline-none focus:ring-2 focus:ring-black transition-all"
                           placeholder="0"
-                          value={vehiclePrices[vt.id] !== undefined ? vehiclePrices[vt.id] : ''}
-                          onChange={(e) =>
-                            setVehiclePrices({ ...vehiclePrices, [vt.id]: e.target.value })
-                          }
+                          value={quickFillPrice}
+                          onChange={(e) => setQuickFillPrice(e.target.value)}
+                          className="w-20 pl-5 pr-2 py-1 text-xs font-mono font-bold bg-gray-50 border border-gray-200 rounded-lg text-right focus:bg-white focus:outline-none focus:ring-1 focus:ring-black"
                         />
                       </div>
+                      <button
+                        type="button"
+                        onClick={handleApplyQuickFill}
+                        className="px-2.5 py-1 bg-black text-[#F6CB59] rounded-lg text-xs font-black hover:bg-gray-800 transition-all flex items-center gap-1 shadow-xs"
+                      >
+                        <Zap size={12} /> Apply All
+                      </button>
                     </div>
-                  ))}
+                  </div>
+
+                  {/* Neatly Styled 2-Column Grid */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3 pt-1">
+                    {activeVehicleTypes.map((vt) => (
+                      <div
+                        key={vt.id}
+                        className="flex items-center justify-between px-3.5 py-2.5 rounded-2xl bg-white border border-gray-200/90 shadow-2xs hover:border-gray-300 transition-all"
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0 pr-2">
+                          <div className="w-7 h-7 rounded-lg bg-amber-50 border border-amber-200/60 text-amber-900 flex items-center justify-center font-black text-xs shrink-0">
+                            {vt.name.charAt(0)}
+                          </div>
+                          <div className="min-w-0">
+                            <div className="text-xs font-black text-gray-900 truncate">{vt.name}</div>
+                            <div className="text-[9px] font-bold text-gray-400 uppercase">Category</div>
+                          </div>
+                        </div>
+
+                        <div className="relative shrink-0">
+                          <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-xs">
+                            ₹
+                          </span>
+                          <input
+                            type="number"
+                            min="0"
+                            step="1"
+                            className="w-24 sm:w-28 pl-5 sm:pl-6 pr-2.5 py-1.5 text-xs font-mono font-black text-gray-900 bg-gray-50 border border-gray-200 rounded-xl text-right focus:bg-white focus:outline-none focus:ring-2 focus:ring-black transition-all"
+                            placeholder="0"
+                            value={vehiclePrices[vt.id] !== undefined ? vehiclePrices[vt.id] : ''}
+                            onChange={(e) =>
+                              setVehiclePrices({ ...vehiclePrices, [vt.id]: e.target.value })
+                            }
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
 
               {/* Modal Footer Actions */}
-              <div className="pt-3 flex justify-end gap-3 border-t border-gray-100">
+              <div className="px-5 sm:px-6 py-3.5 sm:py-4 border-t border-gray-100/60 flex justify-end gap-3 bg-gray-50/70 backdrop-blur-xl shrink-0">
                 <button
                   type="button"
                   onClick={handleCancelEdit}
-                  className="px-5 py-2.5 rounded-xl border border-gray-200 font-bold text-xs text-gray-700 hover:bg-gray-50 transition-all"
+                  className="btn-secondary px-5"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isSaving}
-                  className="px-6 py-2.5 rounded-xl bg-black text-[#F6CB59] font-black text-xs hover:scale-[1.02] active:scale-[0.98] transition-all shadow-md flex items-center gap-2 disabled:opacity-50 disabled:pointer-events-none"
+                  className="btn-primary px-6 flex items-center gap-2 disabled:opacity-50 disabled:pointer-events-none"
                 >
                   {isSaving ? (
                     <>
@@ -959,10 +961,10 @@ export default function MasterService() {
 
       {/* Delete Dependency Warning Modal */}
       {deleteServiceId && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
-          <div className="w-full max-w-md bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden flex flex-col">
-            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-red-50/50 shrink-0">
-              <h2 className="text-lg font-bold text-red-700 flex items-center gap-2">
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-end sm:items-center justify-center z-[100] p-0 sm:p-4 overflow-y-auto">
+          <div className="w-full max-w-md bg-white rounded-t-[28px] sm:rounded-2xl shadow-xl border border-gray-100 overflow-hidden flex flex-col animate-scale-up">
+            <div className="px-5 sm:px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-red-50/50 shrink-0">
+              <h2 className="text-base sm:text-lg font-bold text-red-700 flex items-center gap-2">
                 <AlertTriangle size={20} /> Confirm Deletion
               </h2>
               <button
@@ -977,7 +979,7 @@ export default function MasterService() {
               </button>
             </div>
 
-            <div className="p-6">
+            <div className="p-5 sm:p-6">
               {checkingDependencies ? (
                 <div className="flex flex-col items-center justify-center py-6">
                   <Loader2 className="animate-spin text-red-500 mb-2" size={32} />

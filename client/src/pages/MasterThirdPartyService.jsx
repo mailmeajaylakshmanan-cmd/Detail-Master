@@ -365,42 +365,54 @@ export default function MasterThirdPartyService() {
       </div>
 
       {isModalOpen && (
-        <div className="fixed inset-0 bg-black/20 backdrop-blur-md flex items-center justify-center z-[9999] p-4">
-          <div className="card w-full max-w-md bg-white">
-            <div className="flex justify-between items-center p-5 border-b border-gray-100 bg-gray-50/50">
-              <h3 className="text-lg font-bold text-gray-900">{editId ? 'Edit Third-Party Service' : 'Add Third-Party Service'}</h3>
-              <button onClick={handleCancelEdit} className="text-gray-400 hover:text-gray-900 transition-colors">
-                <X size={20} />
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-md flex items-end sm:items-center justify-center z-[100] p-0 sm:p-4 overflow-y-auto">
+          <div className="w-full max-w-md bg-white/95 backdrop-blur-2xl shadow-2xl border border-white/60 rounded-t-[28px] sm:rounded-[24px] overflow-hidden flex flex-col max-h-[92vh] sm:max-h-[85vh] animate-scale-up">
+            {/* Sticky Header */}
+            <div className="flex justify-between items-center px-5 sm:px-6 py-4 sm:py-5 border-b border-gray-100/60 bg-white/60 shrink-0">
+              <div>
+                <h3 className="text-lg sm:text-xl font-black text-gray-900 tracking-tight">
+                  {editId ? 'Edit Third-Party Service' : 'Add Third-Party Service'}
+                </h3>
+                <p className="text-[11px] font-bold text-gray-400">
+                  Vendor job rates & specialist labour
+                </p>
+              </div>
+              <button onClick={handleCancelEdit} className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 text-gray-500 hover:bg-red-50 hover:text-red-500 transition-colors">
+                <X size={18} />
               </button>
             </div>
-            <form onSubmit={handleSubmit} className="p-5 space-y-4 max-h-[70vh] overflow-y-auto">
-              <div>
-                <label className="block text-sm font-medium text-gray-500 mb-1.5">Service Name *</label>
-                <input required type="text" className="input" value={form.name} onChange={e => setField('name', e.target.value)} placeholder="e.g. Full Body Painting" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-500 mb-1.5">Vendor Name</label>
-                <input type="text" className="input" value={form.vendorName} onChange={e => setField('vendorName', e.target.value)} placeholder="e.g. XYZ Paint Works" />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
+
+            {/* Scrollable Form Body */}
+            <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
+              <div className="px-5 sm:px-6 py-4 sm:py-5 space-y-4 overflow-y-auto custom-scrollbar flex-1">
                 <div>
-                  <label className="block text-sm font-medium text-gray-500 mb-1.5">Labour Count</label>
-                  <input type="number" min="1" step="1" className="input" value={form.labourCount} onChange={e => setField('labourCount', e.target.value)} />
+                  <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5">Service Name *</label>
+                  <input required type="text" className="input" value={form.name} onChange={e => setField('name', e.target.value)} placeholder="e.g. Full Body Painting" />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-500 mb-1.5">Labour Charge (₹)</label>
-                  <input type="number" min="0" step="1" className="input" value={form.labourCharge} onChange={e => setField('labourCharge', e.target.value)} placeholder="0" />
+                  <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5">Vendor Name</label>
+                  <input type="text" className="input" value={form.vendorName} onChange={e => setField('vendorName', e.target.value)} placeholder="e.g. XYZ Paint Works" />
                 </div>
-              </div>
-              <div className="grid grid-cols-1 gap-4 mt-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                  <div>
+                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5">Labour Count</label>
+                    <input type="number" min="1" step="1" className="input" value={form.labourCount} onChange={e => setField('labourCount', e.target.value)} />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5">Labour Charge (₹)</label>
+                    <input type="number" min="0" step="1" className="input" value={form.labourCharge} onChange={e => setField('labourCharge', e.target.value)} placeholder="0" />
+                  </div>
+                </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-500 mb-1.5">Selling Price (₹) *</label>
+                  <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5">Selling Price (₹) *</label>
                   <input required type="number" min="0" step="1" className="input" value={form.sellingPrice} onChange={e => setField('sellingPrice', e.target.value)} placeholder="0" />
                 </div>
               </div>
-              <div className="pt-4 flex justify-end gap-3 border-t border-gray-100 mt-6">
-                <button type="button" onClick={handleCancelEdit} className="btn-secondary" disabled={isSaving}>Cancel</button>
-                <button type="submit" className="btn-primary flex items-center gap-2 disabled:opacity-50 disabled:pointer-events-none" disabled={isSaving}>
+
+              {/* Sticky Footer */}
+              <div className="px-5 sm:px-6 py-3.5 sm:py-4 border-t border-gray-100/60 flex justify-end gap-3 bg-gray-50/70 backdrop-blur-xl shrink-0">
+                <button type="button" onClick={handleCancelEdit} className="btn-secondary px-5" disabled={isSaving}>Cancel</button>
+                <button type="submit" className="btn-primary px-6 flex items-center gap-2 disabled:opacity-50 disabled:pointer-events-none" disabled={isSaving}>
                   {isSaving ? 'Saving...' : (editId ? 'Update Service' : 'Save Service')}
                 </button>
               </div>
