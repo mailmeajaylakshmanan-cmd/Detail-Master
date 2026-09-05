@@ -58,6 +58,7 @@ router.get('/', async (req, res) => {
     const search = (req.query.search || '').trim();
     const status = (req.query.status || '').trim();
     const clientId = req.query.client_id;
+    const organizationId = req.query.organization_id;
 
     const where = [];
     const params = [];
@@ -65,6 +66,11 @@ router.get('/', async (req, res) => {
     if (clientId) {
       params.push(clientId);
       where.push(`i.client_id = $${params.length}`);
+    }
+
+    if (organizationId) {
+      params.push(organizationId);
+      where.push(`i.organization_id = $${params.length}`);
     }
 
     if (status === 'open') {

@@ -1383,8 +1383,8 @@ export default function InvoiceForm({ initial, onSubmit, loading, onCustomerSele
                 </div>
                 <h2 className="text-[14px] font-bold text-gray-900 tracking-tight">{clientType === 'individual' ? 'Client Details' : 'Organization Details'}</h2>
                 <div className="ml-auto flex items-center gap-1 bg-gray-100 p-0.5 rounded-lg">
-                  <button type="button" onClick={() => { setClientType('individual'); setForm(f => ({ ...f, customer: { name: '', phone: '', address: '', vehicles: [] }, vehicleId: null, selectedVehicleIds: [], vehicleVisitMeta: {} })); }} className={`px-2.5 py-1 text-[11px] font-bold rounded-md transition-colors ${clientType === 'individual' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}>Individual</button>
-                  <button type="button" onClick={() => { setClientType('organization'); setForm(f => ({ ...f, customer: { name: '', phone: '', address: '', vehicles: [] }, vehicleId: null, selectedVehicleIds: [], vehicleVisitMeta: {} })); }} className={`px-2.5 py-1 text-[11px] font-bold rounded-md transition-colors ${clientType === 'organization' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}>Organization</button>
+                  <button type="button" onClick={() => { setClientType('individual'); setForm(f => ({ ...f, customer: { name: '', phone: '', address: '', vehicles: [] }, vehicleId: null, selectedVehicleIds: [], vehicleVisitMeta: {} })); onCustomerSelect?.(null); }} className={`px-2.5 py-1 text-[11px] font-bold rounded-md transition-colors ${clientType === 'individual' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}>Individual</button>
+                  <button type="button" onClick={() => { setClientType('organization'); setForm(f => ({ ...f, customer: { name: '', phone: '', address: '', vehicles: [] }, vehicleId: null, selectedVehicleIds: [], vehicleVisitMeta: {} })); onCustomerSelect?.(null); }} className={`px-2.5 py-1 text-[11px] font-bold rounded-md transition-colors ${clientType === 'organization' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}>Organization</button>
                 </div>
               </div>
 
@@ -1426,7 +1426,7 @@ export default function InvoiceForm({ initial, onSubmit, loading, onCustomerSele
                         carMake: '',
                         licensePlate: '',
                       }));
-                      onCustomerSelect?.(m);
+                      onCustomerSelect?.({ ...m, isOrganization: true, clientType: 'organization' });
                       return;
                     }
                     const first = vehicles[0];
@@ -1443,7 +1443,7 @@ export default function InvoiceForm({ initial, onSubmit, loading, onCustomerSele
                       carMake: first ? `${first.make || ''} ${first.model || ''}`.trim() : '',
                       licensePlate: first?.plate || '',
                     }));
-                    onCustomerSelect?.(m);
+                    onCustomerSelect?.({ ...m, isOrganization: false, clientType: 'individual' });
                   }}
                   isDisabled={!!initial}
                 />

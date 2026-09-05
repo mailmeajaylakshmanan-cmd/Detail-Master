@@ -10,15 +10,22 @@ import { queryKeys, mapInvoice } from '../api/queryKeys.js';
 export default function NewInvoice() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
-  const [selectedClientId, setSelectedClientId] = useState(null);
+  const [selectedCustomer, setSelectedCustomer] = useState(null);
+
+  const isOrg = selectedCustomer?.isOrganization || selectedCustomer?.clientType === 'organization';
+  const customerId = selectedCustomer?.id || null;
 
   const { data: openInvoices = [] } = useQuery({
-    queryKey: queryKeys.invoices.openByClient(selectedClientId),
-    enabled: !!selectedClientId,
+    queryKey: ['invoices', 'open', isOrg ? 'org' : 'client', customerId],
+    enabled: !!customerId,
     queryFn: async () => {
-      const res = await api.get('/invoices', {
-        params: { client_id: selectedClientId, status: 'open', limit: 5 },
-      });
+      const params = { status: 'open', limit: 5 };
+      if (isOrg) {
+        params.organization_id = customerId;
+      } else {
+        params.client_id = customerId;
+      }
+      const res = await api.get('/invoices', { params });
       const rows = Array.isArray(res.data?.invoices) ? res.data.invoices : [];
       return rows.map(mapInvoice);
     },
@@ -26,8 +33,8 @@ export default function NewInvoice() {
 
   const existingInvoice = openInvoices[0] || null;
 
-  function handleClientSelect(client) {
-    setSelectedClientId(client?.id || null);
+  function handleClientSelect(customer) {
+    setSelectedCustomer(customer || null);
   }
 
   async function handleSubmit(data) {
@@ -54,11 +61,11 @@ export default function NewInvoice() {
               <AlertCircle size={16} /> Open Bill Found
             </p>
             <p className="text-[13px] font-medium text-rose-700">
-              This client already has an active bill ({existingInvoice.invoiceNo}). Would you like to continue with the old bill?
+              This client already has an active bill ({existingInvoice.invoiceNo || existingInvoice.invoice_number}). Would you like to continue with the old bill?
             </p>
           </div>
           <Link
-            to={`/invoices/${existingInvoice.id}/edit`}
+            to={`/invoices/${existingInvoice.id || existingInvoice._id}/edit`}
             className="shrink-0 bg-white shadow-sm border border-rose-200 text-rose-700 hover:bg-rose-600 hover:text-white px-4 py-2 rounded-xl text-xs font-bold transition-all uppercase tracking-wider"
           >
             Edit Old Bill

@@ -144,14 +144,18 @@ export function useInvoices(filters = {}) {
   });
 }
 
-export function useOpenInvoicesForClient(clientId) {
+export function useOpenInvoicesForClient(clientId, isOrg = false) {
   return useQuery({
-    queryKey: queryKeys.invoices.openByClient(clientId),
+    queryKey: ['invoices', 'open', isOrg ? 'org' : 'client', clientId],
     enabled: !!clientId,
     queryFn: async () => {
-      const res = await api.get('/invoices', {
-        params: { client_id: clientId, status: 'open', limit: 5 },
-      });
+      const params = { status: 'open', limit: 5 };
+      if (isOrg) {
+        params.organization_id = clientId;
+      } else {
+        params.client_id = clientId;
+      }
+      const res = await api.get('/invoices', { params });
       const rows = Array.isArray(res.data?.invoices)
         ? res.data.invoices
         : Array.isArray(res.data)
