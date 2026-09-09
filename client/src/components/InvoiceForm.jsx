@@ -4,7 +4,8 @@ import toast from 'react-hot-toast';
 import api from '../api/axios.js';
 import {
   User, Phone, MapPin, Plus, Trash2, Sparkles,
-  CheckCircle2, AlertCircle, Calendar, IndianRupee, Hash, Receipt, Settings, Truck, X, Car
+  CheckCircle2, AlertCircle, Calendar, IndianRupee, Hash, Receipt, Settings, Truck, X, Car,
+  Search, UserPlus, ChevronDown, Check, ArrowRight, RefreshCw, UserCheck
 } from 'lucide-react';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
@@ -344,15 +345,18 @@ function formatLocalDateTime(d) {
 const VehicleVisitRow = memo(function VehicleVisitRow({ label, meta, onField, onCopyToAll, showCopyToAll }) {
   return (
     <div className="flex flex-col gap-3 bg-blue-50/50 p-3.5 sm:p-4 rounded-xl border border-blue-100">
-      <div className="flex items-center justify-between">
-        <div className="text-[13px] font-bold text-gray-900 truncate pr-2">{label}</div>
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <div className="text-[13px] font-bold text-gray-900 truncate pr-2 flex items-center gap-1.5">
+          <Car size={14} className="text-blue-600 shrink-0" />
+          <span>{label}</span>
+        </div>
         {showCopyToAll && (
           <button type="button" onClick={onCopyToAll} className="text-[11px] font-bold text-blue-600 hover:underline shrink-0">
-            Use for all
+            Use for all vehicles
           </button>
         )}
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3">
         <Field label="Visitor Name">
           <input className={inputCls} placeholder="Who dropped this off" value={meta.visitorName || ''} onChange={e => onField('visitorName', e.target.value)} />
         </Field>
@@ -403,7 +407,7 @@ const SelectedServiceRow = memo(function SelectedServiceRow({ cur, onDesc, onPri
   const hasOffers = !readOnly && assignedOffers && assignedOffers.length > 0;
 
   return (
-    <div className="flex flex-col gap-2.5 bg-white p-3.5 rounded-xl border border-gray-200/90 shadow-2xs hover:border-gray-300 transition-colors">
+    <div className="flex flex-col gap-2.5 bg-white p-3.5 sm:p-4 rounded-xl border border-gray-200/90 shadow-2xs hover:border-gray-300 transition-colors">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
         {/* Service Name */}
         <div className="md:w-1/3 font-bold text-[13px] text-gray-900 flex items-center gap-2 shrink-0">
@@ -423,8 +427,8 @@ const SelectedServiceRow = memo(function SelectedServiceRow({ cur, onDesc, onPri
         </div>
 
         {/* Price & Vehicle Action */}
-        <div className="md:w-36 flex items-center justify-end gap-2 shrink-0">
-          <div className="w-28">
+        <div className="md:w-36 flex items-center justify-between md:justify-end gap-2 shrink-0 pt-1 md:pt-0">
+          <div className="w-full md:w-28">
             <MoneyInput value={cur.price || cur.total || ''} onChange={val => onPrice && onPrice(val)} disabled={readOnly} />
           </div>
           {vehicleOptions && vehicleOptions.length > 1 && (
@@ -437,12 +441,12 @@ const SelectedServiceRow = memo(function SelectedServiceRow({ cur, onDesc, onPri
 
       {/* Package Redemption row (Only if assigned offer available) */}
       {hasOffers && (
-        <div className="flex items-center gap-2 pt-1 border-t border-gray-100 text-xs">
+        <div className="flex items-center gap-2 pt-1.5 border-t border-gray-100 text-xs flex-wrap sm:flex-nowrap">
           <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 flex items-center gap-1 shrink-0">
             <Sparkles size={11} /> Package:
           </span>
           <select
-            className="bg-emerald-50/80 text-emerald-900 border border-emerald-200 rounded-lg text-xs py-1 px-2.5 font-medium focus:ring-1 focus:ring-emerald-500 max-w-sm"
+            className="bg-emerald-50/80 text-emerald-900 border border-emerald-200 rounded-lg text-xs py-1 px-2.5 font-medium focus:ring-1 focus:ring-emerald-500 w-full sm:max-w-sm"
             value={cur.assigned_offer_id || ''}
             onChange={e => onRedeemPackage(e.target.value)}
           >
@@ -493,7 +497,7 @@ const ThirdPartyServiceRow = memo(function ThirdPartyServiceRow({ item, onField,
   const labourCostTotal = labourCount * labourCharge;
 
   return (
-    <div className="flex flex-col gap-3.5 bg-amber-50/60 p-4 sm:p-5 rounded-2xl border border-amber-200/80 shadow-2xs">
+    <div className="flex flex-col gap-3.5 bg-amber-50/60 p-3.5 sm:p-5 rounded-2xl border border-amber-200/80 shadow-2xs">
       {/* Top Header: Service Title, Vendor Name, Labour Cost Badge, & Actions */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-amber-200/60">
         <div className="flex items-center gap-2.5 flex-wrap min-w-0">
@@ -511,12 +515,12 @@ const ThirdPartyServiceRow = memo(function ThirdPartyServiceRow({ item, onField,
         </div>
 
         {/* Cost & Summary Pills + Actions */}
-        <div className="flex items-center gap-2.5 flex-wrap">
+        <div className="flex items-center gap-2.5 flex-wrap justify-between sm:justify-end">
           {labourCostTotal > 0 && (
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-white border border-amber-200 text-amber-900 text-[11px] font-semibold shadow-2xs">
-              <span className="text-amber-700 font-bold uppercase text-[10px] tracking-wider">Labour Cost:</span>
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white border border-amber-200 text-amber-900 text-[11px] font-semibold shadow-2xs">
+              <span className="text-amber-700 font-bold uppercase text-[10px] tracking-wider">Labour:</span>
               <span className="font-mono font-bold">₹{labourCostTotal.toLocaleString('en-IN')}</span>
-              <span className="text-[10px] text-gray-500">({labourCount} × ₹{labourCharge.toLocaleString('en-IN')})</span>
+              <span className="text-[10px] text-gray-500 hidden sm:inline">({labourCount} × ₹{labourCharge.toLocaleString('en-IN')})</span>
             </span>
           )}
 
@@ -534,7 +538,7 @@ const ThirdPartyServiceRow = memo(function ThirdPartyServiceRow({ item, onField,
             <button
               type="button"
               onClick={onRemove}
-              className="text-rose-600 hover:text-rose-700 hover:bg-rose-50 font-bold text-[12px] px-2.5 py-1 rounded-lg transition-colors"
+              className="text-rose-600 hover:text-rose-700 hover:bg-rose-50 font-bold text-[12px] px-2.5 py-1 rounded-lg transition-colors ml-auto sm:ml-0"
             >
               Remove
             </button>
@@ -556,10 +560,10 @@ const ThirdPartyServiceRow = memo(function ThirdPartyServiceRow({ item, onField,
         />
       </div>
 
-      {/* Selling Price + Labour + Total */}
-      <div className="flex flex-wrap items-end gap-2.5">
+      {/* Selling Price + Labour + Total (Responsive layout for all screen widths) */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
         {/* Selling Price Input */}
-        <div className="flex flex-col min-w-[120px]">
+        <div className="flex flex-col min-w-0">
           <label className="block text-[10px] font-bold uppercase tracking-wider mb-1 text-amber-900/80">
             Selling Price (₹) *
           </label>
@@ -570,29 +574,24 @@ const ThirdPartyServiceRow = memo(function ThirdPartyServiceRow({ item, onField,
           />
         </div>
 
-        {/* Plus sign */}
-        <div className="flex items-center pb-2 text-amber-700 font-black text-lg select-none">+</div>
-
-        {/* Labour Charge (read-only display) */}
-        <div className="flex flex-col min-w-[120px]">
+        {/* Labour Charge */}
+        <div className="flex flex-col min-w-0">
           <label className="block text-[10px] font-bold uppercase tracking-wider mb-1 text-gray-500">
             Labour Charge (₹)
           </label>
-          <div className="h-[38px] px-3 py-2 bg-white border border-amber-200 rounded-xl font-mono font-bold text-sm text-amber-900 flex items-center justify-end shadow-2xs whitespace-nowrap">
-            ₹{labourCostTotal.toLocaleString('en-IN')}
+          <div className="h-[38px] px-3 py-2 bg-white border border-amber-200 rounded-xl font-mono font-bold text-xs sm:text-sm text-amber-900 flex items-center justify-between shadow-2xs">
+            <span className="text-[10px] font-bold text-amber-600">+ Labour</span>
+            <span>₹{labourCostTotal.toLocaleString('en-IN')}</span>
           </div>
         </div>
 
-        {/* Equals sign */}
-        <div className="flex items-center pb-2 text-amber-700 font-black text-lg select-none">=</div>
-
-        {/* Total */}
-        <div className="flex flex-col min-w-[130px]">
+        {/* Total Charge */}
+        <div className="flex flex-col min-w-0">
           <label className="block text-[10px] font-bold uppercase tracking-wider mb-1 text-amber-950">
             Total Charge (₹)
           </label>
-          <div className="h-[38px] px-3 py-2 bg-gradient-to-r from-amber-500 to-amber-600 text-white rounded-xl font-mono font-black text-sm flex items-center justify-between shadow-xs whitespace-nowrap">
-            <span className="text-[9px] uppercase tracking-wider font-sans font-extrabold text-amber-100 mr-1">Total:</span>
+          <div className="h-[38px] px-3 py-2 bg-gradient-to-r from-amber-500 to-amber-600 text-white rounded-xl font-mono font-black text-xs sm:text-sm flex items-center justify-between shadow-xs">
+            <span className="text-[9px] uppercase tracking-wider font-sans font-extrabold text-amber-100">Total:</span>
             <span>₹{((Number(item.selling_price) || 0) + labourCostTotal).toLocaleString('en-IN')}</span>
           </div>
         </div>
@@ -640,14 +639,14 @@ export default function InvoiceForm({ initial, onSubmit, loading, onCustomerSele
   const [serviceModal, setServiceModal] = useState({ isOpen: false, type: null, opt: null, selectedVehicleIds: [] });
   const [conflictModal, setConflictModal] = useState({ isOpen: false, conflicts: [] });
   const [checkingConflicts, setCheckingConflicts] = useState(false);
-
   const [form, setForm] = useState(() => {
     const base = {
-      customer: { name: '', phone: '', address: '', vehicles: [] },
+      customer: { id: null, name: '', phone: '', address: '', vehicles: [] },
       selectedVehicleIds: [],
       vehicleVisitMeta: {},
       vehicleId: null,
       carMake: '', carModel: '', licensePlate: '',
+      newVehicle: { make: '', model: '', make_model: '', plate: '', vehicle_type_id: '', vehicle_type: '' },
       location: '',
       services: [], thirdPartyItems: [], subTotal: 0, discount: 0,
       status: 'draft', notes: 'Thank you for choosing Detailing Masters for your car care needs!',
@@ -659,8 +658,6 @@ export default function InvoiceForm({ initial, onSubmit, loading, onCustomerSele
     return {
       ...base, ...initial,
       customer: initial.customer || base.customer,
-      // Which of this org's registered vehicles this invoice covers, and the
-      // per-visit details (visitor, check-in/check-out) for each.
       selectedVehicleIds: visits.map(v => v.vehicleId),
       vehicleVisitMeta: visits.reduce((acc, v) => {
         acc[v.vehicleId] = {
@@ -716,16 +713,176 @@ export default function InvoiceForm({ initial, onSubmit, loading, onCustomerSele
 
   const setF = useCallback((k, v) => setForm(f => ({ ...f, [k]: v })), []);
 
+  // Unified Fast-Lane Search & New Client/Vehicle States
+  const [customerSearch, setCustomerSearch] = useState('');
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [isNewClientMode, setIsNewClientMode] = useState(!initial && !initial?.customer?.id);
+  const [isAddingNewVehicle, setIsAddingNewVehicle] = useState(false);
+  const [remoteClients, setRemoteClients] = useState([]);
+  const [isSearchingRemote, setIsSearchingRemote] = useState(false);
+  const searchContainerRef = React.useRef(null);
+
+  useEffect(() => {
+    function handleClickOutside(e) {
+      if (searchContainerRef.current && !searchContainerRef.current.contains(e.target)) {
+        setIsSearchOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('touchstart', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+    };
+  }, []);
+
+  // Live remote search when user types phone or name
+  useEffect(() => {
+    if (clientType !== 'individual') return;
+    const phoneQ = (form.customer?.phone || '').trim();
+    const nameQ = (form.customer?.name || '').trim();
+    const searchParam = phoneQ || nameQ;
+    if (!searchParam || searchParam.length < 2) {
+      setRemoteClients([]);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      try {
+        setIsSearchingRemote(true);
+        const res = await api.get('/clients', { params: { search: searchParam } });
+        const list = Array.isArray(res.data) ? res.data : (Array.isArray(res.data?.clients) ? res.data.clients : []);
+        setRemoteClients(list.map(c => ({
+          ...c,
+          id: c.id,
+          name: c.full_name || c.name || '',
+          phone: c.phone || '',
+          address: c.address || '',
+          vehicles: Array.isArray(c.vehicles) ? c.vehicles : [],
+        })));
+      } catch (err) {
+        console.error('Remote client search error:', err);
+      } finally {
+        setIsSearchingRemote(false);
+      }
+    }, 150);
+
+    return () => clearTimeout(timer);
+  }, [form.customer?.phone, form.customer?.name, clientType]);
+
+  // Merge local cache and remote search results seamlessly
+  const allKnownCustomers = useMemo(() => {
+    const combined = [...customers];
+    for (const rc of remoteClients) {
+      if (!combined.some(c => String(c.id) === String(rc.id))) {
+        combined.push(rc);
+      }
+    }
+    return combined;
+  }, [customers, remoteClients]);
+
+  // Filter existing clients live by mobile number digits, name, or license plate
+  const filteredCustomers = useMemo(() => {
+    if (clientType !== 'individual') return EMPTY_ARRAY;
+    const phoneRaw = (form.customer?.phone || '').trim();
+    const nameRaw = (form.customer?.name || '').trim().toLowerCase();
+    const phoneDigits = phoneRaw.replace(/[^0-9]/g, '');
+
+    if (!phoneRaw && !nameRaw) return EMPTY_ARRAY;
+
+    return allKnownCustomers.filter(c => {
+      const cName = (c.name || c.full_name || '').toLowerCase();
+      const cPhoneRaw = (c.phone || '').trim();
+      const cPhoneDigits = cPhoneRaw.replace(/[^0-9]/g, '');
+
+      // Check phone match
+      const phoneMatches = Boolean(
+        phoneRaw && (
+          cPhoneRaw.toLowerCase().includes(phoneRaw.toLowerCase()) ||
+          (phoneDigits.length >= 2 && cPhoneDigits.includes(phoneDigits)) ||
+          (phoneDigits.length >= 10 && cPhoneDigits.slice(-10) === phoneDigits.slice(-10))
+        )
+      );
+
+      // Check name match
+      const nameMatches = Boolean(nameRaw && cName.includes(nameRaw));
+
+      // Check vehicle plate match
+      const hasPlate = Boolean(
+        (phoneRaw || nameRaw) && (c.vehicles || []).some(v => {
+          const p = (v.plate || v.license_vin || '').toLowerCase();
+          const mm = [v.make, v.model].filter(Boolean).join(' ').toLowerCase();
+          const q = (phoneRaw || nameRaw).toLowerCase();
+          return p.includes(q) || mm.includes(q);
+        })
+      );
+
+      return phoneMatches || nameMatches || hasPlate;
+    }).slice(0, 8);
+  }, [allKnownCustomers, form.customer?.phone, form.customer?.name, clientType]);
+
+  // Handle selecting an existing client from dropdown
+  const handleSelectExistingClient = useCallback((c) => {
+    const vehicles = Array.isArray(c.vehicles) ? c.vehicles : [];
+    const firstVeh = vehicles[0] || null;
+    
+    setForm(f => ({
+      ...f,
+      customer: {
+        id: c.id,
+        name: c.name || c.full_name || '',
+        phone: c.phone || '',
+        address: c.address || '',
+        vehicles,
+      },
+      vehicleId: firstVeh?.id || null,
+      carMake: firstVeh ? `${firstVeh.make || ''} ${firstVeh.model || ''}`.trim() : '',
+      licensePlate: firstVeh?.plate || firstVeh?.license_vin || '',
+      newVehicle: { make: '', model: '', make_model: '', plate: '', vehicle_type_id: '', vehicle_type: '' },
+    }));
+
+    setIsAddingNewVehicle(vehicles.length === 0);
+    setIsSearchOpen(false);
+    onCustomerSelect?.({ ...c, isOrganization: false, clientType: 'individual' });
+  }, [onCustomerSelect]);
+
+  // Handle clearing / resetting client
+  const handleResetClientSearch = useCallback(() => {
+    setForm(f => ({
+      ...f,
+      customer: { id: null, name: '', phone: '', address: '', vehicles: [] },
+      vehicleId: null,
+      carMake: '',
+      licensePlate: '',
+      selectedVehicleIds: [],
+      vehicleVisitMeta: {},
+      newVehicle: { make: '', model: '', make_model: '', plate: '', vehicle_type_id: '', vehicle_type: '' },
+    }));
+    setIsAddingNewVehicle(false);
+    setIsSearchOpen(false);
+    onCustomerSelect?.(null);
+  }, [onCustomerSelect]);
+
+  // Handle vehicle card click
+  const handleSelectExistingVehicle = useCallback((veh) => {
+    setForm(f => ({
+      ...f,
+      vehicleId: veh.id,
+      carMake: `${veh.make || ''} ${veh.model || ''}`.trim(),
+      licensePlate: veh.plate || veh.license_vin || '',
+    }));
+    setIsAddingNewVehicle(false);
+  }, []);
+
   // Only fetch assigned offers if customer is an individual client
   const { data: assignedOffers = [] } = useAssignedOffers(clientType === 'individual' ? form.customer?.id : null);
 
-  // All vehicle ids this invoice currently covers — the org's selected
-  // registered vehicles, or the single selected vehicle for individuals.
+  // All vehicle ids this invoice currently covers
   const activeVehicleIds = useMemo(
     () => clientType === 'organization'
       ? form.selectedVehicleIds
-      : (form.vehicleId ? [form.vehicleId] : []),
-    [clientType, form.selectedVehicleIds, form.vehicleId]
+      : (isAddingNewVehicle || !form.vehicleId ? ['new_vehicle'] : [form.vehicleId]),
+    [clientType, form.selectedVehicleIds, form.vehicleId, isAddingNewVehicle]
   );
 
   const toggleVehicle = useCallback((opt, checked) => {
@@ -791,6 +948,15 @@ export default function InvoiceForm({ initial, onSubmit, loading, onCustomerSele
         ? 'partial'
         : 'pending';
 
+  const statusConfig = {
+    paid: { label: 'Paid', bg: 'bg-emerald-500/20', text: 'text-emerald-300', dot: 'bg-emerald-400' },
+    partial: { label: 'Partial', bg: 'bg-amber-500/20', text: 'text-amber-300', dot: 'bg-amber-400' },
+    pending: { label: 'Pending', bg: 'bg-rose-500/20', text: 'text-rose-300', dot: 'bg-rose-400' },
+    draft: { label: 'Draft', bg: 'bg-gray-500/20', text: 'text-gray-300', dot: 'bg-gray-400' },
+    completed: { label: 'Completed', bg: 'bg-emerald-500/20', text: 'text-emerald-300', dot: 'bg-emerald-400' },
+  };
+  const sc = statusConfig[derivedStatus] || statusConfig.draft;
+
   const handleRedeemPackage = useCallback((offer, vid) => {
     const mappedServices = (offer.serviceIds || []).map(id => {
       const s = serviceOptions.find(opt => opt.id === id);
@@ -828,10 +994,17 @@ export default function InvoiceForm({ initial, onSubmit, loading, onCustomerSele
     }));
     toast.success(`Redeemed "${offer.packageName}" package for this vehicle.`);
   }, [serviceOptions, thirdPartyOptions]);
+
   const getVehicleTypeId = useCallback((vid) => {
+    if (vid === 'new_vehicle' || (!vid && form.newVehicle?.vehicle_type_id)) {
+      return Number(form.newVehicle?.vehicle_type_id) || null;
+    }
     if (!vid) return null;
     const veh = (form.customer?.vehicles || []).find(v => v.id === vid);
-    if (!veh) return null;
+    if (!veh) {
+      if (form.newVehicle?.vehicle_type_id) return Number(form.newVehicle.vehicle_type_id) || null;
+      return null;
+    }
     // Use stored numeric FK first
     if (veh.vehicle_type_id) return veh.vehicle_type_id;
     // Fall back: match by text name against master vehicle types list
@@ -840,7 +1013,7 @@ export default function InvoiceForm({ initial, onSubmit, loading, onCustomerSele
       if (match) return match.id;
     }
     return null;
-  }, [form.customer, vehicleTypes]);
+  }, [form.customer, form.newVehicle, vehicleTypes]);
 
   const resolveServicePrice = useCallback((opt, vid) => {
     if (!opt) return 0;
@@ -892,6 +1065,21 @@ export default function InvoiceForm({ initial, onSubmit, loading, onCustomerSele
     return vehicleIds.reduce((sum, vid) => sum + resolveThirdPartyPrice(opt, vid), 0);
   }, [resolveThirdPartyPrice]);
 
+  const combinedVehicles = useMemo(() => {
+    const list = [...(form.customer?.vehicles || [])];
+    if (isAddingNewVehicle || (!form.vehicleId && (form.newVehicle?.plate || form.newVehicle?.make || form.newVehicle?.make_model))) {
+      list.push({
+        id: 'new_vehicle',
+        make: form.newVehicle?.make || form.newVehicle?.make_model?.split(' ')[0] || 'Vehicle',
+        model: form.newVehicle?.model || form.newVehicle?.make_model?.split(' ').slice(1).join(' ') || '',
+        plate: form.newVehicle?.plate || '',
+        type: form.newVehicle?.vehicle_type || '',
+        vehicle_type_id: form.newVehicle?.vehicle_type_id ? Number(form.newVehicle.vehicle_type_id) : null,
+      });
+    }
+    return list;
+  }, [form.customer?.vehicles, isAddingNewVehicle, form.newVehicle, form.vehicleId]);
+
   const getServiceBadgeInfo = useCallback((opt, vehicleIds) => {
     if (!vehicleIds || vehicleIds.length === 0) {
       if (opt.vehiclePrices && opt.vehiclePrices.length > 0) {
@@ -905,8 +1093,7 @@ export default function InvoiceForm({ initial, onSubmit, loading, onCustomerSele
       return { price: p, priceStr: `₹${p.toLocaleString('en-IN')}`, suffix: '' };
     }
 
-    const allVehicles = form.customer?.vehicles || [];
-    const selectedVehs = allVehicles.filter(v => vehicleIds.includes(v.id));
+    const selectedVehs = combinedVehicles.filter(v => vehicleIds.includes(v.id));
 
     if (vehicleIds.length === 1 && selectedVehs.length === 1) {
       const v = selectedVehs[0];
@@ -921,7 +1108,7 @@ export default function InvoiceForm({ initial, onSubmit, loading, onCustomerSele
     const typeLabel = types.length > 0 ? ` (${types.join(' + ')})` : ` (${vehicleIds.length} Veh)`;
 
     return { price: safeTotalP, priceStr: `₹${safeTotalP.toLocaleString('en-IN')}`, suffix: typeLabel };
-  }, [form.customer, resolveServicePrice, calculateServiceTotalForVehicles]);
+  }, [combinedVehicles, resolveServicePrice, calculateServiceTotalForVehicles]);
 
   const getThirdPartyBadgeInfo = useCallback((opt, vehicleIds) => {
     const labourTotal = (Number(opt.labourCount) || 1) * (Number(opt.labourCharge) || 0);
@@ -938,8 +1125,7 @@ export default function InvoiceForm({ initial, onSubmit, loading, onCustomerSele
       return { price: p, priceStr: `₹${p.toLocaleString('en-IN')}`, suffix: '' };
     }
 
-    const allVehicles = form.customer?.vehicles || [];
-    const selectedVehs = allVehicles.filter(v => vehicleIds.includes(v.id));
+    const selectedVehs = combinedVehicles.filter(v => vehicleIds.includes(v.id));
 
     if (vehicleIds.length === 1 && selectedVehs.length === 1) {
       const v = selectedVehs[0];
@@ -954,199 +1140,198 @@ export default function InvoiceForm({ initial, onSubmit, loading, onCustomerSele
     const typeLabel = types.length > 0 ? ` (${types.join(' + ')})` : ` (${vehicleIds.length} Veh)`;
 
     return { price: safeTotalP, priceStr: `₹${safeTotalP.toLocaleString('en-IN')}`, suffix: typeLabel };
-  }, [form.customer, resolveThirdPartyPrice, calculateThirdPartyTotalForVehicles]);
-
-  const activeVehicleTypeInfo = useMemo(() => {
-    if (!activeVehicleIds.length) return null;
-    const vid = activeVehicleIds[0];
-    const veh = (form.customer?.vehicles || []).find(v => v.id === vid);
-    if (veh) return { id: veh.vehicle_type_id, name: veh.type };
-    return null;
-  }, [activeVehicleIds, form.customer]);
+  }, [combinedVehicles, resolveThirdPartyPrice, calculateThirdPartyTotalForVehicles]);
 
   const toggleService = useCallback((opt, checked) => {
-    if (checked) {
-      if (clientType === 'organization' && activeVehicleIds.length > 1) {
-        setServiceModal({ isOpen: true, type: 'standard', opt, selectedVehicleIds: activeVehicleIds });
-        return;
-      }
-      const initialTotal = calculateServiceTotalForVehicles(opt, activeVehicleIds);
-      setForm(f => {
-        const newServices = [...f.services, {
-          service_id: opt.id,
-          service: opt.name,
-          description: opt.description || '',
-          price: initialTotal,
-          total: initialTotal,
-          vehicle_ids: activeVehicleIds
-        }];
-        return {
-          ...f,
-          services: newServices,
-        };
-      });
-    } else {
-      setForm(f => {
-        const newServices = f.services.filter(s => s.service_id !== opt.id && s.service !== opt.name);
-        return {
-          ...f,
-          services: newServices,
-        };
-      });
-    }
-  }, [clientType, activeVehicleIds, calculateServiceTotalForVehicles]);
-
-  const updateServiceField = useCallback((name, field, val) => {
+    if (isOfferPurchase) return;
     setForm(f => {
-      const newServices = f.services.map(s => {
-        if (s.service !== name) return s;
-        if (field === 'price') {
-          const numPrice = Number(val) || 0;
-          return { ...s, price: numPrice, total: numPrice, isManualPrice: true };
+      const exists = f.services.some(s => s.service_id === opt.id || s.service === opt.name);
+      if (checked && !exists) {
+        if (clientType === 'organization' && activeVehicleIds.length > 1) {
+          setServiceModal({ isOpen: true, type: 'standard', opt, selectedVehicleIds: activeVehicleIds });
+          return f;
         }
-        if (field === 'assigned_offer_id') {
-          const originalPrice = resolveServicePrice(
-            serviceOptions.find(opt => opt.name === s.service),
-            s.vehicle_ids?.[0]
-          );
-          const newPrice = val ? 0 : originalPrice;
-          return { ...s, assigned_offer_id: val, price: newPrice, total: newPrice, isManualPrice: !val };
-        }
-        return { ...s, [field]: val };
-      });
-      return {
-        ...f,
-        services: newServices,
-      };
+        const totalP = calculateServiceTotalForVehicles(opt, activeVehicleIds);
+        return {
+          ...f,
+          services: [...f.services, {
+            service_id: opt.id,
+            service: opt.name,
+            description: opt.description || '',
+            price: totalP,
+            total: totalP,
+            vehicle_ids: activeVehicleIds
+          }]
+        };
+      }
+      if (!checked && exists) {
+        return {
+          ...f,
+          services: f.services.filter(s => s.service_id !== opt.id && s.service !== opt.name)
+        };
+      }
+      return f;
     });
-  }, [serviceOptions, resolveServicePrice]);
+  }, [isOfferPurchase, clientType, activeVehicleIds, calculateServiceTotalForVehicles]);
 
-  const addThirdPartyItem = useCallback((catalogId, vehicle_ids) => {
-    const opt = thirdPartyOptions.find(t => t.id === Number(catalogId));
-    // Use selling-only price (no labour) — UI adds labour separately in the Total display
-    const initialSelling = calculateThirdPartySellingForVehicles(opt, vehicle_ids);
+  const updateServiceField = useCallback((serviceName, field, val) => {
+    setForm(f => ({
+      ...f,
+      services: f.services.map(s => {
+        if (s.service !== serviceName) return s;
+        const upd = { ...s, [field]: val };
+        if (field === 'price') upd.total = val;
+        return upd;
+      })
+    }));
+  }, []);
+
+  const addThirdPartyItem = useCallback((optId, vehicleIdsToUse) => {
+    const opt = thirdPartyOptions.find(t => t.id === optId);
+    if (!opt) return;
+    const vIds = vehicleIdsToUse || activeVehicleIds;
+    const sellingForVehs = calculateThirdPartySellingForVehicles(opt, vIds);
     setForm(f => ({
       ...f,
       thirdPartyItems: [...f.thirdPartyItems, {
-        third_party_service_id: opt?.id || null, vehicle_ids: vehicle_ids || [],
-        service_name: opt?.name || 'Custom Third-Party Service',
-        vendor_name: opt?.vendorName || '',
-        labour_count: opt?.labourCount ?? 1,
-        labour_charge: opt?.labourCharge ?? 0,
-        selling_price: initialSelling,
-      }],
+        third_party_service_id: opt.id,
+        service_name: opt.name,
+        vendor_name: opt.vendorName || '',
+        labour_count: opt.labourCount ?? 1,
+        labour_charge: opt.labourCharge ?? 0,
+        selling_price: sellingForVehs,
+        vendor_cost: opt.vendorCost ?? 0,
+        description: '',
+        vehicle_ids: vIds,
+      }]
     }));
-  }, [thirdPartyOptions, calculateThirdPartySellingForVehicles]);
+  }, [thirdPartyOptions, activeVehicleIds, calculateThirdPartySellingForVehicles]);
 
-  const toggleThirdPartyItem = useCallback((opt, checked) => {
-    if (checked) {
-      if (clientType === 'organization' && activeVehicleIds.length > 1) {
-        setServiceModal({ isOpen: true, type: 'third_party', opt, selectedVehicleIds: activeVehicleIds });
-        return;
-      }
-      addThirdPartyItem(opt.id, activeVehicleIds);
-    } else {
-      setForm(f => ({
-        ...f,
-        thirdPartyItems: f.thirdPartyItems.filter(t => t.third_party_service_id !== opt.id && t.service_name !== opt.name),
-      }));
-    }
-  }, [clientType, activeVehicleIds, addThirdPartyItem]);
+  const removeThirdPartyItem = useCallback((idx) => {
+    setForm(f => ({
+      ...f,
+      thirdPartyItems: f.thirdPartyItems.filter((_, i) => i !== idx)
+    }));
+  }, []);
 
   const updateThirdPartyField = useCallback((idx, field, val) => {
     setForm(f => ({
       ...f,
-      thirdPartyItems: f.thirdPartyItems.map((t, i) => i === idx ? { ...t, [field]: val } : t),
+      thirdPartyItems: f.thirdPartyItems.map((item, i) => {
+        if (i !== idx) return item;
+        return { ...item, [field]: val };
+      })
     }));
   }, []);
 
-  const removeThirdPartyItem = useCallback((idx) => {
-    setForm(f => ({ ...f, thirdPartyItems: f.thirdPartyItems.filter((_, i) => i !== idx) }));
-  }, []);
+  const findScheduleConflicts = useCallback(async (vehicleVisits, serviceItems, thirdPartyItems) => {
+    if (!vehicleVisits || vehicleVisits.length === 0) return [];
+    const visitsWithTimes = vehicleVisits.filter(v => v.vehicle_id && v.checkin_time && v.checkout_time);
+    if (visitsWithTimes.length === 0) return [];
 
-  const pendingPayloadRef = React.useRef(null);
+    const svcIds = (serviceItems || []).map(s => s.service_id).filter(Boolean);
+    const tpIds = (thirdPartyItems || []).map(t => t.third_party_service_id).filter(Boolean);
+    if (svcIds.length === 0 && tpIds.length === 0) return [];
 
-  async function findScheduleConflicts(vehicleVisits, serviceItems, thirdPartyItems) {
     const allConflicts = [];
-    for (const visit of vehicleVisits) {
-      if (!visit.checkin_time || !visit.checkout_time) continue;
-      const serviceIds = serviceItems
-        .filter(s => (s.vehicle_ids || []).includes(visit.vehicle_id))
-        .map(s => s.service_id);
-      const thirdPartyIds = thirdPartyItems
-        .filter(t => (t.vehicle_ids || []).includes(visit.vehicle_id))
-        .map(t => t.third_party_service_id)
-        .filter(Boolean);
-      if (!serviceIds.length && !thirdPartyIds.length) continue;
+    for (const v of visitsWithTimes) {
       try {
         const res = await api.post('/invoices/check-conflicts', {
-          vehicle_id: visit.vehicle_id,
-          checkin_time: visit.checkin_time,
-          checkout_time: visit.checkout_time,
-          service_ids: serviceIds,
-          third_party_service_ids: thirdPartyIds,
+          vehicle_id: v.vehicle_id,
+          checkin_time: v.checkin_time,
+          checkout_time: v.checkout_time,
+          service_ids: svcIds,
+          third_party_service_ids: tpIds,
           exclude_invoice_id: initial?.id || null,
         });
-        if (res.data?.conflicts?.length) allConflicts.push(...res.data.conflicts);
+        if (res.data?.conflicts?.length > 0) {
+          allConflicts.push(...res.data.conflicts);
+        }
       } catch (err) {
-        // Don't block submission if the conflict check itself fails
+        console.error('Failed to check schedule conflicts for vehicle', v.vehicle_id, err);
       }
     }
     return allConflicts;
-  }
+  }, [initial?.id]);
+
+  const pendingPayloadRef = React.useRef(null);
 
   async function handleSubmit(e) {
     e.preventDefault();
-    if (!form.customer?.id) return toast.error(clientType === 'individual' ? 'Please select a client.' : 'Please select an organization.');
-    if (clientType === 'individual' && !form.vehicleId) return toast.error('Please select a vehicle.');
-    if (clientType === 'organization' && form.selectedVehicleIds.length === 0) return toast.error('Please select at least one vehicle.');
-    if (!form.services.length && !form.thirdPartyItems.length) {
-      return toast.error('Please select at least one service or third-party item.');
+    if (loading) return;
+
+    const isAddingNewClient = !form.customer?.id && !!form.customer?.name;
+    const isAddingNewVehiclePayload = isAddingNewVehicle || !form.vehicleId || form.vehicleId === 'new_vehicle';
+
+    if (clientType === 'individual') {
+      if (!form.customer.name?.trim() || !form.customer.phone?.trim()) {
+        toast.error('Customer name and phone number are required');
+        return;
+      }
+      if (isAddingNewVehiclePayload && !form.newVehicle.make_model?.trim() && !form.newVehicle.make?.trim() && !form.newVehicle.plate?.trim()) {
+        toast.error('Please enter vehicle details (Make/Model or Plate Number)');
+        return;
+      }
+    } else {
+      if (!form.customer.id) {
+        toast.error('Please select an organization');
+        return;
+      }
+      if (form.selectedVehicleIds.length === 0) {
+        toast.error('Please select at least one vehicle for this organization visit');
+        return;
+      }
     }
 
-    // Only NEW payment rows (no id) are sent — existing ones stay in DB
-    const newPayments = form.payments
-      .filter(p => !p.id && Number(p.amount) > 0)
+    if (form.services.length === 0 && form.thirdPartyItems.length === 0) {
+      toast.error('Add at least one service or third-party service');
+      return;
+    }
+
+    const newPayments = (form.payments || [])
+      .filter(p => Number(p.amount) > 0)
       .map(p => ({
         amount: Number(p.amount),
-        date: p.date,
         method: p.method,
-        reference_no: (p.method === 'UPI' || p.method === 'Bank Transfer')
-          ? (p.reference_no || null)
-          : null,
+        date: p.date,
+        reference_no: p.reference_no || null,
       }));
 
-    const service_ids = form.services
-      .map(s => Number(s.service_id || s.serviceId))
-      .filter(id => Number.isFinite(id) && id > 0);
+    const activeVid = isAddingNewVehiclePayload ? null : form.vehicleId;
+    const metaKey = form.vehicleId || 'new_vehicle';
 
-    if (form.services.length && !service_ids.length) {
-      return toast.error('Selected services are missing ids. Refresh and try again.');
-    }
+    const sanitizePayloadVid = (vid) => {
+      if (!vid || vid === 'new_vehicle' || (typeof vid === 'string' && isNaN(Number(vid)))) {
+        return activeVid || null;
+      }
+      return Number(vid);
+    };
 
-    // service_items carries per-service vehicle assignment; service_ids stays as a
-    // legacy fallback for any code path that hasn't moved to service_items yet.
-    const service_items = form.services.map(s => ({
-      service_id: Number(s.service_id || s.serviceId),
-      vehicle_ids: s.vehicle_ids || [],
-      price: Number(s.price) || 0,
-      assigned_offer_id: s.assigned_offer_id || null,
-    }));
+    const service_ids = form.services.map(s => s.service_id).filter(Boolean);
+    const service_items = form.services.map(s => {
+      const cleanVIds = (s.vehicle_ids || []).map(sanitizePayloadVid).filter(Boolean);
+      return {
+        service_id: s.service_id,
+        price: s.price,
+        vehicle_ids: cleanVIds.length > 0 ? cleanVIds : (activeVid ? [activeVid] : []),
+        assigned_offer_id: s.assigned_offer_id || null,
+      };
+    });
 
-    const third_party_items = form.thirdPartyItems.map(t => ({
-      third_party_service_id: t.third_party_service_id || null,
-      service_name: t.service_name,
-      vendor_name: t.vendor_name || null,
-      labour_count: Number(t.labour_count) || 1,
-      labour_charge: Number(t.labour_charge) || 0,
-      selling_price: Number(t.selling_price) || 0,
-      vendor_cost: Number(t.vendor_cost) || 0,
-      vehicle_ids: t.vehicle_ids || [],
-    }));
+    const third_party_items = form.thirdPartyItems.map(t => {
+      const cleanVIds = (t.vehicle_ids || []).map(sanitizePayloadVid).filter(Boolean);
+      return {
+        third_party_service_id: t.third_party_service_id || null,
+        service_name: t.service_name,
+        vendor_name: t.vendor_name || null,
+        labour_count: Number(t.labour_count) || 1,
+        labour_charge: Number(t.labour_charge) || 0,
+        selling_price: Number(t.selling_price) || 0,
+        vendor_cost: Number(t.vendor_cost) || 0,
+        vehicle_ids: cleanVIds.length > 0 ? cleanVIds : (activeVid ? [activeVid] : []),
+      };
+    });
 
-    // Per-visit details for each selected vehicle — who
-    // brought it in and when it checked in/out. Vehicles themselves are
-    // pre-registered under the org, not created here.
     const vehicle_visits = clientType === 'organization'
       ? form.selectedVehicleIds.map(vid => {
         const meta = form.vehicleVisitMeta[vid] || {};
@@ -1158,18 +1343,32 @@ export default function InvoiceForm({ initial, onSubmit, loading, onCustomerSele
           checkout_time: meta.checkoutTime || null,
         };
       })
-      : (form.vehicleId ? [{
-        vehicle_id: form.vehicleId,
-        visitor_name: (form.vehicleVisitMeta[form.vehicleId] || {}).visitorName || null,
-        visitor_phone: (form.vehicleVisitMeta[form.vehicleId] || {}).visitorPhone || null,
-        checkin_time: (form.vehicleVisitMeta[form.vehicleId] || {}).checkinTime || null,
-        checkout_time: (form.vehicleVisitMeta[form.vehicleId] || {}).checkoutTime || null,
-      }] : []);
+      : [{
+        vehicle_id: activeVid,
+        visitor_name: (form.vehicleVisitMeta[metaKey] || {}).visitorName || null,
+        visitor_phone: (form.vehicleVisitMeta[metaKey] || {}).visitorPhone || null,
+        checkin_time: (form.vehicleVisitMeta[metaKey] || {}).checkinTime || null,
+        checkout_time: (form.vehicleVisitMeta[metaKey] || {}).checkoutTime || null,
+      }];
 
     const payload = {
-      client_id: clientType === 'individual' ? form.customer.id : null,
-      organization_id: clientType === 'organization' ? form.customer.id : null,
-      vehicle_id: form.vehicleId || null,
+      client_id: clientType === 'individual' && form.customer?.id ? form.customer.id : null,
+      organization_id: clientType === 'organization' && form.customer?.id ? form.customer.id : null,
+      vehicle_id: activeVid,
+      new_client: isAddingNewClient ? {
+        full_name: form.customer.name.trim(),
+        phone: form.customer.phone.trim(),
+        address: form.customer.address?.trim() || null,
+      } : null,
+      new_vehicle: (isAddingNewVehiclePayload && (form.newVehicle?.make || form.newVehicle?.model || form.newVehicle?.make_model || form.newVehicle?.plate || form.newVehicle?.vehicle_type_id)) ? {
+        make_model: (form.newVehicle.make_model || `${form.newVehicle.make || ''} ${form.newVehicle.model || ''}`).trim() || 'Vehicle',
+        make: form.newVehicle.make?.trim() || '',
+        model: form.newVehicle.model?.trim() || '',
+        license_vin: form.newVehicle.plate?.trim().toUpperCase() || '',
+        plate: form.newVehicle.plate?.trim().toUpperCase() || '',
+        vehicle_type_id: form.newVehicle.vehicle_type_id ? Number(form.newVehicle.vehicle_type_id) : null,
+        vehicle_type: form.newVehicle.vehicle_type || null,
+      } : null,
       service_ids,
       service_items,
       third_party_items,
@@ -1204,7 +1403,11 @@ export default function InvoiceForm({ initial, onSubmit, loading, onCustomerSele
   }
 
   const selectedCustomer = form.customer?.id
-    ? { value: form.customer.id, label: `${form.customer.name} — ${form.customer.phone}` }
+    ? {
+        value: form.customer.id,
+        label: `${form.customer.name || ''} — ${form.customer.phone || ''}`,
+        customer: form.customer,
+      }
     : null;
 
   const customerId = form.customer?.id;
@@ -1216,7 +1419,17 @@ export default function InvoiceForm({ initial, onSubmit, loading, onCustomerSele
     }
     return customers
       .filter(c => c.isActive !== false || c.id === customerId)
-      .map(c => ({ value: c.id, label: `${c.name} — ${c.phone}`, customer: c }));
+      .map(c => {
+        const vehSummary = (c.vehicles || [])
+          .map(v => [v.make, v.model].filter(Boolean).join(' ') || v.plate)
+          .filter(Boolean)
+          .join(', ');
+        return {
+          value: c.id,
+          label: `${c.name || c.full_name || 'Client'} — ${c.phone || ''}${vehSummary ? ` (${vehSummary})` : ''}`,
+          customer: c,
+        };
+      });
   }, [clientType, customers, organizations, customerId]);
 
   const selectedServiceNames = useMemo(
@@ -1251,16 +1464,6 @@ export default function InvoiceForm({ initial, onSubmit, loading, onCustomerSele
       }
     }
 
-    if (form.vehicleId && !vehicles.some(v => String(v.id) === String(form.vehicleId)) && (form.carMake || form.licensePlate)) {
-      const parts = (form.carMake || '').split(/\s+/);
-      vehicles = [{
-        id: form.vehicleId,
-        make: parts[0] || form.carMake || '',
-        model: parts.slice(1).join(' ') || '',
-        plate: form.licensePlate || '',
-      }, ...vehicles];
-    }
-
     const pool = clientType === 'organization' ? vehicles.filter(v => v.isActive !== false) : vehicles;
     const seen = new Set();
     const deduped = pool.filter(v => {
@@ -1275,34 +1478,17 @@ export default function InvoiceForm({ initial, onSubmit, loading, onCustomerSele
       label: `${[v.make, v.model].filter(Boolean).join(' ') || 'Vehicle'}${v.plate ? ` — ${v.plate}` : ''}`,
       vehicle: v,
     }));
-  }, [clientType, form.customer, customers, organizations, form.vehicleId, form.carMake, form.licensePlate]);
+  }, [clientType, form.customer, customers, organizations]);
 
   const selectedVehicle = vehicleOptions.find(v => String(v.value) === String(form.vehicleId)) || null;
 
-  // Auto-select first vehicle for individual clients if none selected yet
-  useEffect(() => {
-    if (clientType === 'individual' && form.customer?.id && !form.vehicleId && vehicleOptions.length > 0) {
-      const first = vehicleOptions[0]?.vehicle;
-      if (first) {
-        setForm(f => ({
-          ...f,
-          vehicleId: first.id,
-          carMake: `${first.make || ''} ${first.model || ''}`.trim(),
-          licensePlate: first.plate || '',
-        }));
-      }
-    }
-  }, [clientType, form.customer?.id, form.vehicleId, vehicleOptions]);
-
-  const statusConfig = {
-    pending: { label: 'Pending', bg: 'bg-rose-100', text: 'text-rose-700', dot: 'bg-rose-500' },
-    partial: { label: 'Partial', bg: 'bg-blue-100', text: 'text-blue-700', dot: 'bg-blue-500' },
-    paid: { label: 'Paid', bg: 'bg-emerald-100', text: 'text-emerald-700', dot: 'bg-emerald-500' },
-  };
-  const sc = statusConfig[derivedStatus] || statusConfig.pending;
-  const isStep1Complete = !!form.customer.name;
-  const isStep2Complete = clientType === 'organization' ? form.selectedVehicleIds.length > 0 : !!form.vehicleId;
-  const isStep3Complete = form.services.length > 0;
+  const isStep1Complete = !!form.customer.name && !!form.customer.phone;
+  const isStep2Complete = clientType === 'organization'
+    ? form.selectedVehicleIds.length > 0
+    : (isAddingNewVehicle
+        ? (!!form.newVehicle?.plate || !!form.newVehicle?.make || !!form.newVehicle?.make_model)
+        : !!form.vehicleId);
+  const isStep3Complete = form.services.length > 0 || form.thirdPartyItems.length > 0;
 
   const handleModalConfirm = useCallback((selectedIds) => {
     const { type, opt } = serviceModal;
@@ -1331,7 +1517,6 @@ export default function InvoiceForm({ initial, onSubmit, loading, onCustomerSele
       }));
     } else if (type === 'edit_third_party') {
       const tpOpt = thirdPartyOptions.find(t => t.id === opt.third_party_service_id || t.name === opt.service_name);
-      // Use selling-only price (no labour) — UI adds labour separately
       const sellingForVehs = calculateThirdPartySellingForVehicles(tpOpt, selectedIds);
       setForm(f => ({
         ...f,
@@ -1339,7 +1524,7 @@ export default function InvoiceForm({ initial, onSubmit, loading, onCustomerSele
       }));
     }
     setServiceModal({ isOpen: false, type: null, opt: null, selectedVehicleIds: [] });
-  }, [serviceModal, serviceOptions, thirdPartyOptions, calculateServiceTotalForVehicles, calculateThirdPartyTotalForVehicles, addThirdPartyItem]);
+  }, [serviceModal, serviceOptions, thirdPartyOptions, calculateServiceTotalForVehicles, calculateThirdPartySellingForVehicles, addThirdPartyItem]);
 
   return (
     <div className="relative">
@@ -1355,7 +1540,7 @@ export default function InvoiceForm({ initial, onSubmit, loading, onCustomerSele
         serviceName={serviceModal.opt?.name || serviceModal.opt?.service || serviceModal.opt?.service_name || 'Service'}
         vehicleOptions={vehicleOptions.filter(v => activeVehicleIds.includes(v.value))}
         initialSelection={serviceModal.selectedVehicleIds}
-        allVehicles={form.customer?.vehicles || []}
+        allVehicles={combinedVehicles}
         serviceOption={serviceModal.opt}
       />
       <ScheduleConflictModal
@@ -1376,207 +1561,661 @@ export default function InvoiceForm({ initial, onSubmit, loading, onCustomerSele
           </div>
 
           <div className="flex flex-col gap-5">
-            <div className="bg-white/90 backdrop-blur-md rounded-2xl shadow-sm border border-gray-200 p-4 sm:p-5 flex flex-col gap-4">
-              <div className="flex items-center gap-2.5">
-                <div className={`w-5 h-5 rounded-full flex items-center justify-center border-2 transition-colors ${isStep1Complete ? 'border-emerald-500 text-emerald-500 bg-emerald-50' : 'border-gray-300 text-gray-400 bg-gray-50'}`}>
-                  {isStep1Complete ? <CheckCircle2 size={12} className="fill-emerald-50" /> : <span className="text-[9px] font-bold">1</span>}
-                </div>
-                <h2 className="text-[14px] font-bold text-gray-900 tracking-tight">{clientType === 'individual' ? 'Client Details' : 'Organization Details'}</h2>
-                <div className="ml-auto flex items-center gap-1 bg-gray-100 p-0.5 rounded-lg">
-                  <button type="button" onClick={() => { setClientType('individual'); setForm(f => ({ ...f, customer: { name: '', phone: '', address: '', vehicles: [] }, vehicleId: null, selectedVehicleIds: [], vehicleVisitMeta: {} })); onCustomerSelect?.(null); }} className={`px-2.5 py-1 text-[11px] font-bold rounded-md transition-colors ${clientType === 'individual' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}>Individual</button>
-                  <button type="button" onClick={() => { setClientType('organization'); setForm(f => ({ ...f, customer: { name: '', phone: '', address: '', vehicles: [] }, vehicleId: null, selectedVehicleIds: [], vehicleVisitMeta: {} })); onCustomerSelect?.(null); }} className={`px-2.5 py-1 text-[11px] font-bold rounded-md transition-colors ${clientType === 'organization' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}>Organization</button>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
-                <Select
-                  isClearable
-                  isSearchable
-                  placeholder={clientType === 'individual' ? "Search existing client database…" : "Search organizations…"}
-                  styles={selectStyles()}
-                  menuPortalTarget={document.body}
-                  menuPosition="fixed"
-                  options={customerOptions}
-                  value={selectedCustomer}
-                  onChange={sel => {
-                    if (!sel) {
-                      setForm(f => ({
-                        ...f,
-                        customer: { name: '', phone: '', address: '', vehicles: [] },
-                        vehicleId: null,
-                        selectedVehicleIds: [],
-                        vehicleVisitMeta: {},
-                        carMake: '',
-                        licensePlate: '',
-                      }));
-                      onCustomerSelect?.(null);
-                      return;
-                    }
-                    const m = sel.customer;
-                    const vehicles = Array.isArray(m.vehicles) ? m.vehicles : [];
-                    if (clientType === 'organization') {
-                      // Load the org's registered vehicle fleet for selection —
-                      // nothing pre-checked, staff picks which ones apply now.
-                      setForm(f => ({
-                        ...f,
-                        customer: { id: m.id, name: m.name, phone: m.phone, address: m.address || '', vehicles },
-                        vehicleId: null,
-                        selectedVehicleIds: [],
-                        vehicleVisitMeta: {},
-                        carMake: '',
-                        licensePlate: '',
-                      }));
-                      onCustomerSelect?.({ ...m, isOrganization: true, clientType: 'organization' });
-                      return;
-                    }
-                    const first = vehicles[0];
-                    setForm(f => ({
-                      ...f,
-                      customer: {
-                        id: m.id,
-                        name: m.name,
-                        phone: m.phone,
-                        address: m.address || '',
-                        vehicles,
-                      },
-                      vehicleId: first?.id || null,
-                      carMake: first ? `${first.make || ''} ${first.model || ''}`.trim() : '',
-                      licensePlate: first?.plate || '',
-                    }));
-                    onCustomerSelect?.({ ...m, isOrganization: false, clientType: 'individual' });
-                  }}
-                  isDisabled={!!initial}
-                />
-
-                {form.customer.name ? (
-                  <div className="bg-gray-50 p-4 rounded-xl border border-gray-100 flex flex-col gap-2.5">
-                    <div className="flex items-center gap-2.5 text-[13px] text-gray-700">
-                      <User size={14} className="text-gray-400 shrink-0" />
-                      <span className="font-bold">{form.customer.name}</span>
-                    </div>
-                    <div className="flex items-center gap-2.5 text-[13px] text-gray-700">
-                      <Phone size={14} className="text-gray-400 shrink-0" />
-                      <span className="font-medium">{form.customer.phone}</span>
-                    </div>
-                    <div className="flex items-start gap-2.5 text-[13px] text-gray-700">
-                      <MapPin size={14} className="text-gray-400 shrink-0 mt-0.5" />
-                      <span className="leading-tight text-gray-500">{form.customer.address || <span className="italic">No address provided</span>}</span>
-                    </div>
+            {/* ── UNIFIED CUSTOMER & VEHICLE INTAKE CARD ── */}
+            <div className={`bg-white/95 backdrop-blur-md rounded-2xl shadow-sm border ${form.customer?.id ? 'border-emerald-200/90 shadow-emerald-500/5' : 'border-gray-200'} p-3.5 sm:p-5 lg:p-6 flex flex-col gap-4 sm:gap-5 transition-all`}>
+              {/* Card Header with Status & Mode Toggle */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3.5 border-b border-gray-100">
+                <div className="flex items-start sm:items-center gap-3 min-w-0">
+                  <div className={`w-8 h-8 sm:w-7 sm:h-7 rounded-full flex items-center justify-center border-2 shrink-0 transition-all ${isStep1Complete && isStep2Complete ? 'border-emerald-500 text-emerald-600 bg-emerald-50 shadow-xs' : 'border-gray-300 text-gray-400 bg-gray-50'}`}>
+                    {isStep1Complete && isStep2Complete ? <CheckCircle2 size={16} className="fill-emerald-100 text-emerald-600" /> : <span className="text-[11px] font-black">1</span>}
                   </div>
-                ) : (
-                  <div className="bg-gray-50 border border-dashed border-gray-200 rounded-xl p-4 flex items-center justify-center text-gray-400 text-sm font-medium">
-                    No client selected
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h2 className="text-sm sm:text-base font-black text-gray-900 tracking-tight">
+                        {clientType === 'individual' ? 'Customer & Vehicle Intake' : 'Organization & Fleet Intake'}
+                      </h2>
+                      {clientType === 'individual' && (
+                        form.customer?.id ? (
+                          <span className="inline-flex items-center gap-1 text-[10px] font-extrabold text-emerald-800 bg-emerald-100/90 border border-emerald-300 px-2.5 py-0.5 rounded-full uppercase tracking-wider shadow-2xs">
+                            <UserCheck size={11} className="text-emerald-700" /> Returning Client
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 text-[10px] font-extrabold text-amber-800 bg-amber-100/90 border border-amber-300 px-2.5 py-0.5 rounded-full uppercase tracking-wider shadow-2xs">
+                            <UserPlus size={11} className="text-amber-700" /> Walk-in Client
+                          </span>
+                        )
+                      )}
+                    </div>
+                    <p className="text-[11px] font-medium text-gray-500 mt-0.5">
+                      {clientType === 'individual'
+                        ? (form.customer?.id
+                            ? `Client: ${form.customer.name} · Choose a vehicle below or add a new one`
+                            : 'Type mobile number or name to search existing, or fill details for walk-in client')
+                        : 'Select organization from master and choose vehicles from fleet'}
+                    </p>
                   </div>
-                )}
-              </div>
-            </div>
-
-            <div className="bg-white rounded-2xl shadow-xs border border-gray-200 p-4 sm:p-5 flex flex-col gap-4">
-              <div className="flex items-center gap-2.5">
-                <div className={`w-5 h-5 rounded-full flex items-center justify-center border-2 transition-colors ${isStep2Complete ? 'border-emerald-500 text-emerald-500 bg-emerald-50' : 'border-gray-300 text-gray-400 bg-gray-50'}`}>
-                  {isStep2Complete ? <CheckCircle2 size={12} className="fill-emerald-50" /> : <span className="text-[9px] font-bold">2</span>}
                 </div>
-                <h2 className="text-[14px] font-bold text-gray-900 tracking-tight">Vehicle Identifiers</h2>
+
+                <div className="flex items-center justify-between sm:justify-end gap-2 w-full sm:w-auto pt-1 sm:pt-0">
+                  {clientType === 'individual' && form.customer?.id && (
+                    <button
+                      type="button"
+                      onClick={handleResetClientSearch}
+                      className="text-[11px] font-bold text-gray-700 hover:text-gray-900 bg-gray-100 hover:bg-gray-200 border border-gray-200/80 px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 shrink-0 shadow-2xs active:scale-95"
+                      title="Clear and enter a different client"
+                    >
+                      <RefreshCw size={12} className="text-gray-500" /> Switch / New Client
+                    </button>
+                  )}
+
+                  <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-xl shrink-0 border border-gray-200/60 shadow-inner">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setClientType('individual');
+                        handleResetClientSearch();
+                      }}
+                      className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${clientType === 'individual' ? 'bg-white shadow-xs text-gray-900 ring-1 ring-gray-900/5' : 'text-gray-500 hover:text-gray-900'}`}
+                    >
+                      Individual
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setClientType('organization');
+                        handleResetClientSearch();
+                      }}
+                      className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${clientType === 'organization' ? 'bg-white shadow-xs text-gray-900 ring-1 ring-gray-900/5' : 'text-gray-500 hover:text-gray-900'}`}
+                    >
+                      Organization
+                    </button>
+                  </div>
+                </div>
               </div>
 
               {clientType === 'individual' ? (
-                <>
-                  <Field label="Vehicle" required>
+                <div className="flex flex-col gap-4">
+                  {/* Top: Existing Client Master Select Dropdown */}
+                  <div>
+                    <label className="block text-[10px] font-bold uppercase tracking-wider mb-1.5 text-gray-500 flex flex-wrap items-center justify-between gap-1">
+                      <span>Select Existing Client from Master (Or type below)</span>
+                      <span className="text-[10px] font-semibold text-gray-400">Search by Name, Mobile, or Vehicle</span>
+                    </label>
                     <Select
                       isClearable
-                      isSearchable
-                      placeholder={form.customer?.id ? 'Select vehicle…' : 'Select first…'}
-                      styles={selectStyles()}
-                      menuPortalTarget={document.body}
-                      menuPosition="fixed"
-                      options={vehicleOptions}
-                      value={selectedVehicle}
-                      isDisabled={!form.customer?.id || !!initial}
-                      onChange={sel => {
-                        if (!sel) {
-                          setForm(f => ({ ...f, vehicleId: null, carMake: '', licensePlate: '' }));
-                          return;
+                      options={customerOptions}
+                      value={selectedCustomer ? customerOptions.find(opt => String(opt.value) === String(selectedCustomer.value)) || null : null}
+                      onChange={opt => {
+                        if (opt && opt.customer) {
+                          handleSelectExistingClient(opt.customer);
+                        } else {
+                          handleResetClientSearch();
                         }
-                        const v = sel.vehicle;
-                        setForm(f => ({
-                          ...f,
-                          vehicleId: v.id,
-                          carMake: `${v.make || ''} ${v.model || ''}`.trim(),
-                          licensePlate: v.plate || '',
-                        }));
                       }}
+                      styles={selectStyles()}
+                      placeholder="-- Search & Select Existing Client (e.g. Rajesh Kumar, 9876543210) --"
+                      menuPortalTarget={document.body}
                     />
-                  </Field>
-                  {form.customer?.id && vehicleOptions.length === 0 && (
-                    <p className="text-[12px] font-medium text-rose-600">
-                      This client has no vehicles. Add a vehicle in Master Customer first.
-                    </p>
-                  )}
-                  {form.vehicleId && (
-                    <div className="flex flex-col gap-3 mt-4">
+                  </div>
+
+                  {/* Customer Information Inputs (Responsive 1/2/3 cols) */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-3.5 relative" ref={searchContainerRef}>
+                    {/* Mobile Number Field with Live Auto-Suggest Popup */}
+                    <div className="relative">
+                      <Field label="Mobile Number" required>
+                        <div className="relative">
+                          <Phone size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                          <input
+                            type="tel"
+                            required
+                            className={`${inputCls} pl-9 pr-8 rounded-xl border ${form.customer?.id ? 'border-emerald-300 bg-emerald-50/20' : 'border-gray-200'} text-xs py-2 font-mono font-bold`}
+                            placeholder="Type mobile (e.g. 9894834700)"
+                            value={form.customer?.phone || ''}
+                            onChange={e => {
+                              const val = e.target.value;
+                              setForm(f => ({
+                                ...f,
+                                customer: { ...f.customer, phone: val, ...(f.customer.id ? { id: null } : {}) }
+                              }));
+                              setIsSearchOpen(true);
+                            }}
+                            onFocus={() => setIsSearchOpen(true)}
+                            onClick={() => setIsSearchOpen(true)}
+                          />
+                          {form.customer?.phone && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                handleResetClientSearch();
+                              }}
+                              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-0.5"
+                              title="Clear"
+                            >
+                              <X size={13} />
+                            </button>
+                          )}
+                        </div>
+                      </Field>
+
+                      {/* Dropdown Results Under Mobile Number */}
+                      {isSearchOpen && (form.customer?.phone?.trim() || form.customer?.name?.trim()) && (filteredCustomers.length > 0 || isSearchingRemote) && (
+                        <div className="absolute left-0 right-0 sm:left-0 sm:w-[480px] lg:w-[520px] top-full mt-1.5 bg-white rounded-2xl shadow-2xl border border-gray-200 z-50 overflow-hidden max-h-64 sm:max-h-80 overflow-y-auto custom-scrollbar animate-scale-up">
+                          <div className="p-2.5 border-b border-gray-100 bg-gray-50/90 flex items-center justify-between text-[10px] font-bold text-gray-500 uppercase tracking-wider">
+                            <span className="flex items-center gap-1.5">
+                              {isSearchingRemote ? (
+                                <>
+                                  <RefreshCw size={11} className="animate-spin text-blue-500" /> Searching Master Database...
+                                </>
+                              ) : (
+                                `Matching Master Clients (${filteredCustomers.length})`
+                              )}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => setIsSearchOpen(false)}
+                              className="text-gray-400 hover:text-gray-700 text-[10px] font-bold"
+                            >
+                              Close
+                            </button>
+                          </div>
+                          <div className="p-1.5 flex flex-col gap-1">
+                            {filteredCustomers.map(c => {
+                              const isCurrentSelected = String(form.customer?.id) === String(c.id);
+                              return (
+                                <button
+                                  key={c.id}
+                                  type="button"
+                                  onClick={() => handleSelectExistingClient(c)}
+                                  className={`w-full text-left p-2.5 rounded-xl transition-colors flex items-center justify-between gap-3 group border ${
+                                    isCurrentSelected
+                                      ? 'bg-emerald-50/90 border-emerald-300'
+                                      : 'hover:bg-blue-50/80 border-transparent hover:border-blue-200'
+                                  } active:scale-[0.99]`}
+                                >
+                                  <div className="flex flex-col min-w-0">
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                      <span className="font-bold text-[13px] text-gray-900 group-hover:text-blue-900">{c.name || c.full_name}</span>
+                                      <span className="font-mono text-xs font-bold text-blue-700 bg-blue-50 px-1.5 py-0.2 rounded border border-blue-100">{c.phone}</span>
+                                    </div>
+                                    {c.address && <span className="text-[11px] text-gray-400 truncate mt-0.5">{c.address}</span>}
+                                    {c.vehicles && c.vehicles.length > 0 && (
+                                      <div className="flex flex-wrap gap-1 mt-1">
+                                        {c.vehicles.map(v => (
+                                          <span key={v.id || v.plate} className="inline-flex items-center gap-1 text-[10px] font-bold bg-gray-100 group-hover:bg-blue-100 text-gray-700 group-hover:text-blue-900 px-1.5 py-0.5 rounded">
+                                            <Car size={10} /> {[v.make, v.model].filter(Boolean).join(' ') || 'Car'}{v.plate ? ` (${v.plate})` : ''}
+                                          </span>
+                                        ))}
+                                      </div>
+                                    )}
+                                  </div>
+                                  <span className={`text-xs font-bold flex items-center gap-1 shrink-0 ${isCurrentSelected ? 'text-emerald-700' : 'text-blue-600'}`}>
+                                    {isCurrentSelected ? 'Selected ✓' : 'Auto-fill'} <ArrowRight size={13} />
+                                  </span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Customer Full Name Field */}
+                    <Field label="Customer Full Name" required>
+                      <div className="relative">
+                        <User size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                        <input
+                          type="text"
+                          required
+                          className={`${inputCls} pl-9 rounded-xl border ${form.customer?.id ? 'border-emerald-300 bg-emerald-50/20' : 'border-gray-200'} text-xs py-2 font-semibold text-gray-900`}
+                          placeholder="e.g. Rajesh Kumar"
+                          value={form.customer?.name || ''}
+                          onChange={e => {
+                            const val = e.target.value;
+                            setForm(f => ({
+                              ...f,
+                              customer: { ...f.customer, name: val, ...(f.customer.id ? { id: null } : {}) }
+                            }));
+                            setIsSearchOpen(true);
+                          }}
+                          onFocus={() => setIsSearchOpen(true)}
+                          onClick={() => setIsSearchOpen(true)}
+                        />
+                      </div>
+                    </Field>
+
+                    {/* Address Field */}
+                    <div className="md:col-span-2 lg:col-span-1">
+                      <Field label="Address / Location (Optional)">
+                        <div className="relative">
+                          <MapPin size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                          <input
+                            type="text"
+                            className={`${inputCls} pl-9 rounded-xl border border-gray-200 text-xs py-2`}
+                            placeholder="e.g. Banjara Hills, Hyderabad"
+                            value={form.customer?.address || ''}
+                            onChange={e => setForm(f => ({ ...f, customer: { ...f.customer, address: e.target.value } }))}
+                          />
+                        </div>
+                      </Field>
+                    </div>
+                  </div>
+
+                  {/* ── VEHICLE SECTION ── */}
+                  <div className="pt-3 border-t border-gray-100 flex flex-col gap-3">
+                    {/* Case 1: Returning Client with Registered Vehicles */}
+                    {form.customer?.id && (form.customer?.vehicles || []).length > 0 ? (
+                      <div className="flex flex-col gap-2.5">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                          <label className="block text-[10px] font-black uppercase tracking-wider text-gray-700 flex items-center gap-1.5">
+                            <Car size={13} className="text-blue-600" /> Registered Vehicles for {form.customer.name}
+                          </label>
+                          {!isAddingNewVehicle ? (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setIsAddingNewVehicle(true);
+                                setForm(f => ({ ...f, vehicleId: null }));
+                              }}
+                              className="text-[11px] font-bold text-blue-600 hover:text-blue-800 flex items-center justify-center gap-1 bg-blue-50 px-2.5 py-1.5 rounded-lg border border-blue-200 transition-colors w-full sm:w-auto active:scale-95"
+                            >
+                              <Plus size={13} /> Add New Vehicle to Client
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setIsAddingNewVehicle(false);
+                                if (form.customer.vehicles?.[0]) handleSelectExistingVehicle(form.customer.vehicles[0]);
+                              }}
+                              className="text-[11px] font-bold text-gray-600 hover:text-gray-900 flex items-center justify-center gap-1 bg-gray-100 px-2.5 py-1.5 rounded-lg transition-colors w-full sm:w-auto active:scale-95"
+                            >
+                              Select from Registered Fleet
+                            </button>
+                          )}
+                        </div>
+
+                        {!isAddingNewVehicle ? (
+                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-3">
+                            {form.customer.vehicles.map(v => {
+                              const isSelected = String(form.vehicleId) === String(v.id);
+                              return (
+                                <button
+                                  key={v.id}
+                                  type="button"
+                                  onClick={() => handleSelectExistingVehicle(v)}
+                                  className={`p-3 sm:p-3.5 rounded-xl border text-left transition-all flex items-center justify-between gap-2.5 ${
+                                    isSelected
+                                      ? 'bg-blue-50/90 border-blue-500 ring-2 ring-blue-500/25 shadow-xs'
+                                      : 'bg-white border-gray-200 hover:border-gray-300 hover:bg-gray-50/80'
+                                  }`}
+                                >
+                                  <div className="flex items-center gap-2.5 min-w-0">
+                                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-colors ${isSelected ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600'}`}>
+                                      {isSelected ? <Check size={16} className="stroke-[3]" /> : <Car size={16} />}
+                                    </div>
+                                    <div className="flex flex-col min-w-0">
+                                      <span className="font-bold text-xs text-gray-900 truncate">
+                                        {[v.make, v.model].filter(Boolean).join(' ') || 'Vehicle'}
+                                      </span>
+                                      <span className="font-mono text-[11px] font-bold text-gray-500 uppercase tracking-tight">
+                                        {v.plate || v.license_vin || 'No Plate'}
+                                      </span>
+                                    </div>
+                                  </div>
+                                  {v.type && (
+                                    <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded bg-blue-100 text-blue-800 uppercase tracking-wider shrink-0">
+                                      {v.type}
+                                    </span>
+                                  )}
+                                </button>
+                              );
+                            })}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setIsAddingNewVehicle(true);
+                                setForm(f => ({ ...f, vehicleId: null }));
+                              }}
+                              className="p-3 sm:p-3.5 rounded-xl border border-dashed border-gray-300 hover:border-blue-400 hover:bg-blue-50/40 text-gray-600 hover:text-blue-700 transition-all flex items-center justify-center gap-2 text-xs font-bold active:scale-95"
+                            >
+                              <Plus size={15} /> Add New Vehicle
+                            </button>
+                          </div>
+                        ) : (
+                          /* Inline New Vehicle Form for Existing Client */
+                          <div className="bg-blue-50/40 border border-blue-200/80 rounded-2xl p-3.5 sm:p-4 flex flex-col gap-3">
+                            <div className="text-xs font-extrabold text-blue-900 uppercase tracking-wider flex items-center gap-1.5">
+                              <Car size={14} className="text-blue-600" /> New Vehicle Details for {form.customer.name}
+                            </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                              <Field label="Make & Model" required>
+                                <input
+                                  type="text"
+                                  required
+                                  className={`${inputCls} rounded-xl border border-gray-200 text-xs py-2`}
+                                  placeholder="e.g. BMW 320d / Creta"
+                                  value={form.newVehicle?.make_model || ''}
+                                  onChange={e => {
+                                    const val = e.target.value;
+                                    setForm(f => ({
+                                      ...f,
+                                      carMake: val,
+                                      newVehicle: { ...f.newVehicle, make_model: val, make: val.split(' ')[0] || val, model: val.split(' ').slice(1).join(' ') || '' }
+                                    }));
+                                  }}
+                                />
+                              </Field>
+                              <Field label="License Plate Number" required>
+                                <input
+                                  type="text"
+                                  required
+                                  className={`${inputCls} rounded-xl border border-gray-200 text-xs py-2 font-mono uppercase font-bold`}
+                                  placeholder="e.g. MH 12 AB 1234"
+                                  value={form.newVehicle?.plate || ''}
+                                  onChange={e => {
+                                    const val = e.target.value.toUpperCase();
+                                    setForm(f => ({
+                                      ...f,
+                                      licensePlate: val,
+                                      newVehicle: { ...f.newVehicle, plate: val }
+                                    }));
+                                  }}
+                                />
+                              </Field>
+                              <div className="sm:col-span-2 lg:col-span-1 flex flex-col">
+                                <Field label="Vehicle Type (Dynamic Pricing)" required>
+                                  <select
+                                    required
+                                    className={`${inputCls} rounded-xl border border-gray-200 text-xs py-2 font-bold text-gray-800`}
+                                    value={form.newVehicle?.vehicle_type_id || ''}
+                                    onChange={e => {
+                                      const vtId = e.target.value ? Number(e.target.value) : '';
+                                      const matched = vehicleTypes.find(vt => vt.id === vtId);
+                                      setForm(f => ({
+                                        ...f,
+                                        newVehicle: {
+                                          ...f.newVehicle,
+                                          vehicle_type_id: vtId,
+                                          vehicle_type: matched ? matched.name : '',
+                                        }
+                                      }));
+                                    }}
+                                  >
+                                    <option value="">-- Select Type --</option>
+                                    {vehicleTypes.filter(vt => vt.isActive !== false).map(vt => (
+                                      <option key={vt.id} value={vt.id}>{vt.name}</option>
+                                    ))}
+                                  </select>
+                                </Field>
+                                {vehicleTypes.length > 0 && (
+                                  <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                                    <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mr-0.5">Quick:</span>
+                                    {vehicleTypes.filter(vt => vt.isActive !== false).slice(0, 6).map(vt => {
+                                      const isSel = String(form.newVehicle?.vehicle_type_id) === String(vt.id);
+                                      return (
+                                        <button
+                                          key={vt.id}
+                                          type="button"
+                                          onClick={() => setForm(f => ({
+                                            ...f,
+                                            newVehicle: {
+                                              ...f.newVehicle,
+                                              vehicle_type_id: vt.id,
+                                              vehicle_type: vt.name,
+                                            }
+                                          }))}
+                                          className={`px-2 py-0.5 rounded-md text-[11px] font-bold transition-all border ${
+                                            isSel
+                                              ? 'bg-blue-600 text-white border-blue-600 shadow-2xs'
+                                              : 'bg-white text-gray-700 border-gray-200 hover:bg-blue-50 hover:border-blue-200'
+                                          }`}
+                                        >
+                                          {vt.name}
+                                        </button>
+                                      );
+                                    })}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      /* Case 2: New Walk-in Client Vehicle Intake */
+                      <div className="flex flex-col gap-2">
+                        <label className="block text-[10px] font-black uppercase tracking-wider text-amber-900 flex items-center gap-1.5">
+                          <Car size={13} className="text-amber-600" /> Vehicle Information *
+                        </label>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                          <Field label="Make & Model" required>
+                            <input
+                              type="text"
+                              required
+                              className={`${inputCls} rounded-xl border border-gray-200 text-xs py-2`}
+                              placeholder="e.g. BMW 320d / Creta"
+                              value={form.newVehicle?.make_model || ''}
+                              onChange={e => {
+                                const val = e.target.value;
+                                setForm(f => ({
+                                  ...f,
+                                  carMake: val,
+                                  newVehicle: { ...f.newVehicle, make_model: val, make: val.split(' ')[0] || val, model: val.split(' ').slice(1).join(' ') || '' }
+                                }));
+                              }}
+                            />
+                          </Field>
+                          <Field label="License Plate Number" required>
+                            <input
+                              type="text"
+                              required
+                              className={`${inputCls} rounded-xl border border-gray-200 text-xs py-2 font-mono uppercase font-bold`}
+                              placeholder="e.g. MH 12 AB 1234"
+                              value={form.newVehicle?.plate || ''}
+                              onChange={e => {
+                                const val = e.target.value.toUpperCase();
+                                setForm(f => ({
+                                  ...f,
+                                  licensePlate: val,
+                                  newVehicle: { ...f.newVehicle, plate: val }
+                                }));
+                              }}
+                            />
+                          </Field>
+                          <div className="sm:col-span-2 lg:col-span-1 flex flex-col">
+                            <Field label="Vehicle Type (Dynamic Pricing)" required>
+                              <select
+                                required
+                                className={`${inputCls} rounded-xl border border-gray-200 text-xs py-2 font-bold text-gray-800`}
+                                value={form.newVehicle?.vehicle_type_id || ''}
+                                onChange={e => {
+                                  const vtId = e.target.value ? Number(e.target.value) : '';
+                                  const matched = vehicleTypes.find(vt => vt.id === vtId);
+                                  setForm(f => ({
+                                    ...f,
+                                    newVehicle: {
+                                      ...f.newVehicle,
+                                      vehicle_type_id: vtId,
+                                      vehicle_type: matched ? matched.name : '',
+                                    }
+                                  }));
+                                }}
+                              >
+                                <option value="">-- Select Type --</option>
+                                {vehicleTypes.filter(vt => vt.isActive !== false).map(vt => (
+                                  <option key={vt.id} value={vt.id}>{vt.name}</option>
+                                ))}
+                              </select>
+                            </Field>
+                            {vehicleTypes.length > 0 && (
+                              <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                                <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mr-0.5">Quick:</span>
+                                {vehicleTypes.filter(vt => vt.isActive !== false).slice(0, 6).map(vt => {
+                                  const isSel = String(form.newVehicle?.vehicle_type_id) === String(vt.id);
+                                  return (
+                                    <button
+                                      key={vt.id}
+                                      type="button"
+                                      onClick={() => setForm(f => ({
+                                        ...f,
+                                        newVehicle: {
+                                          ...f.newVehicle,
+                                          vehicle_type_id: vt.id,
+                                          vehicle_type: vt.name,
+                                        }
+                                      }))}
+                                      className={`px-2 py-0.5 rounded-md text-[11px] font-bold transition-all border ${
+                                        isSel
+                                          ? 'bg-amber-500 text-white border-amber-500 shadow-2xs'
+                                          : 'bg-white text-gray-700 border-gray-200 hover:bg-amber-50 hover:border-amber-200'
+                                      }`}
+                                    >
+                                      {vt.name}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Visit Check-in/Check-out Metadata & Package Redemptions */}
+                    <div className="flex flex-col gap-3 pt-2">
                       <VehicleVisitRow
-                        label={selectedVehicle?.label || 'Vehicle'}
-                        meta={form.vehicleVisitMeta[form.vehicleId] || {}}
-                        onField={(field, val) => updateVehicleVisitField(form.vehicleId, field, val)}
+                        label={selectedVehicle?.label || form.newVehicle?.make_model || 'Vehicle Visit'}
+                        meta={form.vehicleVisitMeta[form.vehicleId || 'new_vehicle'] || {}}
+                        onField={(field, val) => updateVehicleVisitField(form.vehicleId || 'new_vehicle', field, val)}
                         showCopyToAll={false}
                       />
-                      {assignedOffers.filter(o => o.vehicleId === form.vehicleId).map(offer => (
-                        <div key={offer.id} className="bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-100 p-4 rounded-xl flex items-center justify-between shadow-sm">
+
+                      {form.customer?.id && assignedOffers.filter(o => o.vehicleId === form.vehicleId).map(offer => (
+                        <div key={offer.id} className="bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-100 p-4 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm">
                           <div className="flex flex-col">
-                            <span className="text-[12px] font-bold text-emerald-700 uppercase tracking-wider flex items-center gap-1.5"><Sparkles size={12} /> Active Package</span>
+                            <span className="text-[12px] font-bold text-emerald-700 uppercase tracking-wider flex items-center gap-1.5">
+                              <Sparkles size={12} /> Active Package
+                            </span>
                             <span className="text-[15px] font-bold text-gray-900 mt-0.5">{offer.packageName}</span>
-                            <span className="text-[12px] font-medium text-emerald-600 mt-0.5">{offer.completedWashes} of {offer.totalWashes} washes used</span>
+                            <span className="text-[12px] font-medium text-emerald-600 mt-0.5">
+                              {offer.completedWashes} of {offer.totalWashes} washes used
+                            </span>
                           </div>
-                          <button type="button" onClick={() => handleRedeemPackage(offer, form.vehicleId)} className="bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold px-4 py-2 rounded-lg transition-colors shadow-sm">
+                          <button
+                            type="button"
+                            onClick={() => handleRedeemPackage(offer, form.vehicleId)}
+                            className="bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold px-4 py-2 rounded-lg transition-colors shadow-sm self-start sm:self-auto active:scale-95"
+                          >
                             Redeem Wash
                           </button>
                         </div>
                       ))}
                     </div>
-                  )}
-                </>
+                  </div>
+                </div>
               ) : (
-                <>
-                  <div className="flex flex-wrap gap-2.5">
-                    {vehicleOptions.map(opt => (
-                      <VehicleChip
-                        key={opt.value}
-                        opt={opt}
-                        checked={form.selectedVehicleIds.includes(opt.value)}
-                        onToggle={toggleVehicle}
-                      />
-                    ))}
+                /* Organization Fleet Intake Mode */
+                <div className="flex flex-col gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
+                    <Select
+                      isClearable
+                      isSearchable
+                      placeholder="Search organizations…"
+                      styles={selectStyles()}
+                      menuPortalTarget={document.body}
+                      menuPosition="fixed"
+                      options={customerOptions}
+                      value={selectedCustomer}
+                      onChange={sel => {
+                        if (!sel) {
+                          setForm(f => ({
+                            ...f,
+                            customer: { id: null, name: '', phone: '', address: '', vehicles: [] },
+                            vehicleId: null,
+                            selectedVehicleIds: [],
+                            vehicleVisitMeta: {},
+                            carMake: '',
+                            licensePlate: '',
+                          }));
+                          onCustomerSelect?.(null);
+                          return;
+                        }
+                        const m = sel.customer;
+                        const vehicles = Array.isArray(m.vehicles) ? m.vehicles : [];
+                        setForm(f => ({
+                          ...f,
+                          customer: { id: m.id, name: m.name, phone: m.phone, address: m.address || '', vehicles },
+                          vehicleId: null,
+                          selectedVehicleIds: [],
+                          vehicleVisitMeta: {},
+                          carMake: '',
+                          licensePlate: '',
+                        }));
+                        onCustomerSelect?.({ ...m, isOrganization: true, clientType: 'organization' });
+                      }}
+                      isDisabled={!!initial}
+                    />
+
+                    {form.customer.name ? (
+                      <div className="bg-gray-50 p-3.5 rounded-xl border border-gray-100 flex flex-col gap-2">
+                        <div className="flex items-center gap-2 text-[13px] text-gray-800">
+                          <User size={14} className="text-gray-400 shrink-0" />
+                          <span className="font-bold">{form.customer.name}</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-[13px] text-gray-800">
+                          <Phone size={14} className="text-gray-400 shrink-0" />
+                          <span className="font-medium">{form.customer.phone}</span>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="bg-gray-50 border border-dashed border-gray-200 rounded-xl p-3.5 flex items-center justify-center text-gray-400 text-xs font-medium">
+                        No organization selected
+                      </div>
+                    )}
                   </div>
 
-                  {form.customer?.id && vehicleOptions.length === 0 && (
-                    <p className="text-[12px] font-medium text-rose-600">
-                      This organization has no vehicles registered. Add one via Master Organization first.
-                    </p>
-                  )}
-                  {form.customer?.id && vehicleOptions.length > 0 && form.selectedVehicleIds.length === 0 && (
-                    <p className="text-[12px] font-medium text-rose-600">
-                      Select at least one vehicle for this visit.
-                    </p>
-                  )}
-
-                  {form.selectedVehicleIds.length > 0 && (
-                    <div className="flex flex-col gap-3">
-                      {form.selectedVehicleIds.map(vid => {
-                        const opt = vehicleOptions.find(v => v.value === vid);
-                        return (
-                          <VehicleVisitRow
-                            key={vid}
-                            label={opt?.label || 'Vehicle'}
-                            meta={form.vehicleVisitMeta[vid] || {}}
-                            onField={(field, val) => updateVehicleVisitField(vid, field, val)}
-                            onCopyToAll={() => copyVisitorToAllVehicles(vid)}
-                            showCopyToAll={form.selectedVehicleIds.length > 1}
+                  {form.customer?.id && (
+                    <div className="flex flex-col gap-3 pt-2">
+                      <label className="block text-[10px] font-black uppercase tracking-wider text-gray-500">
+                        Select Vehicles from Fleet ({vehicleOptions.length} registered)
+                      </label>
+                      <div className="flex flex-wrap gap-2.5">
+                        {vehicleOptions.map(opt => (
+                          <VehicleChip
+                            key={opt.value}
+                            opt={opt}
+                            checked={form.selectedVehicleIds.includes(opt.value)}
+                            onToggle={toggleVehicle}
                           />
-                        );
-                      })}
+                        ))}
+                      </div>
+
+                      {vehicleOptions.length === 0 && (
+                        <p className="text-[12px] font-medium text-rose-600">
+                          This organization has no vehicles registered. Add one via Master Organization first.
+                        </p>
+                      )}
+
+                      {form.selectedVehicleIds.length > 0 && (
+                        <div className="flex flex-col gap-3 mt-2">
+                          {form.selectedVehicleIds.map(vid => {
+                            const opt = vehicleOptions.find(v => v.value === vid);
+                            return (
+                              <VehicleVisitRow
+                                key={vid}
+                                label={opt?.label || 'Vehicle'}
+                                meta={form.vehicleVisitMeta[vid] || {}}
+                                onField={(field, val) => updateVehicleVisitField(vid, field, val)}
+                                onCopyToAll={() => copyVisitorToAllVehicles(vid)}
+                                showCopyToAll={form.selectedVehicleIds.length > 1}
+                              />
+                            );
+                          })}
+                        </div>
+                      )}
                     </div>
                   )}
-                </>
+                </div>
               )}
             </div>
 

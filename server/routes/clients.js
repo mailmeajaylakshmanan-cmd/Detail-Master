@@ -57,6 +57,8 @@ router.get('/lookup', async (req, res) => {
     const phone = (req.query.phone || '').trim();
     if (!phone) return res.status(400).json({ message: 'phone is required' });
 
+    const phoneDigits = phone.replace(/[^0-9]/g, '');
+
     const { rows } = await db.query(
       `SELECT
          c.*,
@@ -76,10 +78,12 @@ router.get('/lookup', async (req, res) => {
          ) AS vehicles_json
        FROM clients c
        LEFT JOIN vehicles v ON v.client_id = c.id
-       WHERE c.phone = $1
+       WHERE c.phone = $1 
+          OR ($2 <> '' AND regexp_replace(c.phone, '[^0-9]', '', 'g') = $2)
+          OR ($2 <> '' AND length($2) >= 10 AND regexp_replace(c.phone, '[^0-9]', '', 'g') LIKE '%' || substring($2 from length($2) - 9))
        GROUP BY c.id
        LIMIT 1`,
-      [phone]
+      [phone, phoneDigits]
     );
 
     if (rows.length === 0) return res.status(404).json({ message: 'Client not found' });
@@ -103,8 +107,16 @@ router.get('/', async (req, res) => {
     const params = [];
     let whereSql = '';
     if (search) {
+      const searchDigits = search.replace(/[^0-9]/g, '');
       params.push(`%${search}%`);
-      whereSql = `WHERE (c.full_name ILIKE $${params.length} OR c.phone ILIKE $${params.length})`;
+      if (searchDigits.length >= 3) {
+        params.push(`%${searchDigits}%`);
+        whereSql = `WHERE (c.full_name ILIKE $1 OR c.phone ILIKE $1 OR regexp_replace(c.phone, '[^0-9]', '', 'g') LIKE $2)`;
+      } else {
+        whereSql = `WHERE (c.full_name ILIKE $1 OR c.phone ILIKE $1)`;
+      }
+    } else {
+      whereSql = `WHERE (c.is_active IS TRUE OR c.is_active IS NULL)`;
     }
 
     const baseSelect = `
@@ -126,7 +138,7 @@ router.get('/', async (req, res) => {
         ) AS vehicles_json
       FROM clients c
       LEFT JOIN vehicles v ON v.client_id = c.id
-      ${whereSql ? whereSql + ' AND ' : 'WHERE '}c.is_active = TRUE
+      ${whereSql}
       GROUP BY c.id
     `;
 

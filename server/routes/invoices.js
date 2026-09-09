@@ -354,6 +354,13 @@ router.post('/check-conflicts', async (req, res) => {
   }
 });
 
+function sanitizeVehicleId(vid, fallbackId) {
+  if (!vid || vid === 'new_vehicle' || (typeof vid === 'string' && isNaN(Number(vid))) || Number(vid) <= 0) {
+    return fallbackId ? Number(fallbackId) : null;
+  }
+  return Number(vid);
+}
+
 // CREATE invoice + all service lines (+ optional payments) in one call
 // Body: client_id, vehicle_id, service_ids: number[], discount?, amount_paid?,
 //       status?, special_notes?, include_terms?, terms_conditions?, payments?,
@@ -376,35 +383,133 @@ router.post('/', async (req, res) => {
       payments,
       third_party_items,
       vehicle_visits,
+      new_client,
+      new_vehicle,
     } = req.body;
 
-    if (!client_id && !organization_id) {
-      return res.status(400).json({ message: 'client_id or organization_id is required' });
+    let finalClientId = client_id ? Number(client_id) : null;
+    let finalOrgId = organization_id ? Number(organization_id) : null;
+
+    await client.query('BEGIN');
+
+    // ── Handle Inline New Client Creation / Lookup ──
+    if (!finalClientId && !finalOrgId && new_client) {
+      const ncName = (new_client.full_name || new_client.name || '').trim();
+      const ncPhone = (new_client.phone || '').trim();
+      if (!ncName || !ncPhone) {
+        await client.query('ROLLBACK');
+        return res.status(400).json({ message: 'Customer name and phone number are required' });
+      }
+
+      // Check if client with this phone already exists
+      const existingClientRes = await client.query(
+        `SELECT id, full_name, phone, address FROM clients
+         WHERE phone = $1
+            OR regexp_replace(phone, '[^0-9]', '', 'g') = regexp_replace($1, '[^0-9]', '', 'g')
+            OR (LENGTH(regexp_replace($1, '[^0-9]', '', 'g')) >= 10 AND RIGHT(regexp_replace(phone, '[^0-9]', '', 'g'), 10) = RIGHT(regexp_replace($1, '[^0-9]', '', 'g'), 10))
+         LIMIT 1`,
+        [ncPhone]
+      );
+      if (existingClientRes.rows.length > 0) {
+        finalClientId = existingClientRes.rows[0].id;
+        if (new_client.address || ncName) {
+          await client.query(
+            `UPDATE clients
+             SET address = COALESCE(NULLIF($1, ''), address),
+                 full_name = COALESCE(NULLIF($2, ''), full_name),
+                 is_active = TRUE,
+                 updated_at = CURRENT_TIMESTAMP
+             WHERE id = $3`,
+            [new_client.address?.trim() || null, ncName || null, finalClientId]
+          );
+        }
+      } else {
+        const insertClientRes = await client.query(
+          'INSERT INTO clients (full_name, phone, email, address, is_active) VALUES ($1, $2, $3, $4, TRUE) RETURNING id',
+          [ncName, ncPhone, new_client.email?.trim() || null, new_client.address?.trim() || null]
+        );
+        finalClientId = insertClientRes.rows[0].id;
+      }
+    }
+
+    if (!finalClientId && !finalOrgId) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({ message: 'client_id, organization_id, or new_client details are required' });
+    }
+
+    // ── Handle Inline New Vehicle Creation / Lookup ──
+    let finalVehicleId = sanitizeVehicleId(vehicle_id, null);
+
+    if (new_vehicle && (new_vehicle.make_model || new_vehicle.make || new_vehicle.license_vin || new_vehicle.plate)) {
+      const makeModel = (new_vehicle.make_model || `${new_vehicle.make || ''} ${new_vehicle.model || ''}`).trim() || 'Vehicle';
+      const licenseVin = (new_vehicle.license_vin || new_vehicle.plate || '').trim().toUpperCase();
+      const vtId = (new_vehicle.vehicle_type_id && Number(new_vehicle.vehicle_type_id) > 0) ? Number(new_vehicle.vehicle_type_id) : null;
+      let vtName = new_vehicle.vehicle_type || new_vehicle.type || null;
+
+      if (vtId && !vtName) {
+        const vtRes = await client.query('SELECT name FROM vehicle_types WHERE id = $1', [vtId]);
+        if (vtRes.rows.length > 0) vtName = vtRes.rows[0].name;
+      }
+
+      let existingVehRes = null;
+      if (licenseVin) {
+        if (finalClientId) {
+          existingVehRes = await client.query(
+            'SELECT id FROM vehicles WHERE client_id = $1 AND UPPER(license_vin) = $2 LIMIT 1',
+            [finalClientId, licenseVin]
+          );
+        } else if (finalOrgId) {
+          existingVehRes = await client.query(
+            'SELECT id FROM vehicles WHERE organization_id = $1 AND UPPER(license_vin) = $2 LIMIT 1',
+            [finalOrgId, licenseVin]
+          );
+        }
+      }
+
+      if (existingVehRes && existingVehRes.rows.length > 0) {
+        finalVehicleId = existingVehRes.rows[0].id;
+        if (vtId || makeModel) {
+          await client.query(
+            `UPDATE vehicles
+             SET make_model = COALESCE(NULLIF($1, ''), make_model),
+                 vehicle_type_id = COALESCE($2, vehicle_type_id),
+                 vehicle_type = COALESCE($3, vehicle_type),
+                 is_active = TRUE
+             WHERE id = $4`,
+            [makeModel, vtId, vtName, finalVehicleId]
+          );
+        }
+      } else {
+        const insertVehRes = await client.query(
+          `INSERT INTO vehicles (client_id, organization_id, make_model, license_vin, vehicle_type, vehicle_type_id, is_active)
+           VALUES ($1, $2, $3, $4, $5, $6, TRUE) RETURNING id`,
+          [finalClientId || null, finalOrgId || null, makeModel, licenseVin, vtName || 'Sedan', vtId]
+        );
+        finalVehicleId = insertVehRes.rows[0].id;
+      }
+    }
+
+    if (!finalVehicleId) {
+      if (finalClientId) {
+        const vRes = await client.query('SELECT id FROM vehicles WHERE client_id = $1 ORDER BY id ASC LIMIT 1', [finalClientId]);
+        if (vRes.rows.length > 0) finalVehicleId = vRes.rows[0].id;
+      } else if (finalOrgId) {
+        const vRes = await client.query('SELECT id FROM vehicles WHERE organization_id = $1 ORDER BY id ASC LIMIT 1', [finalOrgId]);
+        if (vRes.rows.length > 0) finalVehicleId = vRes.rows[0].id;
+      }
     }
 
     const ids = Array.isArray(service_ids)
       ? [...new Set(service_ids.map(Number).filter((n) => Number.isFinite(n) && n > 0))]
       : [];
 
-    const thirdPartyItems = Array.isArray(third_party_items)
+    const thirdPartyItemsInput = Array.isArray(third_party_items)
       ? third_party_items.filter((t) => t && t.service_name)
       : [];
 
-    if (ids.length === 0 && thirdPartyItems.length === 0) {
-      return res.status(400).json({ message: 'At least one service_id or third-party item is required' });
-    }
-
-    await client.query('BEGIN');
-
-    let finalVehicleId = vehicle_id || null;
-    if (!finalVehicleId) {
-      if (client_id) {
-        const vRes = await client.query('SELECT id FROM vehicles WHERE client_id = $1 ORDER BY id ASC LIMIT 1', [client_id]);
-        if (vRes.rows.length > 0) finalVehicleId = vRes.rows[0].id;
-      } else if (organization_id) {
-        const vRes = await client.query('SELECT id FROM vehicles WHERE organization_id = $1 ORDER BY id ASC LIMIT 1', [organization_id]);
-        if (vRes.rows.length > 0) finalVehicleId = vRes.rows[0].id;
-      }
+    if (ids.length === 0 && thirdPartyItemsInput.length === 0 && (!Array.isArray(req.body.service_items) || req.body.service_items.length === 0)) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({ message: 'At least one service or third-party item is required' });
     }
 
     let lines = [];
@@ -412,25 +517,32 @@ router.post('/', async (req, res) => {
     // Support new payload format: service_items = [{ service_id, vehicle_ids: [1, 2] }]
     // Support legacy payload: service_ids = [1, 2, 3] with single vehicle_id
     if (Array.isArray(req.body.service_items) && req.body.service_items.length > 0) {
-      const ids = req.body.service_items.map(s => s.service_id);
-      const sRes = await client.query('SELECT id FROM services WHERE id = ANY($1::int[])', [ids]);
+      const sItemIds = req.body.service_items.map(s => Number(s.service_id)).filter(n => Number.isFinite(n) && n > 0);
+      const sRes = sItemIds.length > 0
+        ? await client.query('SELECT id FROM services WHERE id = ANY($1::int[])', [sItemIds])
+        : { rows: [] };
 
       req.body.service_items.forEach(si => {
-        const dbSrv = sRes.rows.find(r => r.id === si.service_id);
+        const sid = Number(si.service_id);
+        const dbSrv = sRes.rows.find(r => r.id === sid);
         if (dbSrv) {
-          const vIds = Array.isArray(si.vehicle_ids) && si.vehicle_ids.length > 0 ? si.vehicle_ids : [finalVehicleId || null];
+          const rawVIds = Array.isArray(si.vehicle_ids) && si.vehicle_ids.length > 0 ? si.vehicle_ids : [finalVehicleId];
+          const cleanVIds = rawVIds.map(vid => sanitizeVehicleId(vid, finalVehicleId)).filter(Boolean);
+          const vIds = cleanVIds.length > 0 ? cleanVIds : (finalVehicleId ? [finalVehicleId] : [null]);
           lines.push({
-            service_id: si.service_id,
-            unit_price: si.assigned_offer_id ? 0 : (Number(si.price) / vIds.length || 0),
+            service_id: sid,
+            unit_price: si.assigned_offer_id ? 0 : (Number(si.price) / (vIds.length || 1) || 0),
             assigned_offer_id: si.assigned_offer_id || null,
             vehicle_ids: vIds
           });
         }
       });
     } else if (Array.isArray(service_ids) && service_ids.length > 0) {
-      const sRes = await client.query('SELECT id FROM services WHERE id = ANY($1::int[])', [service_ids]);
-      lines = service_ids.map((id) => {
-        const row = sRes.rows.find((r) => r.id === id);
+      const validIds = service_ids.map(Number).filter(n => Number.isFinite(n) && n > 0);
+      const sRes = validIds.length > 0
+        ? await client.query('SELECT id FROM services WHERE id = ANY($1::int[])', [validIds])
+        : { rows: [] };
+      lines = validIds.map((id) => {
         return {
           service_id: id,
           unit_price: 0,
@@ -445,7 +557,15 @@ router.post('/', async (req, res) => {
        return sum + (line.unit_price * qty);
     }, 0);
 
-    const tPartyItems = Array.isArray(third_party_items) ? third_party_items : [];
+    const tPartyItems = Array.isArray(third_party_items) ? third_party_items.map(t => {
+      const rawVIds = Array.isArray(t.vehicle_ids) && t.vehicle_ids.length > 0 ? t.vehicle_ids : [finalVehicleId];
+      const cleanVIds = rawVIds.map(vid => sanitizeVehicleId(vid, finalVehicleId)).filter(Boolean);
+      return {
+        ...t,
+        vehicle_ids: cleanVIds.length > 0 ? cleanVIds : (finalVehicleId ? [finalVehicleId] : [null])
+      };
+    }) : [];
+
     const thirdPartySubTotal = tPartyItems.reduce((sum, t) => {
       const qty = Array.isArray(t.vehicle_ids) && t.vehicle_ids.length > 0 ? t.vehicle_ids.length : 1;
       const sellingP = Number(t.selling_price) || 0;
@@ -467,6 +587,7 @@ router.post('/', async (req, res) => {
     );
     const amountPaid = amountPaidFromPayments;
     if (amountPaid > grandTotal + 0.01) {
+      await client.query('ROLLBACK');
       return res.status(400).json({
         message: `Total payments (₹${amountPaid.toLocaleString('en-IN')}) cannot exceed the grand total (₹${grandTotal.toLocaleString('en-IN')})`
       });
@@ -487,8 +608,8 @@ router.post('/', async (req, res) => {
        ) RETURNING *`,
       [
         invoiceNumber,
-        client_id || null,
-        organization_id || null,
+        finalClientId || null,
+        finalOrgId || null,
         finalVehicleId || null,
         finalStatus,
         subTotal,
@@ -507,12 +628,11 @@ router.post('/', async (req, res) => {
     // ── Batch inserts (one round-trip each instead of one per line) ──
 
     const visitsInput = Array.isArray(vehicle_visits) && vehicle_visits.length > 0
-      ? vehicle_visits
+      ? vehicle_visits.map(v => ({ ...v, vehicle_id: sanitizeVehicleId(v?.vehicle_id, finalVehicleId) })).filter(v => v && v.vehicle_id)
       : (finalVehicleId ? [{ vehicle_id: finalVehicleId }] : []);
 
     if (visitsInput.length > 0) {
       const visitRows = visitsInput
-        .filter(v => v && v.vehicle_id)
         .map(v => [
           invoice.id,
           v.vehicle_id,
@@ -535,7 +655,7 @@ router.post('/', async (req, res) => {
     const usageUsagesToInsert = [];
     
     for (const line of lines) {
-      const vIds = line.vehicle_ids.length > 0 ? line.vehicle_ids : [null];
+      const vIds = line.vehicle_ids.length > 0 ? line.vehicle_ids : [finalVehicleId || null];
       for (const vId of vIds) {
         serviceRows.push([invoice.id, line.service_id, line.unit_price, vId]);
         if (line.assigned_offer_id) {
@@ -575,7 +695,7 @@ router.post('/', async (req, res) => {
 
     const tPartyRows = [];
     for (const t of tPartyItems) {
-      const vIds = Array.isArray(t.vehicle_ids) && t.vehicle_ids.length > 0 ? t.vehicle_ids : [vehicle_id || null];
+      const vIds = Array.isArray(t.vehicle_ids) && t.vehicle_ids.length > 0 ? t.vehicle_ids : [finalVehicleId || null];
       for (const vId of vIds) {
         tPartyRows.push([
           invoice.id,
@@ -668,25 +788,117 @@ router.put('/:id', async (req, res) => {
       service_ids,
       vehicle_id,
       third_party_items,
+      client_id,
+      organization_id,
+      new_client,
+      new_vehicle,
     } = req.body;
 
     await client.query('BEGIN');
 
-    const existing = await client.query('SELECT id, client_id, organization_id FROM invoices WHERE id = $1', [id]);
+    const existing = await client.query('SELECT id, client_id, organization_id, vehicle_id FROM invoices WHERE id = $1', [id]);
     if (existing.rows.length === 0) {
       await client.query('ROLLBACK');
       return res.status(404).json({ message: 'Invoice not found' });
     }
 
-    let finalVehicleId = vehicle_id || null;
+    let finalClientId = client_id !== undefined ? (client_id ? Number(client_id) : null) : existing.rows[0].client_id;
+    let finalOrgId = organization_id !== undefined ? (organization_id ? Number(organization_id) : null) : existing.rows[0].organization_id;
+
+    // ── Handle Inline New Client Creation / Lookup ──
+    if (!finalClientId && !finalOrgId && new_client) {
+      const ncName = (new_client.full_name || new_client.name || '').trim();
+      const ncPhone = (new_client.phone || '').trim();
+      if (ncName && ncPhone) {
+        const existingClientRes = await client.query(
+          `SELECT id, full_name, phone, address FROM clients
+           WHERE phone = $1
+              OR regexp_replace(phone, '[^0-9]', '', 'g') = regexp_replace($1, '[^0-9]', '', 'g')
+              OR (LENGTH(regexp_replace($1, '[^0-9]', '', 'g')) >= 10 AND RIGHT(regexp_replace(phone, '[^0-9]', '', 'g'), 10) = RIGHT(regexp_replace($1, '[^0-9]', '', 'g'), 10))
+           LIMIT 1`,
+          [ncPhone]
+        );
+        if (existingClientRes.rows.length > 0) {
+          finalClientId = existingClientRes.rows[0].id;
+          if (new_client.address || ncName) {
+            await client.query(
+              `UPDATE clients
+               SET address = COALESCE(NULLIF($1, ''), address),
+                   full_name = COALESCE(NULLIF($2, ''), full_name),
+                   is_active = TRUE,
+                   updated_at = CURRENT_TIMESTAMP
+               WHERE id = $3`,
+              [new_client.address?.trim() || null, ncName || null, finalClientId]
+            );
+          }
+        } else {
+          const insertClientRes = await client.query(
+            'INSERT INTO clients (full_name, phone, email, address, is_active) VALUES ($1, $2, $3, $4, TRUE) RETURNING id',
+            [ncName, ncPhone, new_client.email?.trim() || null, new_client.address?.trim() || null]
+          );
+          finalClientId = insertClientRes.rows[0].id;
+        }
+      }
+    }
+
+    // ── Handle Inline New Vehicle Creation / Lookup ──
+    let finalVehicleId = vehicle_id !== undefined ? (vehicle_id ? Number(vehicle_id) : null) : existing.rows[0].vehicle_id;
+
+    if (new_vehicle && (new_vehicle.make_model || new_vehicle.make || new_vehicle.license_vin || new_vehicle.plate)) {
+      const makeModel = (new_vehicle.make_model || `${new_vehicle.make || ''} ${new_vehicle.model || ''}`).trim() || 'Vehicle';
+      const licenseVin = (new_vehicle.license_vin || new_vehicle.plate || '').trim().toUpperCase();
+      const vtId = (new_vehicle.vehicle_type_id && Number(new_vehicle.vehicle_type_id) > 0) ? Number(new_vehicle.vehicle_type_id) : null;
+      let vtName = new_vehicle.vehicle_type || new_vehicle.type || null;
+
+      if (vtId && !vtName) {
+        const vtRes = await client.query('SELECT name FROM vehicle_types WHERE id = $1', [vtId]);
+        if (vtRes.rows.length > 0) vtName = vtRes.rows[0].name;
+      }
+
+      let existingVehRes = null;
+      if (licenseVin) {
+        if (finalClientId) {
+          existingVehRes = await client.query(
+            'SELECT id FROM vehicles WHERE client_id = $1 AND UPPER(license_vin) = $2 LIMIT 1',
+            [finalClientId, licenseVin]
+          );
+        } else if (finalOrgId) {
+          existingVehRes = await client.query(
+            'SELECT id FROM vehicles WHERE organization_id = $1 AND UPPER(license_vin) = $2 LIMIT 1',
+            [finalOrgId, licenseVin]
+          );
+        }
+      }
+
+      if (existingVehRes && existingVehRes.rows.length > 0) {
+        finalVehicleId = existingVehRes.rows[0].id;
+        if (vtId || makeModel) {
+          await client.query(
+            `UPDATE vehicles
+             SET make_model = COALESCE(NULLIF($1, ''), make_model),
+                 vehicle_type_id = COALESCE($2, vehicle_type_id),
+                 vehicle_type = COALESCE($3, vehicle_type),
+                 is_active = TRUE
+             WHERE id = $4`,
+            [makeModel, vtId, vtName, finalVehicleId]
+          );
+        }
+      } else {
+        const insertVehRes = await client.query(
+          `INSERT INTO vehicles (client_id, organization_id, make_model, license_vin, vehicle_type, vehicle_type_id, is_active)
+           VALUES ($1, $2, $3, $4, $5, $6, TRUE) RETURNING id`,
+          [finalClientId || null, finalOrgId || null, makeModel, licenseVin, vtName || 'Sedan', vtId]
+        );
+        finalVehicleId = insertVehRes.rows[0].id;
+      }
+    }
+
     if (!finalVehicleId) {
-      if (req.body.client_id || existing.rows[0].client_id) {
-        const cId = req.body.client_id || existing.rows[0].client_id;
-        const vRes = await client.query('SELECT id FROM vehicles WHERE client_id = $1 ORDER BY id ASC LIMIT 1', [cId]);
+      if (finalClientId) {
+        const vRes = await client.query('SELECT id FROM vehicles WHERE client_id = $1 ORDER BY id ASC LIMIT 1', [finalClientId]);
         if (vRes.rows.length > 0) finalVehicleId = vRes.rows[0].id;
-      } else if (req.body.organization_id || existing.rows[0].organization_id) {
-        const oId = req.body.organization_id || existing.rows[0].organization_id;
-        const vRes = await client.query('SELECT id FROM vehicles WHERE organization_id = $1 ORDER BY id ASC LIMIT 1', [oId]);
+      } else if (finalOrgId) {
+        const vRes = await client.query('SELECT id FROM vehicles WHERE organization_id = $1 ORDER BY id ASC LIMIT 1', [finalOrgId]);
         if (vRes.rows.length > 0) finalVehicleId = vRes.rows[0].id;
       }
     }
@@ -694,6 +906,7 @@ router.put('/:id', async (req, res) => {
     if (Array.isArray(req.body.vehicle_visits)) {
       await client.query('DELETE FROM invoice_vehicles WHERE invoice_order_id = $1', [id]);
       const visitRows = req.body.vehicle_visits
+        .map(v => ({ ...v, vehicle_id: sanitizeVehicleId(v?.vehicle_id, finalVehicleId) }))
         .filter(v => v && v.vehicle_id)
         .map(v => [
           id,
@@ -714,11 +927,10 @@ router.put('/:id', async (req, res) => {
     }
 
     if (Array.isArray(req.body.service_items) && req.body.service_items.length > 0) {
-      const svcIds = req.body.service_items.map(s => s.service_id);
-      const priceRes = await client.query(
-        `SELECT id FROM services WHERE id = ANY($1::int[]) AND is_active = TRUE`,
-        [svcIds]
-      );
+      const svcIds = req.body.service_items.map(s => Number(s.service_id)).filter(n => Number.isFinite(n) && n > 0);
+      const priceRes = svcIds.length > 0
+        ? await client.query(`SELECT id FROM services WHERE id = ANY($1::int[]) AND is_active = TRUE`, [svcIds])
+        : { rows: [] };
       
       // Revert any existing usages
       const usageRes = await client.query('SELECT * FROM assigned_offer_usages WHERE invoice_order_id = $1', [id]);
@@ -736,13 +948,16 @@ router.put('/:id', async (req, res) => {
       const serviceRows = [];
       const usageUsagesToInsert = [];
       for (const si of req.body.service_items) {
-        const row = priceById.get(si.service_id);
+        const sid = Number(si.service_id);
+        const row = priceById.get(sid);
         if (!row) continue;
-        const vIds = Array.isArray(si.vehicle_ids) && si.vehicle_ids.length > 0
+        const rawVIds = Array.isArray(si.vehicle_ids) && si.vehicle_ids.length > 0
           ? si.vehicle_ids
-          : [vehicle_id || null];
+          : [finalVehicleId];
+        const cleanVIds = rawVIds.map(vid => sanitizeVehicleId(vid, finalVehicleId)).filter(Boolean);
+        const vIds = cleanVIds.length > 0 ? cleanVIds : (finalVehicleId ? [finalVehicleId] : [null]);
         for (const vId of vIds) {
-          const unitPrice = si.assigned_offer_id ? 0 : (Number(si.price) / vIds.length || 0);
+          const unitPrice = si.assigned_offer_id ? 0 : (Number(si.price) / (vIds.length || 1) || 0);
           serviceRows.push([id, row.id, unitPrice, vId]);
           
           if (si.assigned_offer_id) {
@@ -799,7 +1014,7 @@ router.put('/:id', async (req, res) => {
         id,
         r.id,
         0,
-        vehicle_id || null,
+        finalVehicleId || null,
       ]);
       const q = buildBulkInsert(
         'invoice_services',
@@ -814,9 +1029,11 @@ router.put('/:id', async (req, res) => {
       await client.query('DELETE FROM invoice_third_party_services WHERE invoice_order_id = $1', [id]);
       const tPartyRows = [];
       for (const t of items) {
-        const vIds = Array.isArray(t.vehicle_ids) && t.vehicle_ids.length > 0
+        const rawVIds = Array.isArray(t.vehicle_ids) && t.vehicle_ids.length > 0
           ? t.vehicle_ids
-          : [vehicle_id || null];
+          : [finalVehicleId];
+        const cleanVIds = rawVIds.map(vid => sanitizeVehicleId(vid, finalVehicleId)).filter(Boolean);
+        const vIds = cleanVIds.length > 0 ? cleanVIds : (finalVehicleId ? [finalVehicleId] : [null]);
         for (const vId of vIds) {
           tPartyRows.push([
             id,
@@ -865,18 +1082,20 @@ router.put('/:id', async (req, res) => {
          include_terms = COALESCE($3, include_terms),
          terms_conditions = COALESCE($4, terms_conditions),
          status = COALESCE($5, status),
-         vehicle_id = COALESCE($6, vehicle_id),
-         organization_id = COALESCE($7, organization_id),
+         client_id = $6,
+         organization_id = $7,
+         vehicle_id = $8,
          updated_at = CURRENT_TIMESTAMP
-       WHERE id = $8`,
+       WHERE id = $9`,
       [
         discount !== undefined ? Number(discount) || 0 : null,
         special_notes !== undefined ? special_notes : null,
         include_terms !== undefined ? !!include_terms : null,
         terms_conditions !== undefined ? terms_conditions : null,
         mappedStatus,
-        vehicle_id || null,
-        req.body.organization_id || null,
+        finalClientId || null,
+        finalOrgId || null,
+        finalVehicleId || null,
         id,
       ]
     );

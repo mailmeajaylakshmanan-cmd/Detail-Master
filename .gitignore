@@ -35,5 +35,6 @@ build/
 # Test & report outputs
 playwright-report/
 test-results/
+.playwright-mcp/
 coverage/
 server/__tests__/

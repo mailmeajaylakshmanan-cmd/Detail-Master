@@ -17,6 +17,10 @@ export const queryKeys = {
     all: ['vehicleTypes'],
     list: () => [...queryKeys.vehicleTypes.all, 'list'],
   },
+  vehicles: {
+    all: ['vehicles'],
+    list: (filters = {}) => [...queryKeys.vehicles.all, 'list', filters],
+  },
   invoices: {
     all: ['invoices'],
     list: (filters = {}) => [...queryKeys.invoices.all, 'list', filters],

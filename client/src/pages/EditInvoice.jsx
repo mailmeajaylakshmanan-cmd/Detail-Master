@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import api from '../api/axios.js';
 import toast from 'react-hot-toast';
 import InvoiceForm from '../components/InvoiceForm.jsx';
+import { queryKeys } from '../api/queryKeys.js';
 
 function mapMethodToLabel(method) {
   const map = {
@@ -17,6 +19,7 @@ function mapMethodToLabel(method) {
 export default function EditInvoice() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [invoice, setInvoice] = useState(null);
   const [loading, setLoading] = useState(false);
 
@@ -134,6 +137,10 @@ export default function EditInvoice() {
       }
 
       toast.success('Invoice updated');
+      queryClient.invalidateQueries({ queryKey: queryKeys.clients.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.vehicles.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.invoices.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.all });
       navigate('/invoices/' + id);
     } catch (err) {
       toast.error(err.response?.data?.message || 'Error updating invoice');

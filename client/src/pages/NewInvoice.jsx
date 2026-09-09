@@ -4,11 +4,12 @@ import api from '../api/axios.js';
 import toast from 'react-hot-toast';
 import { AlertCircle } from 'lucide-react';
 import InvoiceForm from '../components/InvoiceForm.jsx';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { queryKeys, mapInvoice } from '../api/queryKeys.js';
 
 export default function NewInvoice() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [loading, setLoading] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState(null);
 
@@ -40,9 +41,15 @@ export default function NewInvoice() {
   async function handleSubmit(data) {
     setLoading(true);
     try {
-      // InvoiceForm already sends Neon-shaped payload:
-      // client_id, vehicle_id, service_ids, discount, payments, notes/terms
+      // InvoiceForm sends payload with potential new_client and new_vehicle
       const res = await api.post('/invoices', data);
+      
+      // Invalidate queries so that Master Customers, Vehicles, Invoices, and Dashboard update immediately
+      queryClient.invalidateQueries({ queryKey: queryKeys.invoices.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.clients.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.vehicles.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.all });
+
       toast.success('Invoice created — ' + (res.data.invoice_number || res.data.id));
       navigate('/invoices/' + res.data.id);
     } catch (err) {
