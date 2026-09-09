@@ -1358,19 +1358,31 @@ router.delete('/:id', async (req, res) => {
     const payRes = await client.query('SELECT COUNT(*)::int as count FROM payments WHERE invoice_order_id = $1', [id]);
     const paymentCount = payRes.rows[0]?.count || 0;
 
-    // If draft and has no payments: hard delete draft
+    // If draft and has no payments: hard delete draft and its related child rows
     if (inv.status === 'draft' && paymentCount === 0) {
+      await client.query('DELETE FROM assigned_offer_usages WHERE invoice_order_id = $1', [id]);
+      await client.query('DELETE FROM notifications WHERE invoice_order_id = $1', [id]);
+      await client.query('DELETE FROM invoice_vehicles WHERE invoice_order_id = $1', [id]);
       await client.query('DELETE FROM invoice_services WHERE invoice_order_id = $1', [id]);
       await client.query('DELETE FROM invoice_third_party_services WHERE invoice_order_id = $1', [id]);
+      await client.query('UPDATE assigned_offers SET purchase_invoice_order_id = NULL WHERE purchase_invoice_order_id = $1', [id]);
       await client.query('DELETE FROM invoices WHERE id = $1', [id]);
 
       await client.query('COMMIT');
+      queryCache.del('dashboard_stats');
       return res.json({ message: 'Draft invoice deleted permanently', status: 'deleted' });
     }
 
-    // Otherwise, soft cancel
+    // Otherwise, restore offer usages and soft cancel
+    const usagesRes = await client.query('SELECT assigned_offer_id FROM assigned_offer_usages WHERE invoice_order_id = $1', [id]);
+    for (const u of usagesRes.rows) {
+      await client.query('UPDATE assigned_offers SET remaining_washes = remaining_washes + 1, is_active = TRUE WHERE id = $1', [u.assigned_offer_id]);
+    }
+    await client.query('DELETE FROM assigned_offer_usages WHERE invoice_order_id = $1', [id]);
+
     await client.query("UPDATE invoices SET status = 'cancelled' WHERE id = $1", [id]);
     await client.query('COMMIT');
+    queryCache.del('dashboard_stats');
     res.json({ message: 'Invoice cancelled successfully', status: 'cancelled' });
   } catch (err) {
     await client.query('ROLLBACK');

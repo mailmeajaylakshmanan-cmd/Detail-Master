@@ -2,6 +2,7 @@ export const queryKeys = {
   clients: {
     all: ['clients'],
     list: (filters = {}) => [...queryKeys.clients.all, 'list', filters],
+    detail: (id) => [...queryKeys.clients.all, 'detail', id],
     options: () => [...queryKeys.clients.all, 'options'],
     lookup: (phone) => [...queryKeys.clients.all, 'lookup', phone],
   },
@@ -12,32 +13,39 @@ export const queryKeys = {
   services: {
     all: ['services'],
     list: () => [...queryKeys.services.all, 'list'],
+    detail: (id) => [...queryKeys.services.all, 'detail', id],
   },
   vehicleTypes: {
     all: ['vehicleTypes'],
     list: () => [...queryKeys.vehicleTypes.all, 'list'],
+    detail: (id) => [...queryKeys.vehicleTypes.all, 'detail', id],
   },
   vehicles: {
     all: ['vehicles'],
     list: (filters = {}) => [...queryKeys.vehicles.all, 'list', filters],
+    detail: (id) => [...queryKeys.vehicles.all, 'detail', id],
   },
   invoices: {
     all: ['invoices'],
     list: (filters = {}) => [...queryKeys.invoices.all, 'list', filters],
+    detail: (id) => [...queryKeys.invoices.all, 'detail', id],
     openByClient: (clientId) => [...queryKeys.invoices.all, 'open', clientId],
   },
   organizations: {
     all: ['organizations'],
     list: () => [...queryKeys.organizations.all, 'list'],
+    detail: (id) => [...queryKeys.organizations.all, 'detail', id],
     billing: (id, range) => [...queryKeys.organizations.all, 'billing', id, range],
   },
   thirdPartyServices: {
     all: ['thirdPartyServices'],
     list: () => [...queryKeys.thirdPartyServices.all, 'list'],
+    detail: (id) => [...queryKeys.thirdPartyServices.all, 'detail', id],
   },
   assignedOffers: {
     all: ['assignedOffers'],
     byClient: (clientId) => [...queryKeys.assignedOffers.all, 'client', clientId],
+    detail: (id) => [...queryKeys.assignedOffers.all, 'detail', id],
   },
 };
 
