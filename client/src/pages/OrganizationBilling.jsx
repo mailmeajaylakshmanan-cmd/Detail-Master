@@ -43,6 +43,17 @@ export default function OrganizationBilling() {
   const { data: organizations = [] } = useOrganizations();
   const organization = organizations.find(o => String(o.id) === id);
 
+  const { data: orgDetail } = useQuery({
+    queryKey: queryKeys.organizations.detail(id),
+    enabled: !!id && !organization,
+    queryFn: async () => {
+      const res = await api.get(`/organizations/${id}`);
+      return res.data;
+    },
+  });
+
+  const orgName = organization?.org_name || organization?.name || orgDetail?.org_name || orgDetail?.name || 'Organization';
+
   const [preset, setPreset] = useState('thisMonth');
   const [customFrom, setCustomFrom] = useState(null);
   const [customTo, setCustomTo] = useState(null);
@@ -75,7 +86,7 @@ export default function OrganizationBilling() {
           <ArrowLeft size={14} /> Organizations
         </Link>
         <span className="text-gray-300">/</span>
-        <h1 className="text-base sm:text-xl font-bold text-gray-900">{organization?.name || 'Organization'} — Billing</h1>
+        <h1 className="text-base sm:text-xl font-bold text-gray-900">{orgName} — Billing</h1>
       </div>
 
       <div className="bg-white/90 backdrop-blur-md rounded-2xl shadow-sm border border-gray-200 p-4 flex flex-wrap items-center gap-3">

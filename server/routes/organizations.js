@@ -31,6 +31,7 @@ router.get('/', protect, async (req, res) => {
         FROM organizations o
         LEFT JOIN vehicles v ON v.organization_id = o.id
         LEFT JOIN vehicle_types vt ON v.vehicle_type_id = vt.id
+        WHERE (o.is_active IS TRUE OR o.is_active IS NULL)
         GROUP BY o.id
         ORDER BY o.org_name ASC
       `);
@@ -204,24 +205,51 @@ router.get('/:id/invoices', protect, async (req, res) => {
   }
 });
 
-// Delete an organization
+// DELETE an organization (Adaptive soft-delete / archive)
 router.delete('/:id', protect, async (req, res) => {
   try {
     const { id } = req.params;
+
+    // Check if organization is referenced by invoices or vehicles
+    const [invCount, vehCount] = await Promise.all([
+      db.query('SELECT COUNT(*)::int as count FROM invoices WHERE organization_id = $1', [id]),
+      db.query('SELECT COUNT(*)::int as count FROM vehicles WHERE organization_id = $1', [id]),
+    ]);
+
+    const hasInvoices = (invCount.rows[0]?.count || 0) > 0;
+    const hasVehicles = (vehCount.rows[0]?.count || 0) > 0;
+
+    if (hasInvoices || hasVehicles) {
+      // Soft-delete / archive: preserve historical invoice records and fleet history
+      const { rowCount } = await db.query(
+        'UPDATE organizations SET is_active = false WHERE id = $1',
+        [id]
+      );
+      if (rowCount === 0) {
+        return res.status(404).json({ message: 'Organization not found' });
+      }
+      // Mark vehicles under this organization as inactive
+      await db.query('UPDATE vehicles SET is_active = false WHERE organization_id = $1', [id]);
+
+      queryCache.del('organizations_list');
+      return res.json({ message: 'Organization archived successfully (historical records preserved)' });
+    }
+
+    // Permanent delete if completely unused
     const result = await db.query(
       'DELETE FROM organizations WHERE id = $1 RETURNING id',
       [id]
     );
-    
+
     if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Organization not found' });
+      return res.status(404).json({ message: 'Organization not found' });
     }
-    
+
     queryCache.del('organizations_list');
     res.json({ message: 'Organization deleted successfully' });
   } catch (err) {
     console.error('Error deleting organization:', err);
-    res.status(500).json({ error: 'Failed to delete organization' });
+    res.status(500).json({ message: 'Failed to delete organization' });
   }
 });
 

@@ -132,12 +132,12 @@ export default function MasterOrganization() {
     if (!deleteModal.orgId) return;
     setDeleteModal(prev => ({ ...prev, loading: true }));
     try {
-      await api.delete('/organizations/' + deleteModal.orgId);
-      toast.success('Organization archived successfully');
+      const res = await api.delete('/organizations/' + deleteModal.orgId);
+      toast.success(res.data?.message || 'Organization archived successfully');
       setDeleteModal({ isOpen: false, orgId: null, orgName: '', loading: false });
       queryClient.invalidateQueries({ queryKey: queryKeys.organizations.all });
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Error deleting organization');
+      toast.error(err.response?.data?.message || err.response?.data?.error || 'Error archiving organization');
       setDeleteModal(prev => ({ ...prev, loading: false }));
     }
   }
