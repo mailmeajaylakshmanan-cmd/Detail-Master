@@ -1207,6 +1207,42 @@ export default function InvoiceForm({ initial, onSubmit, loading, onCustomerSele
     }));
   }, [thirdPartyOptions, activeVehicleIds, calculateThirdPartySellingForVehicles]);
 
+  const toggleThirdPartyItem = useCallback((opt, checked) => {
+    if (isOfferPurchase) return;
+    setForm(f => {
+      const exists = f.thirdPartyItems.some(t => t.third_party_service_id === opt.id || t.service_name === opt.name);
+      if (checked && !exists) {
+        if (clientType === 'organization' && activeVehicleIds.length > 1) {
+          setServiceModal({ isOpen: true, type: 'third_party', opt, selectedVehicleIds: activeVehicleIds });
+          return f;
+        }
+        const vIds = activeVehicleIds;
+        const sellingForVehs = calculateThirdPartySellingForVehicles(opt, vIds);
+        return {
+          ...f,
+          thirdPartyItems: [...f.thirdPartyItems, {
+            third_party_service_id: opt.id,
+            service_name: opt.name,
+            vendor_name: opt.vendorName || '',
+            labour_count: opt.labourCount ?? 1,
+            labour_charge: opt.labourCharge ?? 0,
+            selling_price: sellingForVehs,
+            vendor_cost: opt.vendorCost ?? 0,
+            description: '',
+            vehicle_ids: vIds,
+          }]
+        };
+      }
+      if (!checked && exists) {
+        return {
+          ...f,
+          thirdPartyItems: f.thirdPartyItems.filter(t => t.third_party_service_id !== opt.id && t.service_name !== opt.name)
+        };
+      }
+      return f;
+    });
+  }, [isOfferPurchase, clientType, activeVehicleIds, calculateThirdPartySellingForVehicles]);
+
   const removeThirdPartyItem = useCallback((idx) => {
     setForm(f => ({
       ...f,
