@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
-import { Plus, Search, Filter, ArrowUpDown, ChevronLeft, ChevronRight, Eye, Pencil, ClipboardList, Car, Calendar, User, XCircle, Trash2, Download } from 'lucide-react';
+import { Plus, Search, Filter, ArrowUpDown, ChevronLeft, ChevronRight, Eye, Pencil, ClipboardList, Car, Calendar, User, XCircle, Trash2, Download, RotateCcw } from 'lucide-react';
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
+import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subDays } from 'date-fns';
 import { useInvoices } from '../hooks/useQueries.js';
 import { queryKeys, mapInvoice } from '../api/queryKeys.js';
 import { useDebouncedValue } from '../hooks/useDebouncedValue.js';
@@ -37,6 +40,13 @@ export default function InvoiceList() {
   const [search, setSearch] = useState(() => searchParams.get('search') || '');
   const [status, setStatus] = useState('All');
   const [page, setPage] = useState(1);
+  const [datePreset, setDatePreset] = useState('today');
+  const [startDate, setStartDate] = useState(() => new Date());
+  const [endDate, setEndDate] = useState(() => new Date());
+
+  const formattedStartDate = startDate ? format(startDate, 'yyyy-MM-dd') : '';
+  const formattedEndDate = endDate ? format(endDate, 'yyyy-MM-dd') : '';
+
   const debouncedSearch = useDebouncedValue(search, 300);
   const queryClient = useQueryClient();
   const { canAdd, canEdit, canDelete } = usePermissions('Invoicing & Records');
@@ -64,7 +74,44 @@ export default function InvoiceList() {
     limit: PAGE_SIZE,
     search: debouncedSearch,
     status: status === 'All' ? '' : status,
+    startDate: formattedStartDate,
+    endDate: formattedEndDate,
   });
+
+  const handlePreset = (preset) => {
+    setDatePreset(preset);
+    setPage(1);
+    const now = new Date();
+    if (preset === 'today') {
+      setStartDate(now);
+      setEndDate(now);
+    } else if (preset === 'yesterday') {
+      const y = subDays(now, 1);
+      setStartDate(y);
+      setEndDate(y);
+    } else if (preset === 'thisWeek') {
+      setStartDate(startOfWeek(now, { weekStartsOn: 1 }));
+      setEndDate(endOfWeek(now, { weekStartsOn: 1 }));
+    } else if (preset === 'thisMonth') {
+      setStartDate(startOfMonth(now));
+      setEndDate(endOfMonth(now));
+    } else if (preset === 'all') {
+      setStartDate(null);
+      setEndDate(null);
+    }
+  };
+
+  const handleStartDateChange = (date) => {
+    setStartDate(date);
+    setDatePreset('custom');
+    setPage(1);
+  };
+
+  const handleEndDateChange = (date) => {
+    setEndDate(date);
+    setDatePreset('custom');
+    setPage(1);
+  };
 
   const invoices = data?.invoices || [];
   const pagination = data?.pagination || { page: 1, totalPages: 1, total: 0 };
@@ -81,6 +128,8 @@ export default function InvoiceList() {
           search: debouncedSearch,
           status: status === 'All' ? '' : status,
           clientId: '',
+          startDate: formattedStartDate,
+          endDate: formattedEndDate,
         }),
         queryFn: async () => {
           const res = await api.get('/invoices', {
@@ -89,6 +138,8 @@ export default function InvoiceList() {
               limit: PAGE_SIZE,
               search: debouncedSearch || undefined,
               status: status && status !== 'All' ? status : undefined,
+              start_date: formattedStartDate || undefined,
+              end_date: formattedEndDate || undefined,
             },
           });
           const payload = res.data;
@@ -102,7 +153,7 @@ export default function InvoiceList() {
         staleTime: 30 * 1000,
       });
     }
-  }, [page, pagination.totalPages, debouncedSearch, status, queryClient]);
+  }, [page, pagination.totalPages, debouncedSearch, status, formattedStartDate, formattedEndDate, queryClient]);
 
   // Predictive On-Hover Prefetch for invoice details
   const handleRowHover = (invId) => {
@@ -248,19 +299,114 @@ export default function InvoiceList() {
 
       <div className="bg-white/60 backdrop-blur-xl border border-white/50 rounded-2xl sm:rounded-3xl overflow-hidden shadow-[0_8px_30px_rgba(0,0,0,0.04)]">
         {/* Toolbar */}
-        <div className="p-3 sm:p-4 flex flex-col sm:flex-row justify-between items-center gap-3 border-b border-slate-200">
-          <div className="relative w-full sm:w-80">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-            <input
-              type="text"
-              placeholder="Search invoice"
-              className="w-full pl-9 pr-4 py-1.5 text-xs sm:text-sm bg-white/50 border border-white/60 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#F6CB59]/30 focus:border-[#F6CB59] transition-all text-slate-800 placeholder:text-slate-400 shadow-sm backdrop-blur-md font-medium"
-              value={search}
-              onChange={e => { setSearch(e.target.value); setPage(1); }}
-            />
+        <div className="p-3.5 sm:p-4.5 flex flex-col gap-3.5 border-b border-slate-200/80 bg-white/40">
+          <div className="flex flex-col xl:flex-row items-stretch xl:items-center justify-between gap-3">
+            {/* Search Input */}
+            <div className="relative w-full xl:w-72 shrink-0">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+              <input
+                type="text"
+                placeholder="Search invoice, customer, plate…"
+                className="w-full pl-9.5 pr-8 py-2 text-xs sm:text-sm bg-white border border-slate-200/80 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#F6CB59]/40 focus:border-[#F6CB59] transition-all text-slate-800 placeholder:text-slate-400 shadow-2xs font-medium"
+                value={search}
+                onChange={e => { setSearch(e.target.value); setPage(1); }}
+              />
+              {search && (
+                <button
+                  type="button"
+                  onClick={() => { setSearch(''); setPage(1); }}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5"
+                >
+                  <XCircle size={14} />
+                </button>
+              )}
+            </div>
+
+            {/* Quick Date Presets */}
+            <div className="flex items-center gap-1 overflow-x-auto hide-scrollbar bg-slate-100/90 p-1 rounded-xl shrink-0">
+              {[
+                { id: 'today', label: 'Today' },
+                { id: 'yesterday', label: 'Yesterday' },
+                { id: 'thisWeek', label: 'This Week' },
+                { id: 'thisMonth', label: 'This Month' },
+                { id: 'all', label: 'All Time' },
+              ].map(p => (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => handlePreset(p.id)}
+                  className={`px-2.5 sm:px-3 py-1 text-[11px] sm:text-xs font-bold rounded-lg transition-all whitespace-nowrap ${
+                    datePreset === p.id
+                      ? 'bg-white text-slate-900 shadow-xs'
+                      : 'text-slate-500 hover:text-slate-800 hover:bg-white/40'
+                  }`}
+                >
+                  {p.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Date Pickers (From / To) */}
+            <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap shrink-0">
+              <div className="flex items-center gap-1.5 bg-white border border-slate-200/80 rounded-xl px-2.5 py-1 shadow-2xs text-xs">
+                <Calendar size={13} className="text-slate-400 shrink-0" />
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">From:</span>
+                <DatePicker
+                  selected={startDate}
+                  onChange={handleStartDateChange}
+                  selectsStart
+                  startDate={startDate}
+                  endDate={endDate}
+                  dateFormat="dd/MM/yyyy"
+                  placeholderText="From Date"
+                  className="w-24 text-xs font-bold text-slate-800 focus:outline-none bg-transparent cursor-pointer"
+                  portalId="root"
+                />
+              </div>
+
+              <div className="flex items-center gap-1.5 bg-white border border-slate-200/80 rounded-xl px-2.5 py-1 shadow-2xs text-xs">
+                <Calendar size={13} className="text-slate-400 shrink-0" />
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">To:</span>
+                <DatePicker
+                  selected={endDate}
+                  onChange={handleEndDateChange}
+                  selectsEnd
+                  startDate={startDate}
+                  endDate={endDate}
+                  minDate={startDate || undefined}
+                  dateFormat="dd/MM/yyyy"
+                  placeholderText="To Date"
+                  className="w-24 text-xs font-bold text-slate-800 focus:outline-none bg-transparent cursor-pointer"
+                  portalId="root"
+                />
+              </div>
+
+              {(startDate || endDate) && (
+                <button
+                  type="button"
+                  onClick={() => handlePreset('all')}
+                  className="px-2 py-1.5 text-xs text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors font-medium flex items-center gap-1"
+                  title="Clear date filter (show all invoices)"
+                >
+                  <RotateCcw size={12} />
+                  <span className="hidden sm:inline text-[11px]">Clear</span>
+                </button>
+              )}
+            </div>
           </div>
-          <div className="text-xs sm:text-sm text-slate-500 font-medium">
-            Showing <span className="font-bold text-slate-700">{totalResults === 0 ? 0 : `${(page - 1) * PAGE_SIZE + 1}–${Math.min(page * PAGE_SIZE, totalResults)}`}</span> of <span className="font-bold text-slate-700">{totalResults}</span> results
+
+          <div className="flex items-center justify-between text-xs text-slate-500 font-medium pt-2 border-t border-slate-200/50 flex-wrap gap-2">
+            <div className="flex items-center gap-2">
+              <span className="inline-block w-2 h-2 rounded-full bg-emerald-500" />
+              <span>
+                Active Range: <strong className="text-slate-800 font-bold">
+                  {datePreset === 'today' ? 'Today' : datePreset === 'yesterday' ? 'Yesterday' : datePreset === 'thisWeek' ? 'This Week' : datePreset === 'thisMonth' ? 'This Month' : datePreset === 'all' ? 'All Invoices' : `${formattedStartDate || 'Any'} to ${formattedEndDate || 'Any'}`}
+                </strong>
+              </span>
+            </div>
+            <div>
+              Showing <span className="font-bold text-slate-700">{totalResults === 0 ? 0 : `${(page - 1) * PAGE_SIZE + 1}–${Math.min(page * PAGE_SIZE, totalResults)}`}</span> of <span className="font-bold text-slate-700">{totalResults}</span> results
+            </div>
           </div>
         </div>
 

@@ -59,9 +59,21 @@ router.get('/', async (req, res) => {
     const status = (req.query.status || '').trim();
     const clientId = req.query.client_id;
     const organizationId = req.query.organization_id;
+    const startDate = (req.query.start_date || req.query.startDate || '').trim();
+    const endDate = (req.query.end_date || req.query.endDate || '').trim();
 
     const where = [];
     const params = [];
+
+    if (startDate) {
+      params.push(startDate);
+      where.push(`DATE(i.created_at) >= $${params.length}`);
+    }
+
+    if (endDate) {
+      params.push(endDate);
+      where.push(`DATE(i.created_at) <= $${params.length}`);
+    }
 
     if (clientId) {
       params.push(clientId);

@@ -108,10 +108,10 @@ export function useThirdPartyServices() {
 }
 
 export function useInvoices(filters = {}) {
-  const { page = 1, limit = 20, search = '', status = '', clientId = '' } = filters;
+  const { page = 1, limit = 20, search = '', status = '', clientId = '', startDate = '', endDate = '' } = filters;
 
   return useQuery({
-    queryKey: queryKeys.invoices.list({ page, limit, search, status, clientId }),
+    queryKey: queryKeys.invoices.list({ page, limit, search, status, clientId, startDate, endDate }),
     placeholderData: keepPreviousData,
     queryFn: async () => {
       const res = await api.get('/invoices', {
@@ -121,6 +121,8 @@ export function useInvoices(filters = {}) {
           search: search || undefined,
           status: status && status !== 'All' ? status : undefined,
           client_id: clientId || undefined,
+          start_date: startDate || undefined,
+          end_date: endDate || undefined,
         },
       });
 
