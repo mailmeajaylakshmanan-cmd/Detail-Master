@@ -303,7 +303,7 @@ export default function InvoiceList() {
           <div className="flex flex-col xl:flex-row items-stretch xl:items-center justify-between gap-3">
             {/* Search Input */}
             <div className="relative w-full xl:w-72 shrink-0">
-              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+
               <input
                 type="text"
                 placeholder="Search invoice, customer, plate…"
@@ -335,11 +335,10 @@ export default function InvoiceList() {
                   key={p.id}
                   type="button"
                   onClick={() => handlePreset(p.id)}
-                  className={`px-2.5 sm:px-3 py-1 text-[11px] sm:text-xs font-bold rounded-lg transition-all whitespace-nowrap ${
-                    datePreset === p.id
+                  className={`px-2.5 sm:px-3 py-1 text-[11px] sm:text-xs font-bold rounded-lg transition-all whitespace-nowrap ${datePreset === p.id
                       ? 'bg-white text-slate-900 shadow-xs'
                       : 'text-slate-500 hover:text-slate-800 hover:bg-white/40'
-                  }`}
+                    }`}
                 >
                   {p.label}
                 </button>
