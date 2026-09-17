@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Outlet, NavLink, useNavigate, useLocation, Link } from 'react-router-dom';
 import {
-  LayoutDashboard, FileText, Users, Briefcase, Plus, Search, LogOut, Activity, Gift, ChevronDown, Database, Globe, Menu, X, Sparkles, Shield, Car
+  LayoutDashboard, FileText, Users, Briefcase, Plus, Search, LogOut, Activity, Gift, ChevronDown, Database, Globe, Menu, X, Sparkles, Shield, Car, FileSpreadsheet, Calculator
 } from 'lucide-react';
 import brandLogo from '../assets/brand-logo-for-invoice.png';
 import api from '../api/axios.js';
@@ -18,15 +18,22 @@ const iconMap = {
   'briefcase': Briefcase,
   'shield': Shield,
   'car': Car,
+  'calculator': Calculator,
+  'file-spreadsheet': FileSpreadsheet,
 };
 
-function buildNavItems(menus) {
+function buildNavItems(menus, isSubMenu = false) {
   if (!menus || !Array.isArray(menus)) return [];
 
   const seen = new Set();
   const result = [];
 
   for (const menu of menus) {
+    // Quotation is a standalone top-level section; avoid nesting it in submenus
+    if (isSubMenu && (menu.route_path === '/quotations' || menu.menu_name?.toLowerCase() === 'quotation')) {
+      continue;
+    }
+
     const key = `${menu.menu_name}-${menu.route_path || ''}`;
     if (seen.has(key)) continue;
     seen.add(key);
@@ -40,10 +47,35 @@ function buildNavItems(menus) {
     };
 
     if (menu.subItems && menu.subItems.length > 0) {
-      item.subItems = buildNavItems(menu.subItems);
+      item.subItems = buildNavItems(menu.subItems, true);
     }
 
     result.push(item);
+  }
+
+  // Ensure Quotation menu item is only added at top level as fallback if not present
+  if (!isSubMenu) {
+    const hasQuotation = result.some(item => 
+      item.to === '/quotations' || 
+      item.label?.toLowerCase() === 'quotation' ||
+      item.subItems?.some(sub => sub.to === '/quotations' || sub.label?.toLowerCase() === 'quotation')
+    );
+
+    if (!hasQuotation) {
+      const invoiceIndex = result.findIndex(item => item.to === '/invoices');
+      const quotationItem = {
+        id: 'menu-quotation-fallback',
+        label: 'Quotation',
+        to: '/quotations',
+        icon: FileSpreadsheet,
+        end: false,
+      };
+      if (invoiceIndex >= 0) {
+        result.splice(invoiceIndex + 1, 0, quotationItem);
+      } else {
+        result.push(quotationItem);
+      }
+    }
   }
 
   return result;
@@ -156,6 +188,7 @@ function SidebarNav({ navItems, openGroups, setOpenGroups, onNavigate }) {
 function getPageTitle(pathname) {
   if (pathname === '/') return 'Dashboard';
   if (pathname === '/invoices') return 'Invoices & Records';
+  if (pathname.startsWith('/quotations')) return 'Quotation Management';
   if (pathname === '/invoices/new') return 'New Job Card';
   if (pathname.includes('/service-report')) return 'Vehicle Service Report';
   if (pathname.includes('/edit')) return 'Edit Invoice';

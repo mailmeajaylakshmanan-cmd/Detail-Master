@@ -82,6 +82,7 @@ app.use('/api/service-time', protect, require('./routes/service_time'));
 app.use('/api/vehicle_types', protect, require('./routes/vehicle_types'));
 app.use('/api/dashboard', protect, require('./routes/dashboard'));
 app.use('/api/notifications', protect, require('./routes/notifications'));
+app.use('/api/quotations', protect, require('./routes/quotations'));
 
 // Health check
 app.get('/api/health', (req, res) => res.json({ status: 'ok', app: 'DETAILING MASTERS Billing' }));

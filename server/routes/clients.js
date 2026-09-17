@@ -196,7 +196,9 @@ router.get('/:id', async (req, res) => {
 router.post('/', async (req, res) => {
   const client = await db.pool.connect();
   try {
-    const { full_name, phone, email, address, vehicles } = req.body;
+    const full_name = (req.body.full_name || req.body.name || '').trim();
+    const phone = (req.body.phone || '').trim();
+    const { email, address, vehicles } = req.body;
     if (!full_name || !phone) return res.status(400).json({ message: 'full_name and phone are required' });
 
     await client.query('BEGIN');
@@ -213,7 +215,9 @@ router.post('/', async (req, res) => {
       const insertRows = validVehicles.map(v => vehicleRowToInsert(newClient.id, v));
       const q = buildBulkInsert('vehicles', ['client_id', 'make_model', 'license_vin', 'vehicle_type', 'vehicle_type_id'], insertRows);
       const vRes = await client.query(q.text, q.params);
-      newClient.vehicles = vRes.rows;
+      newClient.vehicles = vRes.rows.map(mapVehicleRow);
+    } else {
+      newClient.vehicles = [];
     }
 
     await client.query('COMMIT');
@@ -232,7 +236,9 @@ router.put('/:id', async (req, res) => {
   const client = await db.pool.connect();
   try {
     const { id } = req.params;
-    const { full_name, phone, email, address, vehicles } = req.body;
+    const full_name = (req.body.full_name || req.body.name || '').trim();
+    const phone = (req.body.phone || '').trim();
+    const { email, address, vehicles } = req.body;
     if (!full_name || !phone) return res.status(400).json({ message: 'full_name and phone are required' });
 
     await client.query('BEGIN');

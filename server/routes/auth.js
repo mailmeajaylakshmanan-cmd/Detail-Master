@@ -22,7 +22,7 @@ async function getUserWithMenus(userId) {
   let flatMenus = [];
   
   if (user.role_name === 'Super Admin' || user.role_name === 'Administrator') {
-    const menuResult = await pool.query('SELECT * FROM public.menus WHERE is_active = TRUE ORDER BY id ASC');
+    const menuResult = await pool.query('SELECT * FROM public.menus WHERE is_active = TRUE ORDER BY sort_order ASC, id ASC');
     flatMenus = menuResult.rows.map(m => ({
       ...m,
       can_view: true,
@@ -46,7 +46,7 @@ async function getUserWithMenus(userId) {
           um.can_view = TRUE OR
           (um.can_view IS NULL AND rm.can_view = TRUE)
         )
-      ORDER BY m.id ASC
+      ORDER BY m.sort_order ASC, m.id ASC
     `;
     const menuResult = await pool.query(menuQuery, [user.role_id, user.id]);
     flatMenus = menuResult.rows;

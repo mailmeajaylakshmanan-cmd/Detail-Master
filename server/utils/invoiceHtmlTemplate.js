@@ -371,6 +371,303 @@ function renderInvoiceHtml(inv) {
   `;
 }
 
+function renderQuotationHtml(q) {
+  let services = q.services || [];
+  if (typeof services === 'string') {
+    try { services = JSON.parse(services); } catch (e) { services = []; }
+  }
+
+  const clientName = q.client_name || q.client_profile_name || q.organization_name || 'Walk-in Customer';
+  const clientPhone = q.client_phone || q.client_profile_phone || q.organization_phone || '—';
+  const vehicleName = q.vehicle_name || q.registered_vehicle_model || '—';
+  const vehiclePlate = q.license_plate || '—';
+  const quoteNo = q.quotation_number || 'QT';
+  const dateStr = fmtDate(q.created_at || new Date());
+  const validUntilStr = fmtDate(q.valid_until);
+  const isOrg = !!(q.organization_id || q.organization_name);
+  const contactPerson = q.organization_contact_person || '';
+
+  const subTotal = Number(q.sub_total || 0);
+  const discount = Number(q.discount || 0);
+  const discountType = q.discount_type || 'fixed';
+  const discountVal = q.discount_value || 0;
+  const grandTotal = Number(q.grand_total || (subTotal - discount));
+  const notes = q.notes || 'Valid for 15 days from issuance date.';
+
+  let servicesRowsHtml = '';
+  if (services.length === 0) {
+    servicesRowsHtml = `
+      <tr style="background-color: #FFFFFF;">
+        <td colspan="4" style="padding: 24px 10px; text-align: center; color: #64748b; border: 1px solid #000;">No services added to this quotation.</td>
+      </tr>
+    `;
+  } else {
+    services.forEach((s, idx) => {
+      const bg = idx % 2 === 0 ? '#FFFFFF' : '#f8fafc';
+      const iconSvg = ICONS_SVG[idx % ICONS_SVG.length];
+      const sPrice = Number(s.price || s.unit_price || 0);
+      const sQty = Number(s.quantity || 1);
+      const sTotal = Number(s.total || (sPrice * sQty));
+      servicesRowsHtml += `
+        <tr style="background-color: ${bg};">
+          <td style="padding: 6px 10px; border: 1px solid #000;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <div style="background-color: #F6CB59; border-radius: 3px; width: 18px; height: 18px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                ${iconSvg}
+              </div>
+              <div>
+                <div style="font-weight: 600; color: #000;">${s.name || s.service || 'Service'}</div>
+                ${s.isThirdParty ? `
+                  <div style="font-size: 10px; color: #2563eb; font-weight: 600;">[Third-Party Service • Vendor: ${s.vendorName || s.vendor_name || 'Outsourced'}]</div>
+                ` : (s.description ? `
+                  <div style="font-size: 10px; color: #666;">${s.description}</div>
+                ` : '')}
+              </div>
+            </div>
+          </td>
+          <td style="padding: 6px 10px; text-align: center; border: 1px solid #000; color: #333;">${sQty}</td>
+          <td style="padding: 6px 10px; text-align: center; border: 1px solid #000; color: #333;">₹${fmt(sPrice)}</td>
+          <td style="padding: 6px 10px; text-align: center; border: 1px solid #000; color: #000; font-weight: 700;">₹${fmt(sTotal)}</td>
+        </tr>
+      `;
+    });
+  }
+
+  return `
+  <!DOCTYPE html>
+  <html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <title>Quotation ${quoteNo}</title>
+    <style>
+      @page {
+        size: A4;
+        margin: 0;
+      }
+      body {
+        margin: 0;
+        padding: 0;
+        background-color: #ffffff;
+        font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+      .invoice-container {
+        width: 210mm;
+        height: 296mm;
+        box-sizing: border-box;
+        margin: 0 auto;
+        background: #EBEBED;
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+      .header-wrap {
+        position: relative;
+        height: 115px;
+        background-color: #EBEBED;
+        width: 100%;
+        flex-shrink: 0;
+        overflow: hidden;
+      }
+      .layer2 { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #000000; clip-path: polygon(62% 0, 100% 0, 100% 100%, 48% 100%); -webkit-clip-path: polygon(62% 0, 100% 0, 100% 100%, 48% 100%); z-index: 2; }
+      .layer3 { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #FFD700; clip-path: polygon(56% 80%, 100% 80%, 100% 88%, 55% 88%); -webkit-clip-path: polygon(56% 80%, 100% 80%, 100% 88%, 55% 88%); z-index: 3; }
+      .layer5 { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #FFD700; clip-path: polygon(58% 0, 63% 0, 49% 100%, 44% 100%); -webkit-clip-path: polygon(58% 0, 63% 0, 49% 100%, 44% 100%); z-index: 4; }
+      .layer6 { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #2B2A2A; clip-path: polygon(0 0, 58% 0, 44% 100%, 0 100%); -webkit-clip-path: polygon(0 0, 58% 0, 44% 100%, 0 100%); z-index: 5; }
+      
+      .brand-grad-span {
+        display: inline-block;
+        font-family: 'Cinzel', 'Trajan Pro', 'Georgia', serif;
+        font-size: 28px;
+        margin: 0;
+        letter-spacing: 3px;
+        font-weight: 600;
+        background: linear-gradient(to right, #BF953F, #FCF6BA, #B38728, #FBF5B7, #AA771C);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="invoice-container">
+      <!-- HEADER -->
+      <div class="header-wrap">
+        <div class="layer2"></div>
+        <div class="layer3"></div>
+        <div class="layer5"></div>
+        <div class="layer6"></div>
+
+        <div style="position: relative; z-index: 10; display: flex; justify-content: space-between; padding: 2px 40px 2px 45px; height: 100%;">
+          <div style="display: flex; align-items: center; gap: 24px;">
+            <div style="position: relative; filter: drop-shadow(0 4px 8px rgba(0,0,0,0.5)); z-index: 20;">
+              <svg width="0" height="0" style="position: absolute;">
+                <clipPath id="shield-clip-quote" clipPathUnits="objectBoundingBox">
+                  <path d="M 0 0.02 Q 0.5 -0.02 1 0.02 L 1 0.65 C 1 0.88 0.7 1 0.5 1 C 0.3 1 0 0.88 0 0.65 Z" />
+                </clipPath>
+              </svg>
+              <div style="display: flex; align-items: center; justify-content: center; background-color: transparent; clip-path: url(#shield-clip-quote); width: 88px; height: 108px; -webkit-print-color-adjust: exact; print-color-adjust: exact;">
+                ${logoBase64 ? `<img src="${logoBase64}" alt="Logo" style="height: 100%; width: 100%; object-fit: fill; filter: drop-shadow(0 0 1px #fff) drop-shadow(0 0 2px rgba(255,255,255,0.9));" />` : ''}
+              </div>
+            </div>
+            
+            <div style="display: flex; flex-direction: column; line-height: 1.05;">
+              <span class="brand-grad-span">DETAILING</span>
+              <span class="brand-grad-span">MASTERS</span>
+            </div>
+          </div>
+
+          <!-- Center Accent Golden Car -->
+          <div style="position: absolute; left: 65%; top: 29px; transform: translateX(-50%); z-index: 15; pointer-events: none;">
+            ${goldenCarBase64 ? `<img src="${goldenCarBase64}" alt="Car Accent" style="height: 80px; object-fit: contain; filter: drop-shadow(2px 2px 4px rgba(0,0,0,0.4));" />` : ''}
+          </div>
+
+          <!-- Title Right -->
+          <div style="display: flex; align-items: flex-start; padding-right: 15px; padding-top: 20px;">
+            <h1 style="font-family: 'Montserrat', 'Open Sans', sans-serif; font-size: 34px; font-weight: 500; margin: 0; letter-spacing: 0.05em; color: #FFFFFF; filter: drop-shadow(1px 1px 2px rgba(0,0,0,0.6));">QUOTATION</h1>
+          </div>
+        </div>
+      </div>
+
+      <!-- GLOBAL WATERMARK -->
+      ${logoBase64 ? `
+        <div style="position: absolute; top: 115px; bottom: 0; left: 0; right: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; z-index: 0;">
+          <img src="${logoBase64}" style="width: 450px; opacity: 0.04; filter: grayscale(100%);" />
+        </div>
+      ` : ''}
+
+      <!-- INFO SECTIONS -->
+      <div style="padding: 16px 40px; background-color: transparent; position: relative; z-index: 1; display: flex; gap: 30px;">
+        <div style="flex: 1 1 50%;">
+          <h3 style="font-size: 12px; font-weight: 700; margin: 0 0 8px 0; color: #9CA3AF; text-transform: uppercase; letter-spacing: 0.05em;">ESTIMATE ISSUED BY</h3>
+          <div style="font-size: 13px; color: #111827; display: flex; flex-direction: column; gap: 6px;">
+            <div style="display: flex; align-items: flex-start;">
+              <span style="width: 75px; color: #6B7280; font-size: 12px;">Address:</span>
+              <span style="flex: 1; font-weight: 500; line-height: 1.4;">Opposite KTM Bike Showroom, Chankai, Marthandam</span>
+            </div>
+            <div style="display: flex; align-items: center;">
+              <span style="width: 75px; color: #6B7280; font-size: 12px;">Phone:</span>
+              <span style="font-weight: 500;">+91 9994122652</span>
+            </div>
+            <div style="display: flex; align-items: center;">
+              <span style="width: 75px; color: #6B7280; font-size: 12px;">Email:</span>
+              <span style="font-weight: 500;">detailingmasters2024@gmail.com</span>
+            </div>
+          </div>
+        </div>
+
+        <div style="flex: 1 1 50%;">
+          <h3 style="font-size: 12px; font-weight: 700; margin: 0 0 8px 0; color: #9CA3AF; text-transform: uppercase; letter-spacing: 0.05em;">
+            ${isOrg ? 'ORGANIZATION & VEHICLE INFO' : 'CLIENT & VEHICLE INFO'}
+          </h3>
+          <div style="font-size: 13px; color: #111827; display: flex; flex-direction: column; gap: 6px;">
+            <div style="display: flex; align-items: center;">
+              <span style="width: 95px; color: #6B7280; font-size: 12px;">Quote No:</span>
+              <span style="font-weight: 700; color: #000;">${quoteNo}</span>
+            </div>
+            <div style="display: flex; align-items: center;">
+              <span style="width: 95px; color: #6B7280; font-size: 12px;">${isOrg ? 'Organization:' : 'Customer:'}</span>
+              <span style="font-weight: 600;">${clientName}</span>
+            </div>
+            ${isOrg && contactPerson ? `
+              <div style="display: flex; align-items: center;">
+                <span style="width: 95px; color: #6B7280; font-size: 12px;">Contact:</span>
+                <span style="font-weight: 500;">${contactPerson}</span>
+              </div>
+            ` : ''}
+            <div style="display: flex; align-items: center;">
+              <span style="width: 95px; color: #6B7280; font-size: 12px;">Phone:</span>
+              <span style="font-weight: 500;">${clientPhone}</span>
+            </div>
+            <div style="display: flex; align-items: center;">
+              <span style="width: 95px; color: #6B7280; font-size: 12px;">Car Model:</span>
+              <span style="font-weight: 600;">${vehicleName}</span>
+            </div>
+            <div style="display: flex; align-items: center;">
+              <span style="width: 95px; color: #6B7280; font-size: 12px;">Vehicle No:</span>
+              <span style="font-weight: 700; font-family: monospace;">${vehiclePlate}</span>
+            </div>
+            <div style="display: flex; align-items: center;">
+              <span style="width: 95px; color: #6B7280; font-size: 12px;">Date:</span>
+              <span style="font-weight: 500;">${dateStr} (Valid: ${validUntilStr})</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SERVICES TABLE -->
+      <div style="padding: 10px 40px 0 40px; position: relative; z-index: 1;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+          <h3 style="font-size: 13px; font-weight: 700; margin: 0; color: #0A0A0A; text-transform: uppercase;">ESTIMATED SERVICES</h3>
+          <span style="font-size: 11px; font-weight: 700; color: #16a34a; text-transform: uppercase;">TAX RATE: 0% (NO TAX)</span>
+        </div>
+        <div style="height: 2px; background-color: #0A0A0A; margin-bottom: 12px;"></div>
+
+        <table style="width: 100%; border-collapse: collapse; font-size: 12px; position: relative; z-index: 1; background-color: transparent;">
+          <thead>
+            <tr style="background-color: #0A0A0A; color: #fff;">
+              <th style="padding: 7px 10px; text-align: left; font-weight: 600; border: 1px solid #000; width: 45%;">Service</th>
+              <th style="padding: 7px 10px; text-align: center; font-weight: 600; border: 1px solid #000; width: 15%;">Qty</th>
+              <th style="padding: 7px 10px; text-align: center; font-weight: 600; border: 1px solid #000; width: 20%;">Unit Rate (₹)</th>
+              <th style="padding: 7px 10px; text-align: center; font-weight: 600; border: 1px solid #000; width: 20%;">Amount (₹)</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${servicesRowsHtml}
+            ${services.length > 0 ? `
+              <tr>
+                <td colspan="2" style="border: none; background-color: transparent;"></td>
+                <td style="padding: 6px 10px; text-align: right; font-weight: 700; border: 1px solid #000;">Sub Total</td>
+                <td style="padding: 6px 10px; text-align: center; font-weight: 700; border: 1px solid #000;">₹${fmt(subTotal)}</td>
+              </tr>
+            ` : ''}
+            ${discount > 0 ? `
+              <tr>
+                <td colspan="2" style="border: none; background-color: transparent;"></td>
+                <td style="padding: 6px 10px; text-align: right; font-weight: 700; border: 1px solid #000; color: #dc2626;">
+                  Discount ${discountType === 'percent' ? `(${discountVal}%)` : ''}
+                </td>
+                <td style="padding: 6px 10px; text-align: center; font-weight: 700; border: 1px solid #000; color: #dc2626;">-₹${fmt(discount)}</td>
+              </tr>
+            ` : ''}
+            <tr>
+              <td colspan="2" style="border: none; background-color: transparent;"></td>
+              <td colspan="2" style="border: none; padding: 0; background-color: transparent;">
+                <div style="background-color: #F6CB59; color: #000; padding: 8px 12px; font-weight: 800; font-size: 14px; text-align: center; width: 100%; border: 1px solid #000; border-top: none; white-space: nowrap; box-sizing: border-box;">
+                  GRAND TOTAL: ₹${fmt(grandTotal)}
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- BOTTOM SECTION: NOTES & FOOTER -->
+      <div style="position: relative; width: 100%; margin-top: auto; overflow: hidden; display: flex; flex-direction: column;">
+        <div style="padding: 5px 40px; margin-bottom: 14px;">
+          <h3 style="font-size: 13px; font-weight: 700; margin: 0 0 4px 0; color: #111; text-transform: uppercase;">ESTIMATE TERMS & CONDITIONS</h3>
+          <div style="font-size: 11px; color: #444; line-height: 1.5;">
+            <div>• ${notes}</div>
+            <div>• All prices quoted are net amounts (zero tax applicable).</div>
+            <div>• Detailing Masters Marthandam | Ph: +91 9994122652 | Email: detailingmasters2024@gmail.com</div>
+          </div>
+        </div>
+
+        <div style="margin: 0 40px; border-top: 1.5px solid #111; padding-top: 12px; padding-bottom: 25px; text-align: center; font-size: 11px; color: #111; z-index: 10; position: relative;">
+          <strong>Detailing Masters</strong>, Opposite KTM Bike Showroom, Chankai, Marthandam, Tamil Nadu 629155.<br/>
+          Ph: +91 9994122652 | E-mail: detailingmasters2024@gmail.com
+        </div>
+      </div>
+    </div>
+  </body>
+  </html>
+  `;
+}
+
 function renderServiceReportHtml(inv) {
   return renderInvoiceHtml(inv);
 }
@@ -383,4 +680,5 @@ module.exports = {
   renderInvoiceHtml,
   renderServiceReportHtml,
   renderOfferHtml,
+  renderQuotationHtml,
 };

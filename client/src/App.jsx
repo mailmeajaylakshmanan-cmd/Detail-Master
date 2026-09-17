@@ -64,6 +64,7 @@ const MenuAssignment = lazy(() => import('./pages/MenuAssignment.jsx'));
 const UserMenuAssignment = lazy(() => import('./pages/UserMenuAssignment.jsx'));
 const ServiceTimeManagement = lazy(() => import('./pages/ServiceTimeManagement.jsx'));
 const VehicleServiceReport = lazy(() => import('./pages/VehicleServiceReport.jsx'));
+const QuotationPage = lazy(() => import('./pages/QuotationPage.jsx'));
 
 
 function PrivateRoute({ children }) {
@@ -112,6 +113,7 @@ export default function App() {
       <Route path="/" element={<PrivateRoute><Layout /></PrivateRoute>}>
         <Route index element={<LazyPage><Dashboard /></LazyPage>} />
         <Route path="invoices" element={<LazyPage><InvoiceList /></LazyPage>} />
+        <Route path="quotations" element={<LazyPage><QuotationPage /></LazyPage>} />
         <Route path="invoices/new" element={<LazyPage><NewInvoice /></LazyPage>} />
         <Route path="invoices/:id/edit" element={<LazyPage><EditInvoice /></LazyPage>} />
         <Route path="invoices/:id" element={<LazyPage><InvoiceView /></LazyPage>} />

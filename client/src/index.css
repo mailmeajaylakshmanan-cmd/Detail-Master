@@ -170,8 +170,9 @@
     height: auto !important;
   }
 
-  /* Invoice print container */
-  #invoice-print {
+  /* Invoice & Quotation print containers */
+  #invoice-print,
+  #quotation-print {
     max-width: 100% !important;
     width: 100% !important;
     margin: 0 !important;
@@ -180,7 +181,8 @@
     border-radius: 0 !important;
   }
 
-  #invoice-print table {
+  #invoice-print table,
+  #quotation-print table {
     page-break-inside: avoid;
   }
 
