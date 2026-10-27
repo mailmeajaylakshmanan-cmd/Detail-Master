@@ -109,7 +109,7 @@ export default function StandardDocumentLayout({
           ) : (
             <div style={docStyles.footer}>
               <strong>Detailing Masters</strong>, Opposite KTM Bike Showroom, Chankai, Marthandam, Tamil Nadu 629155.<br/>
-              Ph: +91 9994122652 | E-mail: detailingmasters2024@gmail.com
+              Ph: +91 9111977721 , 9655633529 | E-mail: detailingmasters2024@gmail.com
             </div>
           )
         )}

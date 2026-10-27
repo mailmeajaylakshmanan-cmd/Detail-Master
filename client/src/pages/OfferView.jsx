@@ -190,7 +190,7 @@ export default function OfferView() {
                   <strong>Detailing Masters</strong>, Opposite KTM Bike Showroom, Chankai, Marthandam, Tamil Nadu 629155.
                 </p>
                 <p style={{ margin: '4px 0 0', fontSize: 11, color: textMuted }}>
-                  Ph: +91 9994122652 | E-mail: detailingmasters2024@gmail.com
+                  Ph: +91 9111977721 , 9655633529 | E-mail: detailingmasters2024@gmail.com
                 </p>
               </div>
             </div>

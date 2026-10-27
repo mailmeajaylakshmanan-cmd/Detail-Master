@@ -737,7 +737,7 @@ export default function QuotationPage() {
       msg += `⭐ *GRAND TOTAL: ₹${fmt(grandTotal)}*\n`;
       msg += `------------------------------------\n`;
       msg += `📍 *Detailing Masters*, Opposite KTM Bike Showroom, Chankai, Marthandam.\n`;
-      msg += `📞 Contact: +91 9111977721\n`;
+      msg += `📞 Contact: +91 9111977721, 9655633529\n`;
       msg += `*Valid for 15 Days*`;
 
       const encoded = encodeURIComponent(msg);
@@ -1822,7 +1822,7 @@ export default function QuotationPage() {
                       <div style={{ fontSize: 11, color: '#444', lineHeight: 1.5 }}>
                         <div>• {notes || 'Valid for 15 days from issuance date.'}</div>
                         <div>• All prices quoted are net amounts (zero tax applicable).</div>
-                        <div>• Detailing Masters Marthandam | Ph: +91 9111977721 | Email: detailingmasters2024@gmail.com</div>
+                        <div>• Detailing Masters Marthandam | Ph: +91 9111977721 , 9655633529 | Email: detailingmasters2024@gmail.com</div>
                       </div>
                     </div>
 
@@ -1849,7 +1849,7 @@ export default function QuotationPage() {
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center' }}>
                         <span style={{ width: 75, color: '#6B7280', fontSize: 12 }}>Phone:</span>
-                        <span style={{ fontWeight: 500 }}>+91 9111977721</span>
+                        <span style={{ fontWeight: 500 }}>+91 9111977721, 9655633529</span>
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center' }}>
                         <span style={{ width: 75, color: '#6B7280', fontSize: 12 }}>Email:</span>

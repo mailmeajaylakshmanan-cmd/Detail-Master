@@ -59,7 +59,7 @@ function buildWAConfirmation(b, time) {
     `📍 *STUDIO LOCATION*\n` +
     `Detailing Masters, Opposite KTM Bike Showroom,\n` +
     `Chankai, Marthandam, Tamil Nadu 629155\n` +
-    `📞 *Helpline:* +91 99941 22652\n\n` +
+    `📞 *Helpline:* +91 9111977721, 9655633529\n\n` +
     `━━━━━━━━━━━━━━━━━━━━━━━\n` +
     `_We look forward to delivering the ultimate shine and protection for your machine!_`;
 }
@@ -77,7 +77,7 @@ function buildWAReschedule(b, newDate) {
     `🛠️ *Services:* ${services}\n` +
     `⏰ *Time Slot:* ${b.allocated_time || 'Will be confirmed shortly'}\n\n` +
     `📍 *Studio Location:* Opp. KTM Showroom, Chankai, Marthandam\n` +
-    `📞 *Support Helpline:* +91 99941 22652\n\n` +
+    `📞 *Support Helpline:* +91 9111977721, 9655633529\n\n` +
     `━━━━━━━━━━━━━━━━━━━━━━━\n` +
     `_If you need any further adjustments, feel free to reply directly to this chat._`;
 }
@@ -91,7 +91,7 @@ function buildWACancellation(b, reason) {
     `Dear *${b.full_name || 'Valued Customer'}*,\n\n` +
     `Your detailing appointment for *${vehicle}* scheduled for *${dateFormatted}* has been cancelled.\n` +
     (reason ? `• *Reason:* ${reason}\n\n` : `\n`) +
-    `If you would like to reschedule or explore another slot, please visit *detailingmasters.in* or reach us at *+91 99941 22652*.\n\n` +
+    `If you would like to reschedule or explore another slot, please visit *detailingmasters.in* or reach us at *+91 9111977721, 9655633529*.\n\n` +
     `━━━━━━━━━━━━━━━━━━━━━━━\n` +
     `_Detailing Masters · Precision Automotive Refinishing_`;
 }
@@ -105,7 +105,7 @@ function buildWAInquiry(b) {
     `Greetings from *Detailing Masters*!\n\n` +
     `We are following up regarding your booking inquiry for *${vehicle}* (*${services}*) scheduled for *${dateFormatted}*.\n\n` +
     `How may we assist you today?\n\n` +
-    `📞 *Helpline:* +91 99941 22652`;
+    `📞 *Helpline:* +91 9111977721, 9655633529`;
 }
 
 const TIME_PRESETS = ['09:30', '11:00', '14:00', '16:30'];

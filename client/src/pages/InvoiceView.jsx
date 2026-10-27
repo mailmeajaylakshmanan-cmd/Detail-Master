@@ -417,7 +417,7 @@ export default function InvoiceView() {
                <div style={{ padding: '5px 40px', marginBottom: '20px' }}>
                   <h3 style={{ fontSize: 15, fontWeight: 700, margin: '0 0 6px 0', color: '#111', textTransform: 'uppercase' }}>PAYMENT DETAILS</h3>
                   <div style={{ fontSize: 13, color: '#333', lineHeight: 1.6 }}>
-                     <div>+91 9994122652 | E-mail: detailingmasters2024@gmail.com</div>
+                     <div>+91 9111977721 , 9655633529 | E-mail: detailingmasters2024@gmail.com</div>
                      {invoice.showTerms && invoice.termsAndConditions && (
                         <div style={{ marginTop: 12, fontSize: 11, color: '#666', maxWidth: '70%' }}>
                            <strong>Terms:</strong> {invoice.termsAndConditions}
@@ -429,7 +429,7 @@ export default function InvoiceView() {
                {/* FOOTER */}
                <div style={{ margin: '0 40px', borderTop: '1.5px solid #111', paddingTop: '15px', paddingBottom: '30px', textAlign: 'center', fontSize: 13, color: '#111', zIndex: 10, position: 'relative' }}>
                   <strong>Detailing Masters</strong>, Opposite KTM Bike Showroom, Chankai, Marthandam, Tamil Nadu 629155.<br/>
-                  Ph: +91 9994122652 | E-mail: detailingmasters2024@gmail.com
+                  Ph: +91 9111977721 , 9655633529 | E-mail: detailingmasters2024@gmail.com
                </div>
             </div>
           }
@@ -440,7 +440,7 @@ export default function InvoiceView() {
               <h3 style={{ fontSize: 13, fontWeight: 700, margin: '0 0 12px 0', color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.05em' }}>INVOICE INFO</h3>
               <div style={{ fontSize: 14, color: '#111827', display: 'flex', flexDirection: 'column', gap: '10px' }}>
                  <div style={{ display: 'flex', alignItems: 'flex-start' }}><span style={{ width: 85, color: '#6B7280', fontSize: 13, paddingTop: 1 }}>Address:</span> <span style={{ flex: 1, fontWeight: 500, lineHeight: 1.5 }}>Opposite KTM Bike Showroom, Chankai, Marthandam, Tamil Nadu 629155</span></div>
-                 <div style={{ display: 'flex', alignItems: 'center' }}><span style={{ width: 85, color: '#6B7280', fontSize: 13 }}>Phone:</span> <span style={{ fontWeight: 500 }}>+91 9994122652</span></div>
+                 <div style={{ display: 'flex', alignItems: 'center' }}><span style={{ width: 85, color: '#6B7280', fontSize: 13 }}>Phone:</span> <span style={{ fontWeight: 500 }}>+91 9111977721, 9655633529</span></div>
                  <div style={{ display: 'flex', alignItems: 'center' }}><span style={{ width: 85, color: '#6B7280', fontSize: 13 }}>Email:</span> <span style={{ fontWeight: 500 }}>detailingmasters2024@gmail.com</span></div>
               </div>
            </div>

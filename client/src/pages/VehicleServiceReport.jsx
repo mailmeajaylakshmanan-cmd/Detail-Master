@@ -286,7 +286,7 @@ export default function VehicleServiceReport() {
             <div style={{ position: 'relative', width: '100%', marginTop: 'auto', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
                <div style={{ margin: '0 40px', borderTop: '1.5px solid #111', paddingTop: '15px', paddingBottom: '30px', textAlign: 'center', fontSize: 13, color: '#111', zIndex: 10, position: 'relative' }}>
                   <strong>Detailing Masters</strong>, Opposite KTM Bike Showroom, Chankai, Marthandam, Tamil Nadu 629155.<br/>
-                  Ph: +91 9994122652 | E-mail: detailingmasters2024@gmail.com
+                  Ph: +91 9111977721 , 9655633529 | E-mail: detailingmasters2024@gmail.com
                </div>
             </div>
           }
@@ -296,7 +296,7 @@ export default function VehicleServiceReport() {
               <h3 style={{ fontSize: 13, fontWeight: 800, margin: '0 0 10px 0', color: '#111', textTransform: 'uppercase', letterSpacing: '0.5px', borderBottom: '2px solid #FBD904', paddingBottom: 4, display: 'inline-block' }}>STUDIO DETAILS</h3>
               <div style={{ fontSize: 12, color: '#333', lineHeight: 1.8 }}>
                  <div style={{ display: 'flex' }}><span style={{ width: 65, fontWeight: 600, color: '#64748b' }}>Address:</span> <span style={{ flex: 1, fontWeight: 500 }}>Opposite KTM Bike Showroom, Chankai, Marthandam, Tamil Nadu 629155</span></div>
-                 <div style={{ display: 'flex' }}><span style={{ width: 65, fontWeight: 600, color: '#64748b' }}>Phone:</span> <span style={{ fontWeight: 500 }}>+91 9994122652</span></div>
+                 <div style={{ display: 'flex' }}><span style={{ width: 65, fontWeight: 600, color: '#64748b' }}>Phone:</span> <span style={{ fontWeight: 500 }}>+91 9111977721, 9655633529</span></div>
                  <div style={{ display: 'flex' }}><span style={{ width: 65, fontWeight: 600, color: '#64748b' }}>Email:</span> <span style={{ fontWeight: 500 }}>detailingmasters2024@gmail.com</span></div>
               </div>
            </div>

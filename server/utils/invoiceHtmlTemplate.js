@@ -276,7 +276,7 @@ function renderInvoiceHtml(inv) {
             </div>
             <div style="display: flex; align-items: center;">
               <span style="width: 85px; color: #6B7280; font-size: 13px;">Phone:</span>
-              <span style="font-weight: 500;">+91 9994122652</span>
+              <span style="font-weight: 500;">+91 9111977721, 9655633529</span>
             </div>
             <div style="display: flex; align-items: center;">
               <span style="width: 85px; color: #6B7280; font-size: 13px;">Email:</span>
@@ -356,13 +356,13 @@ function renderInvoiceHtml(inv) {
         <div style="padding: 5px 40px; margin-bottom: 20px;">
           <h3 style="font-size: 15px; font-weight: 700; margin: 0 0 6px 0; color: #111; text-transform: uppercase;">PAYMENT DETAILS</h3>
           <div style="font-size: 13px; color: #333; line-height: 1.6;">
-            <div>+91 9994122652 | E-mail: detailingmasters2024@gmail.com</div>
+            <div>+91 9111977721 , 9655633529 | E-mail: detailingmasters2024@gmail.com</div>
           </div>
         </div>
 
         <div style="margin: 0 40px; border-top: 1.5px solid #111; padding-top: 15px; padding-bottom: 30px; text-align: center; font-size: 13px; color: #111; z-index: 10; position: relative;">
           <strong>Detailing Masters</strong>, Opposite KTM Bike Showroom, Chankai, Marthandam, Tamil Nadu 629155.<br/>
-          Ph: +91 9994122652 | E-mail: detailingmasters2024@gmail.com
+          Ph: +91 9111977721 , 9655633529 | E-mail: detailingmasters2024@gmail.com
         </div>
       </div>
     </div>
@@ -551,7 +551,7 @@ function renderQuotationHtml(q) {
             </div>
             <div style="display: flex; align-items: center;">
               <span style="width: 75px; color: #6B7280; font-size: 12px;">Phone:</span>
-              <span style="font-weight: 500;">+91 9994122652</span>
+              <span style="font-weight: 500;">+91 9111977721, 9655633529</span>
             </div>
             <div style="display: flex; align-items: center;">
               <span style="width: 75px; color: #6B7280; font-size: 12px;">Email:</span>
@@ -653,13 +653,13 @@ function renderQuotationHtml(q) {
           <div style="font-size: 11px; color: #444; line-height: 1.5;">
             <div>• ${notes}</div>
             <div>• All prices quoted are net amounts (zero tax applicable).</div>
-            <div>• Detailing Masters Marthandam | Ph: +91 9994122652 | Email: detailingmasters2024@gmail.com</div>
+            <div>• Detailing Masters Marthandam | Ph: +91 9111977721 , 9655633529 | Email: detailingmasters2024@gmail.com</div>
           </div>
         </div>
 
         <div style="margin: 0 40px; border-top: 1.5px solid #111; padding-top: 12px; padding-bottom: 25px; text-align: center; font-size: 11px; color: #111; z-index: 10; position: relative;">
           <strong>Detailing Masters</strong>, Opposite KTM Bike Showroom, Chankai, Marthandam, Tamil Nadu 629155.<br/>
-          Ph: +91 9994122652 | E-mail: detailingmasters2024@gmail.com
+          Ph: +91 9111977721 , 9655633529 | E-mail: detailingmasters2024@gmail.com
         </div>
       </div>
     </div>
