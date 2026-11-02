@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
-import { Plus, Search, Filter, ArrowUpDown, ChevronLeft, ChevronRight, Eye, Pencil, ClipboardList, Car, Calendar, User, XCircle, Trash2, Download, RotateCcw } from 'lucide-react';
+import { Plus, Search, Filter, ArrowUpDown, ChevronLeft, ChevronRight, Eye, Pencil, ClipboardList, Car, Calendar, User, XCircle, Download, RotateCcw } from 'lucide-react';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subDays } from 'date-fns';
@@ -49,7 +49,7 @@ export default function InvoiceList() {
 
   const debouncedSearch = useDebouncedValue(search, 300);
   const queryClient = useQueryClient();
-  const { canAdd, canEdit, canDelete } = usePermissions('Invoicing & Records');
+  const { canAdd, canEdit } = usePermissions('Invoicing & Records');
   const [deleteModal, setDeleteModal] = useState({ isOpen: false, invoice: null, loading: false });
 
   const dropMutation = useMutation({
@@ -490,17 +490,6 @@ export default function InvoiceList() {
                         {canEdit && (
                           <button onClick={() => navigate(`/invoices/${inv.id}/edit`)} title="Edit Invoice" className="p-1.5 text-amber-600 bg-amber-50 hover:bg-amber-100 hover:text-amber-700 rounded-lg transition-colors inline-flex">
                             <Pencil size={18} />
-                          </button>
-                        )}
-                        {canDelete && inv.status !== 'cancelled' && (
-                          <button
-                            onClick={() => {
-                              setDeleteModal({ isOpen: true, invoice: inv, loading: false });
-                            }}
-                            title="Cancel / Void Invoice"
-                            className="p-1.5 text-rose-600 bg-rose-50 hover:bg-rose-100 hover:text-rose-700 rounded-lg transition-colors inline-flex"
-                          >
-                            <Trash2 size={18} />
                           </button>
                         )}
                       </div>
