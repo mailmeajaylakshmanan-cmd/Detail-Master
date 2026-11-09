@@ -118,6 +118,15 @@ export default function ServiceHistoryTable({ history, customerPhone, isVIP }) {
               </button>
             ))}
           </div>
+          {customerPhone && (
+            <Link
+              to={`/master-customer/${customerPhone}/billing`}
+              className="text-[10px] font-black text-white bg-black hover:bg-gray-800
+                flex items-center gap-1 uppercase tracking-wider px-3.5 py-1.5 rounded-full shadow-sm transition-all shrink-0 border border-gray-800"
+            >
+              <FileText size={11} className="text-[#F6CB59]" /> Statement & Share
+            </Link>
+          )}
           {isVIP && (
             <Link
               to={`/offers/new?phone=${customerPhone}`}

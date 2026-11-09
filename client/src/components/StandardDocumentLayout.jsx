@@ -22,29 +22,39 @@ export default function StandardDocumentLayout({
   documentWidth = 820,
   carLeft = '65%',
   carTop = '29px',
+  wrapStyle = {},
 }) {
   return (
     <ResponsiveDocumentWrapper documentWidth={documentWidth}>
-      <div id={documentId} style={docStyles.wrap}>
+      <div
+        id={documentId}
+        style={{
+          ...docStyles.wrap,
+          ...(wrapStyle.background || wrapStyle.backgroundColor ? { background: wrapStyle.background || wrapStyle.backgroundColor } : {}),
+          ...wrapStyle,
+        }}
+      >
         {/* HEADER GEOMETRIC BANNER */}
         <div style={docStyles.header}>
-          {/* Layer 1: Top Left Yellow Square */}
-          <div style={docStyles.layer1} />
-
-          {/* Layer 2: Right Black Polygon */}
-          <div style={docStyles.layer2} />
-          
-          {/* Layer 3: Right Yellow Bar */}
-          <div style={docStyles.layer3} />
-
-          {/* Layer 4: Black Splinter */}
-          <div style={docStyles.layer4} />
-
-          {/* Layer 5: Yellow Stripe */}
-          <div style={docStyles.layer5} />
-
-          {/* Layer 6: Main Left Black Polygon */}
-          <div style={docStyles.layer6} />
+          {/* Vector Geometric Chevrons Banner (100% vector fidelity on screen, browser print, and rasterizer fallback) */}
+          <svg
+            style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 1, pointerEvents: 'none' }}
+            viewBox="0 0 820 115"
+            preserveAspectRatio="none"
+          >
+            {/* Base Yellow Background */}
+            <rect x="0" y="0" width="820" height="115" fill="#FFD700" />
+            {/* Main Left Dark Charcoal Polygon */}
+            <polygon points="0,0 492,0 369,115 0,115" fill="#2B2A2A" />
+            {/* Yellow Accent Stripe */}
+            <polygon points="410,0 500,0 402,115 287,115" fill="#FFD700" />
+            {/* Black Splinter */}
+            <polygon points="410,0 533,0 402,115 287,115" fill="#000000" />
+            {/* Main Right Black Polygon */}
+            <polygon points="533,0 820,0 820,86 471,86" fill="#000000" />
+            {/* Right Yellow Accent Bar */}
+            <polygon points="471,86 820,86 820,98 463,98" fill="#FFD700" />
+          </svg>
 
           <div className="invoice-header-grid" style={docStyles.headerContent}>
             {/* Logo & Brand Wordmark */}
@@ -62,8 +72,8 @@ export default function StandardDocumentLayout({
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1 }}>
-                <span style={docStyles.brandText}>DETAILING</span>
-                <span style={docStyles.brandText}>MASTERS</span>
+                <span className="brand-wordmark" style={docStyles.brandText}>DETAILING</span>
+                <span className="brand-wordmark" style={docStyles.brandText}>MASTERS</span>
               </div>
             </div>
 
@@ -98,7 +108,7 @@ export default function StandardDocumentLayout({
         </div>
 
         {/* Inner Document Content Slot */}
-        <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', flex: 1 }}>
+        <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', flex: 1, background: wrapStyle.background || wrapStyle.backgroundColor || 'inherit' }}>
           {children}
         </div>
 
@@ -136,18 +146,13 @@ const docStyles = {
   header: {
     position: 'relative',
     height: '115px',
-    backgroundColor: '#EBEBED',
+    backgroundColor: '#000000',
     width: '100%',
     WebkitPrintColorAdjust: 'exact',
     printColorAdjust: 'exact',
     flexShrink: 0,
+    overflow: 'hidden',
   },
-  layer1: { position: 'absolute', top: 0, left: 0, width: '100px', height: '100px', background: '#FFD700', zIndex: 1 },
-  layer2: { position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: '#000000', clipPath: 'polygon(65% 0, 100% 0, 100% 75%, 57.5% 75%)', zIndex: 2 },
-  layer3: { position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: '#FFD700', clipPath: 'polygon(57.5% 75%, 100% 75%, 100% 85%, 56.5% 85%)', zIndex: 3 },
-  layer4: { position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: '#000000', clipPath: 'polygon(50% 0, 65% 0, 49% 100%, 35% 100%)', zIndex: 4 },
-  layer5: { position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: '#FFD700', clipPath: 'polygon(50% 0, 61% 0, 49% 100%, 35% 100%)', zIndex: 5 },
-  layer6: { position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: '#2B2A2A', clipPath: 'polygon(4% 0, 60% 0, 45% 100%, 0 100%, 0 25%)', zIndex: 6 },
   headerContent: {
     position: 'relative',
     zIndex: 10,
@@ -162,6 +167,7 @@ const docStyles = {
     margin: 0, 
     letterSpacing: '3px', 
     fontWeight: 600,
+    color: '#DFB248',
     background: 'linear-gradient(to right, #BF953F, #FCF6BA, #B38728, #FBF5B7, #AA771C)',
     WebkitBackgroundClip: 'text',
     WebkitTextFillColor: 'transparent',

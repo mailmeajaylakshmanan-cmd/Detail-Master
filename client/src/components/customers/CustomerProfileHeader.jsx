@@ -1,4 +1,4 @@
-import { Edit3, Phone, MapPin, Calendar, Gift } from 'lucide-react';
+import { Edit3, Phone, MapPin, Calendar, Gift, FileText } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import CustomerAvatar from './CustomerAvatar.jsx';
 import { VipBadge } from './Badge.jsx';
@@ -36,19 +36,25 @@ export default function CustomerProfileHeader({ customer, isVIP, memberSince, on
           </span>
         </div>
 
-        <div className="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto lg:mt-auto">
+        <div className="flex flex-col sm:flex-row items-center gap-2.5 w-full lg:w-auto lg:mt-auto flex-wrap">
+          <Link 
+            to={`/master-customer/${customer.phone}/billing`}
+            className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-black to-gray-900 text-[#F6CB59] hover:scale-[1.02] active:scale-[0.98] transition-all shadow-md font-extrabold text-[13px] tracking-wide border border-gray-800"
+          >
+            <FileText size={15} strokeWidth={2.5} /> Overall Billing & Share
+          </Link>
+          <Link 
+            to={`/offers/new?phone=${customer.phone}`}
+            className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-gray-100 text-gray-800 hover:bg-gray-200 active:scale-[0.98] transition-all font-bold text-[13px] border border-gray-200"
+          >
+            <Gift size={15} strokeWidth={2.5} className="text-amber-600" /> Assign Package
+          </Link>
           <button
             onClick={onEdit}
-            className="w-full sm:w-auto btn-secondary flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-[13px] font-bold shadow-sm border border-gray-200 text-gray-900 bg-white hover:bg-gray-50 active:scale-[0.98] transition-all"
+            className="w-full sm:w-auto btn-secondary flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-[13px] font-bold shadow-xs border border-gray-200 text-gray-700 bg-white hover:bg-gray-50 active:scale-[0.98] transition-all"
           >
             <Edit3 size={15} strokeWidth={2.5} /> Edit Profile
           </button>
-          <Link 
-            to={`/offers/new?phone=${customer.phone}`}
-            className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-black text-[#F6CB59] hover:scale-[1.02] active:scale-[0.98] transition-all shadow-md font-bold text-[13px] tracking-wide"
-          >
-            <Gift size={15} strokeWidth={2.5} /> Assign Package
-          </Link>
         </div>
       </div>
     </div>

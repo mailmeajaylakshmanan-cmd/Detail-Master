@@ -1,3 +1,5 @@
+const { getBrowser } = require('../utils/pdf');
+const { renderStatementHtml } = require('../utils/invoiceHtmlTemplate');
 const express = require('express');
 const router = express.Router();
 const db = require('../db');
@@ -192,6 +194,155 @@ router.get('/:id', async (req, res) => {
   }
 });
 
+// GET /clients/:id/invoices — overall invoices & billing statement for an individual client
+router.get('/:id/invoices', async (req, res) => {
+  try {
+    const rawId = req.params.id;
+    const { from, to } = req.query;
+    const phoneDigits = String(rawId).replace(/[^0-9]/g, '');
+
+    let clientRow = null;
+
+    // 1. If it looks like a standard auto-increment integer ID (< 8 digits), try ID lookup
+    if (/^\d+$/.test(rawId) && rawId.length < 8 && Number(rawId) <= 2147483647) {
+      const cRes = await db.query('SELECT * FROM clients WHERE id = $1', [parseInt(rawId, 10)]);
+      if (cRes.rows.length > 0) clientRow = cRes.rows[0];
+    }
+
+    // 2. If not found, try phone lookup (clean 10-digit match, full match, or last 10 digits)
+    if (!clientRow && phoneDigits) {
+      const last10 = phoneDigits.slice(-10);
+      const cRes = await db.query(
+        `SELECT * FROM clients 
+         WHERE phone = $1 
+            OR regexp_replace(phone, '[^0-9]', '', 'g') = $2
+            OR (length($2) >= 10 AND regexp_replace(phone, '[^0-9]', '', 'g') LIKE '%' || $3)
+         ORDER BY id DESC
+         LIMIT 1`,
+        [rawId, phoneDigits, last10]
+      );
+      if (cRes.rows.length > 0) clientRow = cRes.rows[0];
+    }
+
+    // 3. Fallback: match by full_name
+    if (!clientRow) {
+      const cRes = await db.query('SELECT * FROM clients WHERE full_name ILIKE $1 LIMIT 1', [rawId]);
+      if (cRes.rows.length > 0) clientRow = cRes.rows[0];
+    }
+
+    if (!clientRow) {
+      return res.json({
+        client: {
+          id: null,
+          name: 'Customer',
+          full_name: 'Customer',
+          phone: rawId,
+          email: '',
+          address: '',
+        },
+        invoices: [],
+        summary: {
+          invoiceCount: 0,
+          totalBilled: 0,
+          totalPaid: 0,
+          totalOutstanding: 0,
+          totalDiscount: 0,
+          totalVehicles: 0,
+        }
+      });
+    }
+
+    const clientId = clientRow.id;
+
+    const { rows } = await db.query(
+      `WITH veh AS (
+         SELECT iv.invoice_order_id,
+                json_agg(json_build_object(
+                  'vehicleId', iv.vehicle_id,
+                  'makeModel', v.make_model,
+                  'licenseVin', v.license_vin,
+                  'visitorName', iv.visitor_name,
+                  'checkinTime', iv.checkin_time,
+                  'checkoutTime', iv.checkout_time
+                ) ORDER BY iv.id) AS vehicles
+         FROM invoice_vehicles iv
+         JOIN vehicles v ON iv.vehicle_id = v.id
+         GROUP BY iv.invoice_order_id
+       )
+       SELECT
+         i.id, i.invoice_number, i.status, i.created_at,
+         i.grand_total, i.amount_paid, i.balance_due, i.discount,
+         COALESCE(
+           veh.vehicles,
+           CASE WHEN hv.id IS NOT NULL THEN
+             json_build_array(json_build_object(
+               'vehicleId', hv.id,
+               'makeModel', hv.make_model,
+               'licenseVin', hv.license_vin
+             ))
+           ELSE '[]'::json END
+         ) AS vehicles,
+         (
+           SELECT COALESCE(json_agg(svc_name), '[]'::json)
+           FROM (
+             SELECT s.service_name AS svc_name FROM invoice_services isv2 JOIN services s ON s.id = isv2.service_id WHERE isv2.invoice_order_id = i.id
+             UNION
+             SELECT itp.service_name AS svc_name FROM invoice_third_party_services itp WHERE itp.invoice_order_id = i.id
+           ) s_all
+         ) AS services
+       FROM invoices i
+       LEFT JOIN vehicles hv ON i.vehicle_id = hv.id
+       LEFT JOIN veh ON veh.invoice_order_id = i.id
+       WHERE (
+           i.client_id = $1
+           OR i.vehicle_id IN (SELECT id FROM vehicles WHERE client_id = $1)
+           OR EXISTS (
+             SELECT 1 FROM invoice_vehicles iv2
+             JOIN vehicles v2 ON iv2.vehicle_id = v2.id
+             WHERE iv2.invoice_order_id = i.id AND v2.client_id = $1
+           )
+         )
+         AND ($2::timestamp IS NULL OR i.created_at >= $2::timestamp)
+         AND ($3::timestamp IS NULL OR i.created_at < $3::timestamp)
+       ORDER BY i.created_at DESC`,
+      [clientId, from || null, to || null]
+    );
+
+    const vehicleSet = new Set();
+    const summary = rows.reduce((acc, r) => {
+      (r.vehicles || []).forEach(v => {
+        if (v.licenseVin || v.makeModel) vehicleSet.add(v.licenseVin || v.makeModel);
+      });
+      return {
+        invoiceCount: acc.invoiceCount + 1,
+        totalBilled: acc.totalBilled + Number(r.grand_total || 0),
+        totalPaid: acc.totalPaid + Number(r.amount_paid || 0),
+        totalOutstanding: acc.totalOutstanding + Number(r.balance_due || 0),
+        totalDiscount: acc.totalDiscount + Number(r.discount || 0),
+      };
+    }, { invoiceCount: 0, totalBilled: 0, totalPaid: 0, totalOutstanding: 0, totalDiscount: 0 });
+
+    summary.totalVehicles = vehicleSet.size;
+
+    res.json({
+      client: {
+        id: clientRow.id,
+        name: clientRow.full_name,
+        full_name: clientRow.full_name,
+        phone: clientRow.phone,
+        email: clientRow.email,
+        address: clientRow.address,
+        created_at: clientRow.created_at,
+      },
+      invoices: rows,
+      summary
+    });
+  } catch (err) {
+    console.error('Error fetching client billing invoices:', err);
+    res.status(500).json({ message: 'Failed to fetch client billing' });
+  }
+});
+
 // CREATE a client (+ vehicles) in a transaction with batched vehicle insert.
 router.post('/', async (req, res) => {
   const client = await db.pool.connect();
@@ -320,6 +471,149 @@ router.delete('/:id', async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Server error' });
+  }
+});
+
+
+// GET /clients/:id/statement-pdf — High-fidelity Puppeteer Chrome PDF generation (identical to print)
+router.get('/:id/statement-pdf', async (req, res) => {
+  try {
+    const rawId = req.params.id;
+    const { from, to, periodLabel } = req.query;
+    const phoneDigits = String(rawId).replace(/[^0-9]/g, '');
+
+    let clientRow = null;
+    if (/^\d+$/.test(rawId) && rawId.length < 8 && Number(rawId) <= 2147483647) {
+      const cRes = await db.query('SELECT * FROM clients WHERE id = $1', [parseInt(rawId, 10)]);
+      if (cRes.rows.length > 0) clientRow = cRes.rows[0];
+    }
+    if (!clientRow && phoneDigits) {
+      const last10 = phoneDigits.slice(-10);
+      const cRes = await db.query(
+        `SELECT * FROM clients 
+         WHERE phone = $1 
+            OR regexp_replace(phone, '[^0-9]', '', 'g') = $2
+            OR (length($2) >= 10 AND regexp_replace(phone, '[^0-9]', '', 'g') LIKE '%' || $3)
+         ORDER BY id DESC
+         LIMIT 1`,
+        [rawId, phoneDigits, last10]
+      );
+      if (cRes.rows.length > 0) clientRow = cRes.rows[0];
+    }
+    if (!clientRow) {
+      return res.json({
+        client: {
+          id: null,
+          name: 'Customer',
+          full_name: 'Customer',
+          phone: rawId,
+          email: '',
+          address: '',
+        },
+        invoices: [],
+        summary: {
+          invoiceCount: 0,
+          totalBilled: 0,
+          totalPaid: 0,
+          totalOutstanding: 0,
+          totalDiscount: 0,
+          totalVehicles: 0,
+        }
+      });
+    }
+
+    const clientId = clientRow.id;
+    const { rows } = await db.query(
+      `WITH veh AS (
+         SELECT iv.invoice_order_id,
+                json_agg(json_build_object(
+                  'vehicleId', iv.vehicle_id,
+                  'makeModel', v.make_model,
+                  'licenseVin', v.license_vin,
+                  'visitorName', iv.visitor_name,
+                  'checkinTime', iv.checkin_time,
+                  'checkoutTime', iv.checkout_time
+                ) ORDER BY iv.id) AS vehicles
+         FROM invoice_vehicles iv
+         JOIN vehicles v ON iv.vehicle_id = v.id
+         GROUP BY iv.invoice_order_id
+       )
+       SELECT
+         i.id, i.invoice_number, i.status, i.created_at,
+         i.grand_total, i.amount_paid, i.balance_due, i.discount,
+         COALESCE(
+           veh.vehicles,
+           CASE WHEN hv.id IS NOT NULL THEN
+             json_build_array(json_build_object(
+               'vehicleId', hv.id,
+               'makeModel', hv.make_model,
+               'licenseVin', hv.license_vin
+             ))
+           ELSE '[]'::json END
+         ) AS vehicles,
+         (
+           SELECT COALESCE(json_agg(svc_name), '[]'::json)
+           FROM (
+             SELECT s.service_name AS svc_name FROM invoice_services isv2 JOIN services s ON s.id = isv2.service_id WHERE isv2.invoice_order_id = i.id
+             UNION
+             SELECT itp.service_name AS svc_name FROM invoice_third_party_services itp WHERE itp.invoice_order_id = i.id
+           ) s_all
+         ) AS services
+       FROM invoices i
+       LEFT JOIN vehicles hv ON i.vehicle_id = hv.id
+       LEFT JOIN veh ON veh.invoice_order_id = i.id
+       WHERE (
+           i.client_id = $1
+           OR i.vehicle_id IN (SELECT id FROM vehicles WHERE client_id = $1)
+           OR EXISTS (
+             SELECT 1 FROM invoice_vehicles iv2
+             JOIN vehicles v2 ON iv2.vehicle_id = v2.id
+             WHERE iv2.invoice_order_id = i.id AND v2.client_id = $1
+           )
+         )
+         AND ($2::timestamp IS NULL OR i.created_at >= $2::timestamp)
+         AND ($3::timestamp IS NULL OR i.created_at < $3::timestamp)
+       ORDER BY i.created_at DESC`,
+      [clientId, from || null, to || null]
+    );
+
+    const vehicleSet = new Set();
+    const summary = rows.reduce((acc, r) => {
+      (r.vehicles || []).forEach(v => {
+        if (v.licenseVin || v.makeModel) vehicleSet.add(v.licenseVin || v.makeModel);
+      });
+      return {
+        invoiceCount: acc.invoiceCount + 1,
+        totalBilled: acc.totalBilled + Number(r.grand_total || 0),
+        totalPaid: acc.totalPaid + Number(r.amount_paid || 0),
+        totalOutstanding: acc.totalOutstanding + Number(r.balance_due || 0),
+        totalDiscount: acc.totalDiscount + Number(r.discount || 0),
+      };
+    }, { invoiceCount: 0, totalBilled: 0, totalPaid: 0, totalOutstanding: 0, totalDiscount: 0 });
+
+    summary.totalVehicles = vehicleSet.size;
+
+    const html = renderStatementHtml({
+      client: clientRow,
+      invoices: rows,
+      summary,
+      periodLabel: periodLabel || 'All Time',
+    });
+
+    const browser = await getBrowser();
+    const page = await browser.newPage();
+    await page.setContent(html, { waitUntil: 'load' });
+    const pdfBuffer = await page.pdf({
+      format: 'A4',
+      printBackground: true,
+      margin: { top: '0', bottom: '0', left: '0', right: '0' }
+    });
+    await page.close();
+
+    res.json({ base64: Buffer.from(pdfBuffer).toString('base64') });
+  } catch (err) {
+    console.error('Client statement PDF generation error:', err);
+    res.status(500).json({ message: 'Error generating statement PDF: ' + err.message });
   }
 });
 

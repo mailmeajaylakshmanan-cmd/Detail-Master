@@ -1,5 +1,6 @@
 import { useMemo, useState, useRef, useEffect } from 'react';
-import { ArrowUpDown, ArrowUp, ArrowDown, MoreVertical, Eye, Edit3, Search, Phone, Car, Calendar, Trash2 } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { ArrowUpDown, ArrowUp, ArrowDown, MoreVertical, Eye, Edit3, Search, Phone, Car, Calendar, Trash2, FileText } from 'lucide-react';
 import { formatDate } from '../../utils/dateFormatter.js';
 import CustomerAvatar from './CustomerAvatar.jsx';
 import { VipBadge, OfferBadge } from './Badge.jsx';
@@ -192,6 +193,13 @@ export default function CustomerTable({ rows, selectedId, onSelect, onEdit, onDe
                         >
                           <Eye size={14} className="text-gray-500" /> View Profile
                         </button>
+                        <Link
+                          to={`/master-customer/${row.phone}/billing`}
+                          onClick={(e) => { e.stopPropagation(); setOpenMenuId(null); }}
+                          className="w-full flex items-center gap-2.5 px-4 py-2.5 text-[12px] font-bold text-gray-700 hover:bg-gray-50 hover:text-gray-950 transition-colors"
+                        >
+                          <FileText size={14} className="text-amber-600" /> View Billing & Share
+                        </Link>
                         <button
                           type="button"
                           onClick={(e) => { e.stopPropagation(); onEdit(row.raw); setOpenMenuId(null); }}
@@ -257,6 +265,13 @@ export default function CustomerTable({ rows, selectedId, onSelect, onEdit, onDe
                   
                   {/* Action Buttons */}
                   <div className="flex items-center gap-1.5 shrink-0" onClick={(e) => e.stopPropagation()}>
+                    <Link
+                      to={`/master-customer/${row.phone}/billing`}
+                      className="w-8 h-8 rounded-xl bg-white text-gray-700 border border-gray-200 shadow-xs flex items-center justify-center hover:bg-black hover:text-[#F6CB59] transition-all"
+                      title="Overall Billing & Share"
+                    >
+                      <FileText size={13} strokeWidth={2.5} />
+                    </Link>
                     <button
                       type="button"
                       onClick={() => onSelect(row.phone)}

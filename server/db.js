@@ -13,9 +13,11 @@ const pool = new Pool({
     : { rejectUnauthorized: false },
   max: Number(process.env.PG_POOL_MAX || 20),
   idleTimeoutMillis: 30_000,
-  connectionTimeoutMillis: 5_000,
+  connectionTimeoutMillis: Number(process.env.PG_CONNECTION_TIMEOUT_MS || 15_000),
   statement_timeout: Number(process.env.PG_STATEMENT_TIMEOUT_MS || 30_000),
   query_timeout: Number(process.env.PG_QUERY_TIMEOUT_MS || 30_000),
+  keepAlive: true,
+  keepAliveInitialDelayMillis: 10_000,
   application_name: 'detail-master',
   allowExitOnIdle: true,
 });

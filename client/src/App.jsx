@@ -54,6 +54,7 @@ const MasterCustomer = lazy(() => import('./pages/MasterCustomer.jsx'));
 const MasterOrganization = lazy(() => import('./pages/MasterOrganization.jsx'));
 const OrganizationBilling = lazy(() => import('./pages/OrganizationBilling.jsx'));
 const CustomerProfile = lazy(() => import('./pages/CustomerProfile.jsx'));
+const CustomerBilling = lazy(() => import('./pages/CustomerBilling.jsx'));
 const UpdateCredentials = lazy(() => import('./pages/UpdateCredentials.jsx'));
 const MasterOffers = lazy(() => import('./pages/MasterOffers.jsx'));
 const AssignOffer = lazy(() => import('./pages/AssignOffer.jsx'));
@@ -65,7 +66,6 @@ const UserMenuAssignment = lazy(() => import('./pages/UserMenuAssignment.jsx'));
 const ServiceTimeManagement = lazy(() => import('./pages/ServiceTimeManagement.jsx'));
 const VehicleServiceReport = lazy(() => import('./pages/VehicleServiceReport.jsx'));
 const QuotationPage = lazy(() => import('./pages/QuotationPage.jsx'));
-
 
 function PrivateRoute({ children }) {
   const isAuthenticated = localStorage.getItem('isAuthenticated') === 'true';
@@ -124,6 +124,7 @@ export default function App() {
         <Route path="master-vehicle-type" element={<LazyPage><MasterVehicleType /></LazyPage>} />
         <Route path="master-customer" element={<LazyPage><MasterCustomer /></LazyPage>} />
         <Route path="master-customer/:phone" element={<LazyPage><CustomerProfile /></LazyPage>} />
+        <Route path="master-customer/:phone/billing" element={<LazyPage><CustomerBilling /></LazyPage>} />
         <Route path="master-organization" element={<LazyPage><MasterOrganization /></LazyPage>} />
         <Route path="master-organization/:id/billing" element={<LazyPage><OrganizationBilling /></LazyPage>} />
         <Route path="master-offers" element={<LazyPage><MasterOffers /></LazyPage>} />

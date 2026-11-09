@@ -5,6 +5,7 @@ export const queryKeys = {
     detail: (id) => [...queryKeys.clients.all, 'detail', id],
     options: () => [...queryKeys.clients.all, 'options'],
     lookup: (phone) => [...queryKeys.clients.all, 'lookup', phone],
+    billing: (id, range) => [...queryKeys.clients.all, 'billing', id, range],
   },
   dashboard: {
     all: ['dashboard'],

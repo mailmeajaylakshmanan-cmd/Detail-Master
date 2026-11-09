@@ -676,7 +676,270 @@ function renderOfferHtml(offer) {
   return renderInvoiceHtml(offer);
 }
 
+
+function renderStatementHtml({ client, organization, invoices = [], summary = {}, periodLabel = 'All Time' }) {
+  const isOrg = !!organization;
+  const name = isOrg ? (organization.org_name || organization.name) : (client?.full_name || client?.name || 'Valued Customer');
+  const phone = isOrg ? organization.phone : client?.phone;
+  const email = isOrg ? organization.email : client?.email;
+  const address = isOrg ? organization.address : client?.address;
+  const contactPerson = isOrg ? organization.contact_person : '';
+  const isPaidInFull = (Number(summary.totalOutstanding) || 0) <= 0;
+  const totalInvoices = summary.invoiceCount || invoices.length;
+  const totalVehicles = summary.totalVehicles || 0;
+  const totalBilled = Number(summary.totalBilled || summary.totalRevenue || 0);
+  const totalPaid = Number(summary.totalPaid || 0);
+  const balanceDue = Number(summary.totalOutstanding || 0);
+
+  const rowsHtml = invoices.length === 0 ? `
+    <tr>
+      <td colspan="8" style="padding: 24px; text-align: center; color: #94A3B8; font-style: italic; border: 1px solid #CBD5E1;">
+        No invoices recorded for this period.
+      </td>
+    </tr>
+  ` : invoices.map((inv, idx) => {
+    const veh = inv.vehicles?.[0]
+      ? `${inv.vehicles[0].makeModel || ''} ${inv.vehicles[0].licenseVin ? `(${inv.vehicles[0].licenseVin})` : ''}`.trim()
+      : '—';
+    const svcs = (inv.services || []).join(', ') || 'Detailing Service';
+    const bg = idx % 2 === 0 ? '#FFFFFF' : '#F8FAFC';
+    const bal = Number(inv.balance_due) || 0;
+    const hasDue = bal > 0;
+    return `
+      <tr style="background-color: ${bg}; border-bottom: 1px solid #E2E8F0;">
+        <td style="padding: 7px 8px; text-align: center; color: #64748B; font-size: 11px; border: 1px solid #E2E8F0;">${idx + 1}</td>
+        <td style="padding: 7px 8px; color: #334155; font-size: 11px; white-space: nowrap; border: 1px solid #E2E8F0;">${fmtDate(inv.created_at)}</td>
+        <td style="padding: 7px 8px; font-weight: 700; color: #0F172A; font-size: 11px; border: 1px solid #E2E8F0;">${inv.invoice_number || 'INV'}</td>
+        <td style="padding: 7px 8px; color: #1E293B; font-size: 11px; font-weight: 500; border: 1px solid #E2E8F0;">${veh}</td>
+        <td style="padding: 7px 8px; color: #475569; font-size: 10px; border: 1px solid #E2E8F0;">${svcs}</td>
+        <td style="padding: 7px 8px; text-align: right; font-weight: 700; color: #0F172A; font-size: 11px; white-space: nowrap; border: 1px solid #E2E8F0;">₹${fmt(inv.grand_total)}</td>
+        <td style="padding: 7px 8px; text-align: right; color: #047857; font-weight: 700; font-size: 11px; white-space: nowrap; border: 1px solid #E2E8F0;">₹${fmt(inv.amount_paid)}</td>
+        <td style="padding: 7px 8px; text-align: right; color: ${hasDue ? '#B91C1C' : '#047857'}; font-weight: 700; font-size: 11px; white-space: nowrap; border: 1px solid #E2E8F0;">
+          ${hasDue ? `₹${fmt(bal)}` : '₹0.00'}
+        </td>
+      </tr>
+    `;
+  }).join('');
+
+  return `
+  <!DOCTYPE html>
+  <html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Billing Statement - ${name}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Montserrat:wght@500;700&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+      * { box-sizing: border-box; }
+      @page { size: A4 portrait; margin: 0; }
+      body { margin: 0; padding: 0; background: #ffffff; font-family: 'Inter', 'Segoe UI', Roboto, sans-serif; color: #111827; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .statement-container { width: 820px; margin: 0 auto; background: #ffffff; min-height: 1120px; display: flex; flex-direction: column; position: relative; }
+      .header-wrap { position: relative; height: 115px; background-color: #000000; width: 100%; -webkit-print-color-adjust: exact; print-color-adjust: exact; overflow: hidden; }
+      .layer2 { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #000000; clip-path: polygon(62% 0, 100% 0, 100% 100%, 48% 100%); -webkit-clip-path: polygon(62% 0, 100% 0, 100% 100%, 48% 100%); z-index: 2; }
+      .layer3 { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #FFD700; clip-path: polygon(56% 80%, 100% 80%, 100% 88%, 55% 88%); -webkit-clip-path: polygon(56% 80%, 100% 80%, 100% 88%, 55% 88%); z-index: 3; }
+      .layer5 { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #FFD700; clip-path: polygon(58% 0, 63% 0, 49% 100%, 44% 100%); -webkit-clip-path: polygon(58% 0, 63% 0, 49% 100%, 44% 100%); z-index: 4; }
+      .layer6 { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #2B2A2A; clip-path: polygon(0 0, 58% 0, 44% 100%, 0 100%); -webkit-clip-path: polygon(0 0, 58% 0, 44% 100%, 0 100%); z-index: 5; }
+      
+      .brand-grad-span {
+        display: inline-block;
+        font-family: 'Cinzel', 'Trajan Pro', 'Georgia', serif;
+        font-size: 28px;
+        margin: 0;
+        letter-spacing: 3px;
+        font-weight: 600;
+        background: linear-gradient(to right, #BF953F, #FCF6BA, #B38728, #FBF5B7, #AA771C);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+      table { width: 100%; border-collapse: collapse; }
+      tr { page-break-inside: avoid; break-inside: avoid; }
+      thead { display: table-header-group; }
+      tfoot { display: table-footer-group; page-break-inside: avoid; break-inside: avoid; }
+    </style>
+  </head>
+  <body>
+    <div class="statement-container">
+      <!-- HEADER -->
+      <div class="header-wrap">
+        <div class="layer2"></div>
+        <div class="layer3"></div>
+        <div class="layer5"></div>
+        <div class="layer6"></div>
+
+        <div style="position: relative; z-index: 10; display: flex; justify-content: space-between; padding: 2px 40px 2px 45px; height: 100%;">
+          <div style="display: flex; align-items: center; gap: 24px;">
+            <!-- Logo with shield clip -->
+            <div style="position: relative; filter: drop-shadow(0 4px 8px rgba(0,0,0,0.5)); z-index: 20;">
+              <svg width="0" height="0" style="position: absolute;">
+                <clipPath id="shield-clip" clipPathUnits="objectBoundingBox">
+                  <path d="M 0 0.02 Q 0.5 -0.02 1 0.02 L 1 0.65 C 1 0.88 0.7 1 0.5 1 C 0.3 1 0 0.88 0 0.65 Z" />
+                </clipPath>
+              </svg>
+              <div style="display: flex; align-items: center; justify-content: center; background-color: transparent; clip-path: url(#shield-clip); width: 88px; height: 108px; -webkit-print-color-adjust: exact; print-color-adjust: exact;">
+                ${logoBase64 ? `<img src="${logoBase64}" alt="Logo" style="height: 100%; width: 100%; object-fit: fill; filter: drop-shadow(0 0 1px #fff) drop-shadow(0 0 2px rgba(255,255,255,0.9));" />` : ''}
+              </div>
+            </div>
+            
+            <div style="display: flex; flex-direction: column; line-height: 1.05;">
+              <span class="brand-grad-span">DETAILING</span>
+              <span class="brand-grad-span">MASTERS</span>
+            </div>
+          </div>
+
+          <!-- Center Accent Golden Car -->
+          <div style="position: absolute; left: 65%; top: 29px; transform: translateX(-50%); z-index: 15; pointer-events: none;">
+            ${goldenCarBase64 ? `<img src="${goldenCarBase64}" alt="Car Accent" style="height: 80px; object-fit: contain; filter: drop-shadow(2px 2px 4px rgba(0,0,0,0.4));" />` : ''}
+          </div>
+
+          <!-- Title Right -->
+          <div style="display: flex; align-items: flex-start; padding-right: 24px; padding-top: 20px;">
+            <h1 style="font-family: 'Montserrat', 'Open Sans', sans-serif; font-size: 26px; font-weight: 500; margin: 0; letter-spacing: 0.05em; color: #FFFFFF; filter: drop-shadow(1px 1px 2px rgba(0,0,0,0.6));">STATEMENT</h1>
+          </div>
+        </div>
+      </div>
+
+      <!-- GLOBAL WATERMARK -->
+      ${logoBase64 ? `
+        <div style="position: absolute; top: 115px; bottom: 0; left: 0; right: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; z-index: 0;">
+          <img src="${logoBase64}" style="width: 450px; opacity: 0.04; filter: grayscale(100%);" />
+        </div>
+      ` : ''}
+
+      <!-- BODY CONTENT -->
+      <div style="padding: 16px 36px 12px 36px; display: flex; flex-direction: column; flex: 1; position: relative; z-index: 1;">
+        <!-- Customer & Statement Meta Row -->
+        <div style="display: flex; justify-content: space-between; gap: 16px; margin-bottom: 14px;">
+          <!-- Left: Customer Box -->
+          <div style="flex: 1.2; background-color: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 8px; padding: 10px 14px;">
+            <div style="font-size: 8.5px; font-weight: 800; letter-spacing: 0.08em; color: #64748B; text-transform: uppercase; margin-bottom: 5px; border-bottom: 1px solid #F1F5F9; padding-bottom: 3px;">
+              ${isOrg ? 'BILLED TO (ORGANIZATION)' : 'BILLED TO (CUSTOMER)'}
+            </div>
+            <div style="font-size: 14px; font-weight: 800; color: #0F172A; margin-bottom: 3px;">${name}</div>
+            ${contactPerson ? `<div style="font-size: 10px; color: #334155; margin-bottom: 2px;"><span style="font-weight: 700; color: #64748B;">Contact Person:</span> ${contactPerson}</div>` : ''}
+            ${phone ? `<div style="font-size: 10px; color: #334155; margin-bottom: 2px;"><span style="font-weight: 700; color: #64748B;">Phone:</span> ${phone}</div>` : ''}
+            ${email ? `<div style="font-size: 10px; color: #334155; margin-bottom: 2px;"><span style="font-weight: 700; color: #64748B;">Email:</span> ${email}</div>` : ''}
+            ${address ? `<div style="font-size: 10px; color: #334155;"><span style="font-weight: 700; color: #64748B;">Address:</span> ${address}</div>` : ''}
+          </div>
+
+          <!-- Right: Statement Meta Box -->
+          <div style="flex: 1; background-color: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 8px; padding: 10px 14px;">
+            <div style="font-size: 8.5px; font-weight: 800; letter-spacing: 0.08em; color: #64748B; text-transform: uppercase; margin-bottom: 5px; border-bottom: 1px solid #F1F5F9; padding-bottom: 3px;">
+              STATEMENT OF ACCOUNT
+            </div>
+            <div style="font-size: 10px; color: #334155; display: flex; justify-content: space-between; margin-bottom: 2.5px;">
+              <span style="font-weight: 700; color: #64748B;">Statement Date:</span>
+              <span style="font-weight: 600;">${fmtDate(new Date())}</span>
+            </div>
+            <div style="font-size: 10px; color: #334155; display: flex; justify-content: space-between; margin-bottom: 2.5px;">
+              <span style="font-weight: 700; color: #64748B;">Statement Period:</span>
+              <span style="font-weight: 600;">${periodLabel}</span>
+            </div>
+            <div style="font-size: 10px; color: #334155; display: flex; justify-content: space-between; margin-bottom: 2.5px;">
+              <span style="font-weight: 700; color: #64748B;">Total Invoices:</span>
+              <span style="font-weight: 600;">${totalInvoices}</span>
+            </div>
+            ${totalVehicles ? `
+              <div style="font-size: 10px; color: #334155; display: flex; justify-content: space-between; margin-bottom: 2.5px;">
+                <span style="font-weight: 700; color: #64748B;">Vehicles Serviced:</span>
+                <span style="font-weight: 600;">${totalVehicles}</span>
+              </div>
+            ` : ''}
+            <div style="margin-top: 5px; padding-top: 5px; border-top: 1px dashed #CBD5E1; text-align: center; background-color: #F8FAFC; border-radius: 6px; padding: 5px 8px;">
+              <div style="font-size: 8.5px; text-transform: uppercase; letter-spacing: 0.08em; color: ${isPaidInFull ? '#047857' : '#991B1B'}; font-weight: 800;">
+                ${isPaidInFull ? 'ACCOUNT STATUS' : 'NET OUTSTANDING BALANCE'}
+              </div>
+              <div style="font-size: 15px; font-weight: 900; color: ${isPaidInFull ? '#047857' : '#991B1B'}; margin-top: 2px;">
+                ${isPaidInFull ? 'PAID IN FULL (₹0.00)' : `₹${fmt(balanceDue)}`}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Invoices Table -->
+        <div style="background-color: #FFFFFF; border: 1px solid #CBD5E1; border-radius: 8px; overflow: hidden; margin-bottom: 12px;">
+          <table>
+            <thead>
+              <tr style="background-color: #0F172A; color: #FFFFFF;">
+                <th style="padding: 7px 8px; font-size: 8.5px; font-weight: 800; letter-spacing: 0.06em; text-align: center; width: 4%;">#</th>
+                <th style="padding: 7px 8px; font-size: 8.5px; font-weight: 800; letter-spacing: 0.06em; text-align: left; width: 11%;">DATE</th>
+                <th style="padding: 7px 8px; font-size: 8.5px; font-weight: 800; letter-spacing: 0.06em; text-align: left; width: 16%;">INVOICE NO</th>
+                <th style="padding: 7px 8px; font-size: 8.5px; font-weight: 800; letter-spacing: 0.06em; text-align: left; width: 19%;">VEHICLE</th>
+                <th style="padding: 7px 8px; font-size: 8.5px; font-weight: 800; letter-spacing: 0.06em; text-align: left; width: 20%;">SERVICES</th>
+                <th style="padding: 7px 8px; font-size: 8.5px; font-weight: 800; letter-spacing: 0.06em; text-align: right; width: 10%;">BILLED</th>
+                <th style="padding: 7px 8px; font-size: 8.5px; font-weight: 800; letter-spacing: 0.06em; text-align: right; width: 10%;">PAID</th>
+                <th style="padding: 7px 8px; font-size: 8.5px; font-weight: 800; letter-spacing: 0.06em; text-align: right; width: 10%;">BALANCE</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rowsHtml}
+            </tbody>
+            <tfoot>
+              <tr style="background-color: #F1F5F9; border-top: 2px solid #CBD5E1;">
+                <td colspan="5" style="padding: 7px 8px; font-weight: 900; font-size: 10.5px; text-align: right; color: #0F172A;">GRAND TOTALS:</td>
+                <td style="padding: 7px 8px; font-weight: 900; font-size: 10.5px; text-align: right; color: #0F172A;">₹${fmt(totalBilled)}</td>
+                <td style="padding: 7px 8px; font-weight: 900; font-size: 10.5px; text-align: right; color: #047857;">₹${fmt(totalPaid)}</td>
+                <td style="padding: 7px 8px; font-weight: 900; font-size: 10.5px; text-align: right; color: ${isPaidInFull ? '#047857' : '#B91C1C'};">₹${fmt(balanceDue)}</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+
+        <!-- Bottom Reconciliation Summary -->
+        <div style="display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; margin-bottom: 12px;">
+          <div style="flex: 1.3; background-color: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px; padding: 9px 12px;">
+            <div style="font-size: 9px; font-weight: 800; color: #0F172A; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.05em;">
+              PAYMENT & ACCOUNT TERMS
+            </div>
+            <div style="font-size: 8.5px; color: #475569; line-height: 1.55;">
+              • All services performed with genuine ceramic formulations and detailing care.<br />
+              • UPI / GPay / PhonePe Transfer: <strong>9111977721</strong> (Detailing Masters).<br />
+              • For any statement billing queries, reach us at <strong>+91 9111977721</strong> or <strong>detailingmasters2024@gmail.com</strong>.
+            </div>
+          </div>
+
+          <div style="flex: 0.9; background-color: #FFFFFF; border: 1.5px solid #CBD5E1; border-radius: 8px; padding: 9px 12px;">
+            <div style="display: flex; justify-content: space-between; font-size: 9.5px; color: #334155; margin-bottom: 3px;">
+              <span>Gross Total Billed:</span>
+              <span style="font-weight: 700; color: #0F172A;">₹${fmt(totalBilled)}</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; font-size: 9.5px; color: #334155; margin-bottom: 3px;">
+              <span>Total Amount Paid:</span>
+              <span style="font-weight: 700; color: #047857;">₹${fmt(totalPaid)}</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; font-size: 9.5px; border-top: 1.5px solid #CBD5E1; padding-top: 5px; margin-top: 3px;">
+              <span style="font-weight: 800; color: #0F172A; font-size: 11px;">Net Balance Due:</span>
+              <span style="font-weight: 900; font-size: 13px; color: ${isPaidInFull ? '#047857' : '#B91C1C'};">
+                ₹${fmt(balanceDue)}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Authorized Signatory -->
+        <div style="align-self: flex-end; width: 160px; text-align: center; margin-top: auto; margin-bottom: 4px;">
+          <div style="width: 100%; border-bottom: 1.5px solid #64748B; margin-bottom: 4px;"></div>
+          <div style="font-size: 9px; font-weight: 800; color: #334155; letter-spacing: 0.05em;">AUTHORIZED SIGNATORY</div>
+          <div style="font-size: 8px; color: #64748B;">Detailing Masters Studio</div>
+        </div>
+      </div>
+
+      <!-- FOOTER -->
+      <div style="margin: 0 40px; border-top: 1.5px solid #111; padding-top: 12px; padding-bottom: 22px; text-align: center; font-size: 11px; color: #111; z-index: 10; position: relative;">
+        <strong>Detailing Masters</strong>, Opposite KTM Bike Showroom, Chankai, Marthandam, Tamil Nadu 629155.<br/>
+        Ph: +91 9111977721 , 9655633529 | E-mail: detailingmasters2024@gmail.com
+      </div>
+    </div>
+  </body>
+  </html>
+  `;
+}
+
 module.exports = {
+  renderStatementHtml,
+
   renderInvoiceHtml,
   renderServiceReportHtml,
   renderOfferHtml,

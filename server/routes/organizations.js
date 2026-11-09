@@ -1,3 +1,5 @@
+const { getBrowser } = require('../utils/pdf');
+const { renderStatementHtml } = require('../utils/invoiceHtmlTemplate');
 const express = require('express');
 const router = express.Router();
 const db = require('../db');
@@ -149,6 +151,9 @@ router.get('/:id/invoices', protect, async (req, res) => {
     const { id } = req.params;
     const { from, to } = req.query;
 
+    const orgRes = await db.query('SELECT * FROM organizations WHERE id = $1', [id]);
+    const organization = orgRes.rows[0] || null;
+
     const { rows } = await db.query(
       `WITH svc AS (
          SELECT invoice_order_id, COALESCE(SUM(unit_price), 0) AS revenue
@@ -179,8 +184,26 @@ router.get('/:id/invoices', protect, async (req, res) => {
          i.grand_total, i.amount_paid, i.balance_due, i.discount,
          (COALESCE(svc.revenue, 0) + COALESCE(tp.revenue, 0) - i.discount) AS revenue,
          (COALESCE(svc.revenue, 0) + COALESCE(tp.revenue, 0) - COALESCE(tp.cost, 0) - i.discount) AS profit,
-         COALESCE(veh.vehicles, '[]') AS vehicles
+         COALESCE(
+           veh.vehicles,
+           CASE WHEN hv.id IS NOT NULL THEN
+             json_build_array(json_build_object(
+               'vehicleId', hv.id,
+               'makeModel', hv.make_model,
+               'licenseVin', hv.license_vin
+             ))
+           ELSE '[]'::json END
+         ) AS vehicles,
+         (
+           SELECT COALESCE(json_agg(svc_name), '[]'::json)
+           FROM (
+             SELECT s.service_name AS svc_name FROM invoice_services isv2 JOIN services s ON s.id = isv2.service_id WHERE isv2.invoice_order_id = i.id
+             UNION
+             SELECT itp.service_name AS svc_name FROM invoice_third_party_services itp WHERE itp.invoice_order_id = i.id
+           ) s_all
+         ) AS services
        FROM invoices i
+       LEFT JOIN vehicles hv ON i.vehicle_id = hv.id
        LEFT JOIN svc ON svc.invoice_order_id = i.id
        LEFT JOIN tp ON tp.invoice_order_id = i.id
        LEFT JOIN veh ON veh.invoice_order_id = i.id
@@ -191,14 +214,25 @@ router.get('/:id/invoices', protect, async (req, res) => {
       [id, from || null, to || null]
     );
 
-    const summary = rows.reduce((acc, r) => ({
-      invoiceCount: acc.invoiceCount + 1,
-      totalRevenue: acc.totalRevenue + Number(r.revenue),
-      totalProfit: acc.totalProfit + Number(r.profit),
-      totalOutstanding: acc.totalOutstanding + Number(r.balance_due),
-    }), { invoiceCount: 0, totalRevenue: 0, totalProfit: 0, totalOutstanding: 0 });
+    const vehicleSet = new Set();
+    const summary = rows.reduce((acc, r) => {
+      (r.vehicles || []).forEach(v => {
+        if (v.licenseVin || v.makeModel) vehicleSet.add(v.licenseVin || v.makeModel);
+      });
+      return {
+        invoiceCount: acc.invoiceCount + 1,
+        totalRevenue: acc.totalRevenue + Number(r.revenue || r.grand_total || 0),
+        totalBilled: acc.totalBilled + Number(r.grand_total || 0),
+        totalProfit: acc.totalProfit + Number(r.profit || 0),
+        totalPaid: acc.totalPaid + Number(r.amount_paid || 0),
+        totalOutstanding: acc.totalOutstanding + Number(r.balance_due || 0),
+        totalDiscount: acc.totalDiscount + Number(r.discount || 0),
+      };
+    }, { invoiceCount: 0, totalRevenue: 0, totalBilled: 0, totalProfit: 0, totalPaid: 0, totalOutstanding: 0, totalDiscount: 0 });
 
-    res.json({ invoices: rows, summary });
+    summary.totalVehicles = vehicleSet.size;
+
+    res.json({ organization, invoices: rows, summary });
   } catch (err) {
     console.error('Error fetching organization billing:', err);
     res.status(500).json({ error: 'Failed to fetch organization billing' });
@@ -250,6 +284,118 @@ router.delete('/:id', protect, async (req, res) => {
   } catch (err) {
     console.error('Error deleting organization:', err);
     res.status(500).json({ message: 'Failed to delete organization' });
+  }
+});
+
+
+// GET /organizations/:id/statement-pdf — High-fidelity Puppeteer Chrome PDF generation (identical to print)
+router.get('/:id/statement-pdf', protect, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { from, to, periodLabel } = req.query;
+
+    const orgRes = await db.query('SELECT * FROM organizations WHERE id = $1', [id]);
+    const organization = orgRes.rows[0] || null;
+    if (!organization) {
+      return res.status(404).json({ error: 'Organization not found' });
+    }
+
+    const { rows } = await db.query(
+      `WITH svc AS (
+         SELECT invoice_order_id, COALESCE(SUM(unit_price), 0) AS revenue
+         FROM invoice_services GROUP BY invoice_order_id
+       ),
+       tp AS (
+         SELECT invoice_order_id,
+                COALESCE(SUM(selling_price), 0) AS revenue,
+                COALESCE(SUM(labour_charge), 0) AS cost
+         FROM invoice_third_party_services GROUP BY invoice_order_id
+       ),
+       veh AS (
+         SELECT iv.invoice_order_id,
+                json_agg(json_build_object(
+                  'vehicleId', iv.vehicle_id,
+                  'makeModel', v.make_model,
+                  'licenseVin', v.license_vin,
+                  'visitorName', iv.visitor_name,
+                  'checkinTime', iv.checkin_time,
+                  'checkoutTime', iv.checkout_time
+                ) ORDER BY iv.id) AS vehicles
+         FROM invoice_vehicles iv
+         JOIN vehicles v ON iv.vehicle_id = v.id
+         GROUP BY iv.invoice_order_id
+       )
+       SELECT
+         i.id, i.invoice_number, i.status, i.created_at,
+         i.grand_total, i.amount_paid, i.balance_due, i.discount,
+         COALESCE(
+           veh.vehicles,
+           CASE WHEN hv.id IS NOT NULL THEN
+             json_build_array(json_build_object(
+               'vehicleId', hv.id,
+               'makeModel', hv.make_model,
+               'licenseVin', hv.license_vin
+             ))
+           ELSE '[]'::json END
+         ) AS vehicles,
+         (
+           SELECT COALESCE(json_agg(svc_name), '[]'::json)
+           FROM (
+             SELECT s.service_name AS svc_name FROM invoice_services isv2 JOIN services s ON s.id = isv2.service_id WHERE isv2.invoice_order_id = i.id
+             UNION
+             SELECT itp.service_name AS svc_name FROM invoice_third_party_services itp WHERE itp.invoice_order_id = i.id
+           ) s_all
+         ) AS services
+       FROM invoices i
+       LEFT JOIN vehicles hv ON i.vehicle_id = hv.id
+       LEFT JOIN svc ON svc.invoice_order_id = i.id
+       LEFT JOIN tp ON tp.invoice_order_id = i.id
+       LEFT JOIN veh ON veh.invoice_order_id = i.id
+       WHERE i.organization_id = $1
+         AND ($2::timestamp IS NULL OR i.created_at >= $2::timestamp)
+         AND ($3::timestamp IS NULL OR i.created_at < $3::timestamp)
+       ORDER BY i.created_at DESC`,
+      [id, from || null, to || null]
+    );
+
+    const vehicleSet = new Set();
+    const summary = rows.reduce((acc, r) => {
+      (r.vehicles || []).forEach(v => {
+        if (v.licenseVin || v.makeModel) vehicleSet.add(v.licenseVin || v.makeModel);
+      });
+      return {
+        invoiceCount: acc.invoiceCount + 1,
+        totalBilled: acc.totalBilled + Number(r.grand_total || 0),
+        totalRevenue: acc.totalRevenue + Number(r.grand_total || 0),
+        totalPaid: acc.totalPaid + Number(r.amount_paid || 0),
+        totalOutstanding: acc.totalOutstanding + Number(r.balance_due || 0),
+        totalDiscount: acc.totalDiscount + Number(r.discount || 0),
+      };
+    }, { invoiceCount: 0, totalBilled: 0, totalRevenue: 0, totalPaid: 0, totalOutstanding: 0, totalDiscount: 0 });
+
+    summary.totalVehicles = vehicleSet.size;
+
+    const html = renderStatementHtml({
+      organization,
+      invoices: rows,
+      summary,
+      periodLabel: periodLabel || 'All Time',
+    });
+
+    const browser = await getBrowser();
+    const page = await browser.newPage();
+    await page.setContent(html, { waitUntil: 'load' });
+    const pdfBuffer = await page.pdf({
+      format: 'A4',
+      printBackground: true,
+      margin: { top: '0', bottom: '0', left: '0', right: '0' }
+    });
+    await page.close();
+
+    res.json({ base64: Buffer.from(pdfBuffer).toString('base64') });
+  } catch (err) {
+    console.error('Organization statement PDF generation error:', err);
+    res.status(500).json({ error: 'Failed to generate organization statement PDF: ' + err.message });
   }
 });
 

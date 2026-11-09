@@ -20,7 +20,7 @@ export async function generatePDFBlob(elementId = 'invoice-print', filename = 'd
   container.style.top = '-99999px';
   container.style.left = '0';
   container.style.width = '794px';
-  container.style.minHeight = '1120px';
+  container.style.height = 'auto';
   container.style.margin = '0';
   container.style.padding = '0';
   container.style.zIndex = '-99999';
@@ -32,6 +32,7 @@ export async function generatePDFBlob(elementId = 'invoice-print', filename = 'd
   // Normalize clone container styles
   clone.style.width = '794px';
   clone.style.maxWidth = '794px';
+  clone.style.height = 'auto';
   clone.style.minHeight = '1120px';
   clone.style.margin = '0';
   clone.style.padding = '0';
@@ -42,6 +43,18 @@ export async function generatePDFBlob(elementId = 'invoice-print', filename = 'd
   clone.style.position = 'relative';
   clone.style.top = '0';
   clone.style.left = '0';
+
+  // Normalize brand wordmark on clone so html2canvas doesn't render a solid gradient rectangle
+  clone.querySelectorAll('.brand-wordmark, [data-brand-wordmark], span, div').forEach(el => {
+    if (el.classList?.contains('brand-wordmark') || el.style?.webkitBackgroundClip === 'text' || el.style?.backgroundClip === 'text') {
+      el.style.background = 'none';
+      el.style.backgroundImage = 'none';
+      el.style.webkitBackgroundClip = 'initial';
+      el.style.backgroundClip = 'initial';
+      el.style.webkitTextFillColor = '#DFB248';
+      el.style.color = '#DFB248';
+    }
+  });
 
   container.appendChild(clone);
   document.body.appendChild(container);
